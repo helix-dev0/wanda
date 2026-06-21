@@ -92,15 +92,19 @@ package's own types. Explicitly flag anything that cannot be verified. For Noita
 the equivalent of Context7 is the **actual Lua source** — the game's own scripts and the reused
 mod/engine repos. Read them, don't recall them.
 
-## Commands
+## Stack & commands
 
-> **Not yet scaffolded.** The app does not exist until M2. When the Vite app is scaffolded,
-> record the real build / lint / test / single-test / dev-server commands here. Locked core:
-> TypeScript + React + Vite (invariant #1). **Pin every dependency to the latest stable,
-> best-in-class option, version-checked via Context7 at scaffold time** — test runner (Vitest the
-> likely default), state management, file-watch lib, and the cross-platform desktop shell
-> (Tauri vs Electron — decided in the plan, favouring the lighter cross-platform option given
-> invariant #8). **Do not fabricate commands or version numbers before the scaffold exists.**
+**Decided (2026-06-21, plan approved; versions Context7-verified — see `docs/plan.md`):**
+TypeScript 6 · React 19 · Vite 8 (`react-ts`) · Vitest 4 · **Valibot** (schema validation) ·
+chokidar 5 (live-bridge file-watch; Node ≥20, ESM-only) · **Tauri v2** (M6 packaging + overlay) ·
+Zustand 5 (run-state). **Single Vite app, not a monorepo:** `src/{schema,engine,analysis,
+generation,store,ui,data}` plus `mod/`, `bridge/`, `src-tauri/`. Live data flows through a small
+Node chokidar→WebSocket sidecar behind `VITE_LIVE=1`; **fixtures are the default and the app must
+always run without the bridge.**
+
+> **Not yet scaffolded** (scaffold = task M0-T1). Record the real build / lint / test /
+> single-test / dev-server commands here once they exist — do not fabricate them before then.
+> Confirm latest patch versions via Context7 at scaffold time.
 
 ## Workflow notes
 - Spec → plan → implementation are distinct phases; the `.md` artifact is the handoff.

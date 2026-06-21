@@ -2,7 +2,7 @@
 
 > Derived from `noita-wand-assistant-spec.md` v0.2 and `CLAUDE.md`. Grounded in three
 > source-verified research passes (engine, TS stack via Context7, Noita modding API).
-> **Status: awaiting human review before any build (Job 3 → Job 4 gate).**
+> **Status: APPROVED 2026-06-21 — all open questions resolved; ready to build M0 (Job 4).**
 
 ## Overview
 
@@ -344,15 +344,14 @@ live bridge. **Sequenced thin-first:** core snapshot proven before any world-sca
 | Tauri Rust toolchain friction | Low | Deferred to M6; M2–M5 are pure Vite. |
 | Generation combinatorial blow-up | Med | Templates + local search + capped budget; never brute force. |
 
-## Open questions — your nod at review makes Job 4 unblocked
+## Decisions resolved at review (2026-06-21) — approved; Job 4 unblocked
 
-1. **Bridge architecture:** small Node chokidar→WebSocket sidecar for live mode in M1-T5, folded
-   into Tauri at M6 — good? (Alternative: defer *all* live data to M6.)
-2. **Repo structure:** single Vite `react-ts` app with `src/` subdirs (not a monorepo) — good?
-3. **M0 scaffolds the real app now** (react-ts), UI deferred to M2 — good? (Alt: barebones TS for M0.)
-4. **Valibot** over Zod for schema validation (smaller/faster; swappable via Standard-Schema) — any
-   preference for Zod?
-5. **In-game verification checklist** (below) accepted as M1's human-loop acceptance criteria?
+All five confirmed by the maintainer:
+1. ✅ **Bridge architecture:** small Node chokidar→WebSocket sidecar for live mode (M1-T5), folded into Tauri at M6.
+2. ✅ **Repo structure:** single Vite `react-ts` app with `src/` subdirs (not a monorepo).
+3. ✅ **M0 scaffolds the real app now** (react-ts); UI deferred to M2.
+4. ✅ **Valibot** for schema validation (smaller/faster than Zod; swappable via Standard-Schema).
+5. ✅ **In-game verification checklist** (below) accepted as M1's human-loop acceptance criteria.
 
 ## Appendix — M1 "MUST VERIFY IN-GAME" checklist (human-loop checkpoints)
 
