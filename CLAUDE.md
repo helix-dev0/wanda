@@ -102,9 +102,23 @@ generation,store,ui,data}` plus `mod/`, `bridge/`, `src-tauri/`. Live data flows
 Node chokidar→WebSocket sidecar behind `VITE_LIVE=1`; **fixtures are the default and the app must
 always run without the bridge.**
 
-> **Not yet scaffolded** (scaffold = task M0-T1). Record the real build / lint / test /
-> single-test / dev-server commands here once they exist — do not fabricate them before then.
-> Confirm latest patch versions via Context7 at scaffold time.
+**Scaffolded at M0-T1 (2026-06-21).** Single Vite `react-ts` app at repo root. Requires Node ≥20
+(developed on Node 26). Installed at latest patches: Vite 8.0.16 · React 19.2.7 · TypeScript 6.0.3
+· Vitest 4.1.9 · Valibot 1.4.1. Commands:
+
+| Task | Command |
+|---|---|
+| Install | `npm install` |
+| Dev server | `npm run dev` |
+| Build (typecheck + bundle) | `npm run build` (`tsc -b && vite build`) |
+| Typecheck only | `npm run typecheck` (`tsc -b`) |
+| Test (once / CI) | `npm test` (`vitest run`) |
+| Test (watch) | `npm run test:watch` |
+| Single test by file/name | `npm test -- snapshot` (filename substring) · `npm test -- -t "rejects"` (test name) |
+| Lint | `npm run lint` (`eslint .`) |
+
+Test config: `vitest.config.ts` (Node env, `src/**/*.test.ts`, globals off — import from `vitest`).
+chokidar 5 / Tauri v2 / Zustand 5 are NOT yet installed — added at their milestones (M1-T5 / M6 / M2).
 
 ## Workflow notes
 - Spec → plan → implementation are distinct phases; the `.md` artifact is the handoff.
