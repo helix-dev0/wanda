@@ -26,6 +26,8 @@ local function esc(s)
   s = s:gsub("\n", "\\n")
   s = s:gsub("\r", "\\r")
   s = s:gsub("\t", "\\t")
+  -- remaining control bytes (0x00-0x1F) -> \uXXXX so output is always valid JSON
+  s = s:gsub("[%z\1-\31]", function(c) return string.format("\\u%04x", c:byte()) end)
   return '"' .. s .. '"'
 end
 

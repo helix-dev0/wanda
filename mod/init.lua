@@ -46,11 +46,11 @@ local function build_deck(spells, capacity)
   local cap = math.floor((capacity or 0) + 0.5)
   for i = 1, cap do deck[i] = NULL end
   for _, s in ipairs(spells) do
-    local x = s.inventory_x
-    if type(x) == "number" and x >= 1 and x <= cap then
-      deck[x] = s.action_id
+    local x = s.inventory_x -- EZWand inventory_x is 0-based (slot 0 = first)
+    if type(x) == "number" and x >= 0 and x < cap then
+      deck[x + 1] = s.action_id -- 0-based slot -> 1-based Lua array
     else
-      deck[#deck + 1] = s.action_id
+      deck[#deck + 1] = s.action_id -- genuinely out of range: append
     end
   end
   return deck
@@ -192,20 +192,29 @@ local function sanitize(value, depth)
   if t == "function" or t == "userdata" or t == "thread" then return nil end
   if t ~= "table" then return value end
   if depth > 6 then return nil end
-  local n = #value
-  if n > 0 then
-    local arr = json.array({})
-    for i = 1, n do arr[i] = sanitize(value[i], depth + 1) end
-    return arr
-  end
-  local obj = {}
-  for k, v2 in pairs(value) do
+  -- Array vs object: any string key => object; otherwise (only integer keys, or
+  -- empty) => array, so an empty game list encodes as [] not {} (the DB schemas
+  -- require arrays for list fields like related_projectiles).
+  local has_string_key = false
+  for k in pairs(value) do
     if type(k) == "string" then
-      local sv = sanitize(v2, depth + 1)
-      if sv ~= nil then obj[k] = sv end
+      has_string_key = true
+      break
     end
   end
-  return obj
+  if has_string_key then
+    local obj = {}
+    for k, v2 in pairs(value) do
+      if type(k) == "string" then
+        local sv = sanitize(v2, depth + 1)
+        if sv ~= nil then obj[k] = sv end
+      end
+    end
+    return obj
+  end
+  local arr = json.array({})
+  for i = 1, #value do arr[i] = sanitize(value[i], depth + 1) end
+  return arr
 end
 
 local function dump_databases()
