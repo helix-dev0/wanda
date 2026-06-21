@@ -1,0 +1,6 @@
+<Mod
+	name="wand_capture (M0 fixture capture)"
+	description="THROWAWAY one-shot state-capture mod for the Noita wand assistant. F8 writes a snapshot JSON of the held wand + spell bag + acquired perks; F7 dumps the spell + perk databases once. Extraction only - no logic, no UI. Requires unsafe mods (io for file writing)."
+	request_no_api_restrictions="1"
+>
+</Mod>
