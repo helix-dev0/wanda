@@ -59,8 +59,11 @@ Two components plus a bridge (see spec §3). Guiding principle: **keep the untes
 tiny and dumb; put all logic in the app where automation is total.**
 
 - **Component A — Noita extraction mod (Lua).** Reads game state via the ECS / EZWand and emits
-  a JSON snapshot **on change only**. Also dumps the spell DB once from the running game's own
-  `gun_actions.lua`. No analysis, no UI.
+  a JSON snapshot **on change only** (held wands, spell inventory, acquired perks; world-visible
+  shop/pedestal/perk-offering contents arrive in a later additive slice). Also dumps the spell DB
+  (`gun_actions.lua`) and perk DB (`perk_list.lua`) once from the running game. No analysis, no UI.
+  **Must read the spell inventory compatibly with the Advanced Spell Inventory mod** (Workshop
+  `3267869519`, a QoL inventory mod the maintainer runs) — source-verify its storage at M1.
 - **Bridge.** Default = mod writes `snapshot.json` to a known path; app file-watches it
   (~250ms latency, no native code). Optional later = localhost websocket via FFI + `pollws.dll`.
 - **Component B — Companion app (TypeScript/React/Vite).** Modules: ingestion+schema-validate →
@@ -82,15 +85,22 @@ candidates) · `TheHorscht/EZWand` (Lua wand read/write) · Streamer Wands &
 
 ## Source-grounding rule
 Ground every Noita-modding and framework decision in official docs or the reused engine's
-**actual code** — never write API/library calls from memory. Use the installed package's types
-+ Context7. Explicitly flag anything that cannot be verified.
+**actual code** — never write API/library calls from memory. **Context7 is the default doc
+source for every library/framework/SDK throughout this project** — resolve the library and
+query its docs before writing or changing framework code; supplement with the installed
+package's own types. Explicitly flag anything that cannot be verified. For Noita/Lua specifics
+the equivalent of Context7 is the **actual Lua source** — the game's own scripts and the reused
+mod/engine repos. Read them, don't recall them.
 
 ## Commands
 
 > **Not yet scaffolded.** The app does not exist until M2. When the Vite app is scaffolded,
-> record the real build / lint / test / single-test / dev-server commands here. Planned stack:
-> TypeScript + React + Vite with Vitest for unit tests. **Do not fabricate commands before the
-> scaffold exists.**
+> record the real build / lint / test / single-test / dev-server commands here. Locked core:
+> TypeScript + React + Vite (invariant #1). **Pin every dependency to the latest stable,
+> best-in-class option, version-checked via Context7 at scaffold time** — test runner (Vitest the
+> likely default), state management, file-watch lib, and the cross-platform desktop shell
+> (Tauri vs Electron — decided in the plan, favouring the lighter cross-platform option given
+> invariant #8). **Do not fabricate commands or version numbers before the scaffold exists.**
 
 ## Workflow notes
 - Spec → plan → implementation are distinct phases; the `.md` artifact is the handoff.
