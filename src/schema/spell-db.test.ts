@@ -90,6 +90,16 @@ describe('SpellDbSchema', () => {
     expect(entryErrorPaths({ ...LIGHT_BULLET, mana: 'lots' })).toContain('mana')
   })
 
+  it('accepts heterogeneous related_projectiles ([path, count]) — real M0-T5 shape', () => {
+    const ducks = {
+      id: 'EXPLODING_DUCKS',
+      type: ACTION_TYPE.PROJECTILE,
+      name: '$action_exploding_ducks',
+      related_projectiles: ['data/entities/projectiles/deck/duck.xml', 3],
+    }
+    expect(v.safeParse(SpellDbEntrySchema, ducks).success).toBe(true)
+  })
+
   it('reports the array index in errors for a bad entry in the DB', () => {
     const r = v.safeParse(SpellDbSchema, [LIGHT_BULLET, { ...DAMAGE, type: 99 }])
     expect(r.success).toBe(false)

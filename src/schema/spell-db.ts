@@ -69,8 +69,11 @@ export const SpellDbEntrySchema = v.looseObject({
   spawn_level: v.optional(v.string()), // CSV, may be ""
   spawn_probability: v.optional(v.string()), // CSV
   price: v.optional(v.number()),
-  related_projectiles: v.optional(v.array(v.string())),
-  related_extra_entities: v.optional(v.array(v.string())),
+  // Noita stores these as [xml_path, optional_count, ...] — heterogeneous
+  // string|number elements (e.g. EXPLODING_DUCKS = ["…/duck.xml", 3]). Found via
+  // real fixtures at M0-T5; do not narrow back to string[].
+  related_projectiles: v.optional(v.array(v.union([v.string(), v.number()]))),
+  related_extra_entities: v.optional(v.array(v.union([v.string(), v.number()]))),
   custom_xml_file: v.optional(v.string()),
   spawn_requires_flag: v.optional(v.string()),
   // rare boolean flags
