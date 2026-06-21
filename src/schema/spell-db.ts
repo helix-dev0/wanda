@@ -24,8 +24,8 @@ import * as v from 'valibot'
  *  - `spawn_level`/`spawn_probability` are CSV strings (and may be "").
  *
  * Real captured fixtures are the final source of truth and reconcile this
- * schema at M0-T5; modded spells are tolerated via the lenient object (unknown
- * keys ignored) and mostly-optional fields.
+ * schema at M0-T5; modded/edge spells are tolerated via looseObject (unknown
+ * keys are PRESERVED on output, not dropped) plus mostly-optional fields.
  */
 
 /** ACTION_TYPE_* constants (gun_enums.lua) — the numeric `type` values. */
@@ -58,7 +58,7 @@ export type SpellType = v.InferOutput<typeof SpellTypeSchema>
 
 /** One dumped spell. Only `id`, `type`, `name` are required (universal in
  *  vanilla); everything else is optional so modded/edge entries still parse. */
-export const SpellDbEntrySchema = v.object({
+export const SpellDbEntrySchema = v.looseObject({
   id: v.string(),
   type: SpellTypeSchema,
   name: v.string(), // loc key, e.g. "$action_black_hole"

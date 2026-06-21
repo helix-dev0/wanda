@@ -23,8 +23,8 @@ import * as v from 'valibot'
  *  - Acquired-perk state is recovered at runtime, not from this DB: run flag
  *    `PERK_PICKED_<id>` + Globals `PERK_PICKED_<id>_PICKUP_COUNT` (perk.lua).
  *
- * Lenient object (unknown keys ignored) tolerates the many rare raw-dump fields
- * and modded perks; real fixtures reconcile this schema at M0-T5.
+ * looseObject (unknown keys are PRESERVED on output, not dropped) tolerates the
+ * many rare raw-dump fields and modded perks; real fixtures reconcile at M0-T5.
  */
 
 /**
@@ -54,7 +54,7 @@ export type PerkEffects = v.InferOutput<typeof PerkEffectsSchema>
 
 /** One dumped perk. Only `id`, `ui_name`, `ui_description` are required
  *  (universal across all 157 vanilla perks); the rest are optional. */
-export const PerkDbEntrySchema = v.object({
+export const PerkDbEntrySchema = v.looseObject({
   id: v.string(), // bare uppercase id, e.g. "PROTECTION_FIRE"
   ui_name: v.string(), // loc key "$perk_…"
   ui_description: v.string(), // loc key "$perkdesc_…"

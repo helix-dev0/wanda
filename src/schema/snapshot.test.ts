@@ -90,6 +90,12 @@ describe('SnapshotSchema', () => {
     expect(v.safeParse(SnapshotSchema, input).success).toBe(true)
   })
 
+  it('treats an omitted uses_remaining as valid (unlimited loose spell)', () => {
+    const input = makeValidSnapshot()
+    input.spell_inventory.push({ action_id: 'SPARK_BOLT' }) // nullish: may omit uses_remaining
+    expect(v.safeParse(SnapshotSchema, input).success).toBe(true)
+  })
+
   it('rejects a missing wand stat with a field-level error (manaMax)', () => {
     const input = makeValidSnapshot()
     // @ts-expect-error deliberately constructing an invalid value

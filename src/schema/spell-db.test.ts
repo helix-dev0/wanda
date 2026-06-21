@@ -65,6 +65,18 @@ describe('SpellDbSchema', () => {
     expect(v.safeParse(SpellDbEntrySchema, LIGHT_BULLET).success).toBe(true)
   })
 
+  it('preserves unknown raw-dump fields on output (looseObject round-trip)', () => {
+    // gun_actions.lua entries carry fields we do not model (sprite_unidentified,
+    // related_extra_entities, modded keys); the engine adapter (M3) may need them.
+    const parsed = v.parse(SpellDbEntrySchema, {
+      ...LIGHT_BULLET,
+      sprite_unidentified: 'data/ui_gfx/gun_actions/light_bullet_unidentified.png',
+      modded_field: 7,
+    }) as Record<string, unknown>
+    expect(parsed.sprite_unidentified).toContain('unidentified')
+    expect(parsed.modded_field).toBe(7)
+  })
+
   it('enforces the ACTION_TYPE enum (rejects type 8)', () => {
     expect(entryErrorPaths({ ...LIGHT_BULLET, type: 8 })).toContain('type')
   })

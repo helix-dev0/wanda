@@ -51,10 +51,13 @@ describe('PerkDbSchema', () => {
     expect(db[2].stackable_maximum).toBe(2)
   })
 
-  it('ignores unknown raw-dump fields (lenient object)', () => {
-    // The real dump carries fields the app does not model (_tags, script_*, etc.).
+  it('preserves unknown raw-dump fields on output (looseObject round-trip)', () => {
+    // The real dump carries fields the app does not model (_tags, script_*, etc.);
+    // looseObject must KEEP them on output so M3/M4 enrichment can still read them.
     const withExtras = { ...PROTECTION_FIRE, _tags: 'protection', script_source_file: 'x.lua' }
-    expect(v.safeParse(PerkDbEntrySchema, withExtras).success).toBe(true)
+    const parsed = v.parse(PerkDbEntrySchema, withExtras) as Record<string, unknown>
+    expect(parsed._tags).toBe('protection')
+    expect(parsed.script_source_file).toBe('x.lua')
   })
 
   it('accepts an app-computed effects block and enforces the immunity enum', () => {

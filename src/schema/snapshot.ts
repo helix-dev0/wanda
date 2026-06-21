@@ -59,10 +59,11 @@ export const WandSchema = v.object({
 })
 export type Wand = v.InferOutput<typeof WandSchema>
 
-/** A loose spell card in the player's bag. `uses_remaining` null = unlimited. */
+/** A loose spell card in the player's bag. `uses_remaining` null OR absent =
+ *  unlimited (nullish, so the mod may emit null or omit it for infinite spells). */
 export const SpellInventoryEntrySchema = v.object({
   action_id: v.string(),
-  uses_remaining: v.nullable(v.number()),
+  uses_remaining: v.nullish(v.number()),
 })
 export type SpellInventoryEntry = v.InferOutput<typeof SpellInventoryEntrySchema>
 
