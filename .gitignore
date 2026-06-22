@@ -16,6 +16,9 @@ dist-ssr
 .playwright-mcp/
 # game-data checkout used only by scripts/generate-projectile-stats.mjs
 .noita-data/
+# recorded live runs (npm run record) — raw captures, promote good ones to fixtures
+captures/
+salinecitrine-*.png
 
 # Editor directories and files
 .vscode/*

@@ -1,0 +1,46 @@
+{
+  "_real": "REAL capture from the maintainer's live run (2026-06-22) via the M1 mod -> bridge pipe — NOT synthetic. Wand/spell/stat data is faithful as the mod emitted it; only run_id is relabeled from the placeholder 'run-10' (the known M1-T3 collision bug) so this real run is distinct from the toy run-10 unit fixtures and isn't mashed into their seen-this-run ledger. This is a fresh-run START (starter LIGHT_BULLET spammer + a GRENADE sidearm); richer built-up setups are archived live to /tmp/wand-captures and promoted to higher-numbered fixtures as the run develops. Purpose: ground the engine's scoring/generation on REAL wand complexity, not toy data.",
+  "run_id": "run-live-001",
+  "schema": 1,
+  "timestamp": 30,
+  "player": { "perks": [] },
+  "spell_inventory": [],
+  "wands": [
+    {
+      "slot": 0,
+      "active": true,
+      "always_cast": [],
+      "spells": ["LIGHT_BULLET", "LIGHT_BULLET", "LIGHT_BULLET"],
+      "stats": {
+        "shuffle": false,
+        "spellsPerCast": 1,
+        "castDelay": 15,
+        "rechargeTime": 28,
+        "manaMax": 90,
+        "mana": 90,
+        "manaChargeSpeed": 27,
+        "capacity": 3,
+        "spread": 0,
+        "speedMultiplier": 1
+      }
+    },
+    {
+      "slot": 1,
+      "active": false,
+      "always_cast": [],
+      "spells": ["GRENADE"],
+      "stats": {
+        "shuffle": true,
+        "spellsPerCast": 1,
+        "castDelay": 6,
+        "rechargeTime": 6,
+        "manaMax": 104,
+        "mana": 104,
+        "manaChargeSpeed": 5,
+        "capacity": 1,
+        "spread": 0,
+        "speedMultiplier": 1
+      }
+    }
+  ]
+}
