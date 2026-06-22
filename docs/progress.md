@@ -113,6 +113,7 @@ New analysis engine under `src/analysis/` (pure, React-free, node-tested) feedin
 - Pool = `runStore.ledger.spells` (owned+seen); add the theorycraft full-DB toggle (M5-T1), template detection — nuke / trigger / multicast / spammer (M5-T2), template-seeded generation under a real chassis + constraints + **perk-pick advice** "take Projectile Repulsion to make this build safe" (M5-T3), and the "Build me a wand" UI (M5-T4). The tier list drops into the same "Best Builds" columns.
 - **Bound the combinatorial search** (spec §6.4) and **push heavy work off the UI thread** (web worker) — deferred from M4 where depth-1 single-edit was enough.
 - Mind the M4 carry-forward above: scoring constants are uncalibrated and self-danger is synthetic-perk-only until M1 captures real perks.
+- **Expanded scope (2026-06-22, spec §6.5):** M5 now also owns the **guidance "assistant dial"** — output is tunable across **Mirror → Teach → Suggest → Prescribe** (teaching richest at the low end, fading to terse exact builds; global default + per-card drill-down) — and the pool gains **per-item provenance** (owned / shop / pedestal / Holy-Mountain) to power the Prescribe rung's "go grab X." The dial is a *presentation layer over the same M3/M4/M5 engine*. Mirror+Suggest already shipped (M2/M3/M4); **Teach + Prescribe + the dial + provenance are the new M5 work** (M5-T1 = pool-assembly-with-provenance, recommended Option A: ledger tracks origin). Re-decompose M5 against the updated spec.
 
 Build in a **fresh session** (this one is context-heavy).
 
