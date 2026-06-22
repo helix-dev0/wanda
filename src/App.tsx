@@ -1,121 +1,83 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from 'react'
+import { runStore } from './store/runStore'
+import { useRunStore } from './ui/useRunStore'
+import { demoRun } from './data/demoRun'
+import { WandPanel } from './ui/WandPanel'
 
+/**
+ * M2 live-mirror shell. Drives the run-state store from the recorded fixtures via
+ * a frame stepper (the fixture-driven default; live bridge data replaces this at
+ * M1-T5). Replaying frames 0..n from a reset keeps the seen-this-run pool exact.
+ * T3 renders the wand panels; T4 will add the spell-pool / perks / ledger side.
+ */
 function App() {
-  const [count, setCount] = useState(0)
+  const [frame, setFrame] = useState(0)
+
+  useEffect(() => {
+    runStore.getState().reset()
+    for (let i = 0; i <= frame && i < demoRun.length; i++) {
+      runStore.getState().applySnapshot(demoRun[i])
+    }
+  }, [frame])
+
+  const wands = useRunStore((s) => s.wands)
+  const runId = useRunStore((s) => s.runId)
+  const timestamp = useRunStore((s) => s.timestamp)
+  const poolSize = useRunStore((s) => s.ledger.spells.size)
+
+  const atStart = frame === 0
+  const atEnd = frame >= demoRun.length - 1
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app">
+      <header className="app-header">
+        <div className="title-block">
+          <h1>
+            <span className="rune" aria-hidden="true">☿</span> Wand Grimoire
+          </h1>
+          <p className="tagline">live mirror of the current run</p>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
 
-      <div className="ticks"></div>
+        <dl className="run-meta">
+          <div>
+            <dt>run</dt>
+            <dd>{runId ?? '—'}</dd>
+          </div>
+          <div>
+            <dt>frame</dt>
+            <dd>{timestamp ?? '—'}</dd>
+          </div>
+          <div>
+            <dt>pool</dt>
+            <dd>{poolSize} seen</dd>
+          </div>
+        </dl>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        <div className="stepper" role="group" aria-label="fixture stepper">
+          <button type="button" onClick={() => setFrame((f) => Math.max(0, f - 1))} disabled={atStart}>
+            ‹ prev
+          </button>
+          <span className="frame-count">
+            fixture {frame + 1} / {demoRun.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => setFrame((f) => Math.min(demoRun.length - 1, f + 1))}
+            disabled={atEnd}
+          >
+            next ›
+          </button>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <main className="wands">
+        {wands.length === 0 ? (
+          <p className="empty-note">No wands in this snapshot.</p>
+        ) : (
+          wands.map((wand) => <WandPanel key={wand.slot} wand={wand} />)
+        )}
+      </main>
+    </div>
   )
 }
 
