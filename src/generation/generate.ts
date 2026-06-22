@@ -65,10 +65,11 @@ function trimPool(ix: PoolIndex, archetype: Archetype, max: number): Set<string>
   return out
 }
 
-/** Greedy hill-climb: take the best depth-1 edit each round until none improves
- *  the target score (or removes a hazard), the round cap, or the candidate cap.
- *  Score is non-decreasing — suggestEdits only returns positive-rank edits and its
- *  veto blocks edits that add danger. */
+/** Greedy hill-climb: take the best (highest-rank) depth-1 edit each round until
+ *  none improves the target score or removes a hazard, the round cap, or the
+ *  candidate cap. Target score is non-decreasing EXCEPT a step may trade score to
+ *  remove a lethal hazard (the safety-first behavior); suggestEdits' veto still
+ *  blocks any edit that ADDS danger. */
 function polish(
   seed: Wand,
   archetype: Archetype,

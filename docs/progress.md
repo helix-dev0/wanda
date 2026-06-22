@@ -13,7 +13,7 @@
 | **M2 — Ingestion + store + mirror UI** | ✅ **COMPLETE** (T1–T4) | First **visible** milestone — single-page wand-mirror dashboard, fixture-driven + browser-verified. |
 | **M3 — Simulator integration** | ✅ **COMPLETE** (T1–T4) | Vendored `salinecitrine` `calc/`; sim layer + projectile-damage table + metrics + cast-tree UI. Fixture-driven + browser-verified. |
 | **M4 — Analysis engine** | ✅ **COMPLETE** (T1–T4) | Archetype scoring + self-danger (perk-aware veto, separate **Unsafe** band) + depth-1 local search → **tier list per archetype** for held wands. Fixture-driven + browser-verified. |
-| M5 — Generation engine | ⬜ | Template-seeded generation → **tier list of buildable options** per type, from owned+seen pool. |
+| **M5 — Generation + dial + provenance** | ✅ **COMPLETE** (prelude, T1–T4) | Template-seeded + locally-polished builds merged into the per-archetype tier list; the **guidance dial** (Mirror→Teach→Suggest→Prescribe) as a pure presentation layer; **pool provenance** (Option A). Bounded search off the UI thread (web worker). Fixture-driven + browser-verified. |
 | M6 — In-game overlay | ⬜ | Tauri v2 overlay. |
 
 ## M0 — what landed (all committed)
@@ -79,8 +79,22 @@ New analysis engine under `src/analysis/` (pure, React-free, node-tested) feedin
 - **`secondsUntilStall` is cached at first-seen mana** (wandKey excludes volatile mana); scoring keys off the mana-independent `manaSustainable`, so tiers are unaffected.
 - **Suggestions feed targets the primary held wand** (slot 0); multi-wand suggestion merging is future.
 
-## Current fixtures (captured 2026-06-21)
-- `snapshot_01.json` — starting wand `RUBBER_BALL ×2`, cap 2; **empty bag, no perks** (fresh game).
+## M5 — what landed (all committed on `feat/m5-generation`)
+- **Prelude** — extracted `applyEdit(wand, edit)` from `suggestions.ts` so the suggestion neighborhood and generation polish share ONE deck transform; `src/generation/budget.ts` holds the search bounds (`BUILDS_PER_ARCHETYPE`, `MAX_ROUNDS`, `MAX_CANDIDATES`, `IMPROVE_EPS`, `POLISH_POOL_MAX`) — provisional like the M4 REF constants.
+- **T1 — provenance (Option A)** `src/store/runStore.ts` — `RunLedger.provenance: Map<spellId, {origin, origins[], fresh, firstSeen, lastSeen}>` accumulated across the run ALONGSIDE the untouched `spells`/`perks`/`wands` (App's pool keeps working). One `taggedSpellsOfSnapshot` feeds both the pool Set and provenance (can't drift); precedence owned > pedestal > shop > holy_mountain; `fresh` recomputed per snapshot (on-screen-now). `src/generation/provenance.ts` joins it to the "go grab X" label on the main thread.
+- **T2 — generation core** `src/generation/{poolIndex,templates,generate,constraints(inlined),copy}.ts` — template SEED (single-nuke / trigger→payload [shuffle-gated] / multicast-stack / spammer / feature-fill) → bounded local-search POLISH (iterated `suggestEdits`) → dedup by `wandKey` → constraint filter (must-dig / no-self-damage) → rank (safe above unsafe) → top-3. Reuses the M4 engine wholesale (analyzeWand fitness, evalWand cache, selfDanger/`fixableByPerk` for perk advice). Per-archetype candidate budget via the sim-cache-size delta; full-DB theorycraft pool trimmed to top-60 by feature. Deterministic + node-tested incl. a measured full-DB guard.
+- **T3 — worker + uiStore** `src/generation/{worker,workerClient}.ts` + `src/store/uiStore.ts` + `src/ui/{useUiStore,useGeneration}.ts` — generation runs OFF the UI thread (Vite emits a separate ~488 kB worker chunk); thin worker, lazy-singleton client with reqId staleness drop; debounced (250ms) driver feeds `uiStore.gen`. uiStore holds the dial (rung default `suggest`, per-card `drilled` set, theorycraft, constraints) + the gen lifecycle.
+- **T4 — the guidance dial UI** `src/ui/{tierListViewModel,ArchetypeBoard,TierListPanel,DialControl}.tsx` + `index.css` — generated builds merge into the SAME archetype bands as held wands; a per-entry `reveal` (computed in the pure view-model from `REVEAL[rung]`) decides how much each rung shows, and any card's `▸ drill` forces it to Prescribe inline. Browser-verified (zero console errors): worker round-trip, rung switching, Prescribe provenance chips ("your bag"/"shop"), Mirror hides builds, Teach shows the mechanic why, per-card drill, constraint/theorycraft re-trigger with a loading state.
+
+### M5 known approximations / carry-forward (none block M6; flagged in code)
+- **Provenance + perk-pick advice are SYNTHETIC-only** — `world_seen` and `perks` are empty in every REAL fixture (M1-deferred), so the "go grab X" path + perk advice are built and unit-tested against the hand-authored `snapshot_04.json` + synthetic perks ONLY — **not validated end-to-end**. (Same posture as M4's empty perks.)
+- **Generation polish can't fill an empty deck slot** — `suggestEdits` only swaps/removes/reorders non-null slots, so templates must (and do) seed populated decks; build quality is bounded by the template shape + depth-1 polish, not exhaustive search.
+- **Search bounds + the polish-pool trim are uncalibrated** (`budget.ts`) — they keep generation interactive (measured), but the specific caps/`POLISH_POOL_MAX=60` aren't tuned against real large pools.
+- **Inherits all M4 approximations** (DPS approximate, scoring constants provisional) — generated builds are ranked on the same uncalibrated yardstick.
+
+## Current fixtures
+- `snapshot_01.json` — starting wand `RUBBER_BALL ×2`, cap 2; **empty bag, no perks** (fresh game). `snapshot_02/03.json` — captured 2026-06-21 (modded co-op).
+- `snapshot_04.json` — **HAND-AUTHORED synthetic** (M5): continues run-10 with a populated `world_seen` (shop/pedestal/perk offerings) so the provenance + Prescribe "go grab X" path renders in the browser. Not a real capture (mod world-scan is M1-T6).
 - `spell_db.json` — 422 spells. `perk_db.json` — 105 perks. (Captured in the maintainer's **modded** setup, not pristine vanilla — see open items.)
 
 ## Open items / flags (updated after 2nd capture, 2026-06-21)
@@ -106,14 +120,14 @@ New analysis engine under `src/analysis/` (pure, React-free, node-tested) feedin
 - **Pool = owned + seen-in-world** (read-only; current shop/pedestal/Holy-Mountain only; never the unexplored map). Stricter owned-only available as a setting.
 - **Performance is a hard requirement** — fast/responsive sim so the tier list re-ranks at interactive speed (bounded search, heavy work off the UI thread, cached sims). Shapes the M3 engine choice + M4/M5 search.
 
-## What's next — M5 (M4 ✅ complete)
+## What's next — M1 or M6 (M5 ✅ complete)
 
-**Active next step: M5 — generation engine** ([APP], fixture-driven). Template-seeded build generation → a **tier list of buildable options** per archetype from the owned+seen pool, with perk-pick advice. Build on what M4 landed:
-- `src/analysis/{index,archetypes,selfDanger,suggestions}` is the scorer / veto / local-search the generator reuses: `analyzeWand` ranks any candidate, `suggestEdits` is the depth-1 polish, the **Unsafe band + perk-aware veto** already exist. **Reuse `evalWand`'s cache** for interactive generation (performance is a hard requirement — spec §6.4).
-- Pool = `runStore.ledger.spells` (owned+seen); add the theorycraft full-DB toggle (M5-T1), template detection — nuke / trigger / multicast / spammer (M5-T2), template-seeded generation under a real chassis + constraints + **perk-pick advice** "take Projectile Repulsion to make this build safe" (M5-T3), and the "Build me a wand" UI (M5-T4). The tier list drops into the same "Best Builds" columns.
-- **Bound the combinatorial search** (spec §6.4) and **push heavy work off the UI thread** (web worker) — deferred from M4 where depth-1 single-edit was enough.
-- Mind the M4 carry-forward above: scoring constants are uncalibrated and self-danger is synthetic-perk-only until M1 captures real perks.
-- **Expanded scope (2026-06-22, spec §6.5):** M5 now also owns the **guidance "assistant dial"** — output is tunable across **Mirror → Teach → Suggest → Prescribe** (teaching richest at the low end, fading to terse exact builds; global default + per-card drill-down) — and the pool gains **per-item provenance** (owned / shop / pedestal / Holy-Mountain) to power the Prescribe rung's "go grab X." The dial is a *presentation layer over the same M3/M4/M5 engine*. Mirror+Suggest already shipped (M2/M3/M4); **Teach + Prescribe + the dial + provenance are the new M5 work** (M5-T1 = pool-assembly-with-provenance, recommended Option A: ledger tracks origin). Re-decompose M5 against the updated spec.
+The app is now feature-complete against fixtures through the full ambition (mirror → simulate → analyze → generate → dial). The two remaining fronts:
+
+- **M1 — extraction mod + bridge** (human-in-the-loop; the only work needing the running game). This is what unblocks the big M4/M5 caveats: **real perks** (validates self-danger + perk-pick advice end-to-end) and the **world-scan slice (M1-T6)** — real shop/pedestal/Holy-Mountain contents that turn provenance + Prescribe's "go grab X" from synthetic into live. Also: real `run_id`, all-wand enumeration, Advanced Spell Inventory compat, and `sprite_base64` for real icons. See "Open items / flags" + "Deferred to M1" below.
+- **M6 — in-game overlay** (Tauri v2). Defer until the app + live bridge (M1-T5) are settled.
+
+M5 carry-forward to mind whenever real data lands: provenance/perk-advice are synthetic-only until M1; the search bounds + scoring constants are uncalibrated (first real-wand tuning is the priority once captures exist).
 
 Build in a **fresh session** (this one is context-heavy).
 
