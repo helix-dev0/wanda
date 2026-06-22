@@ -14,6 +14,8 @@ dist-ssr
 
 # Tooling scratch
 .playwright-mcp/
+# game-data checkout used only by scripts/generate-projectile-stats.mjs
+.noita-data/
 
 # Editor directories and files
 .vscode/*

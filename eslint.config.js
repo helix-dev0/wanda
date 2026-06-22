@@ -19,6 +19,9 @@ export default defineConfig([
     '!src/engine/**/*/',
     '!src/engine/config.ts',
   ]),
+  // Mechanical, build-time-generated projectile-stats table (from the game's
+  // projectile XMLs via scripts/generate-projectile-stats.mjs). Not house code.
+  globalIgnores(['src/sim/data/projectileStats.generated.ts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
