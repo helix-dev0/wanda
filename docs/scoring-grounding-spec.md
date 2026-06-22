@@ -1,6 +1,7 @@
 # Scoring & Simulation Grounding Spec
 
-**Status:** Tier 0 implementing now (2026-06-22). Tiers 1–3 specced for follow-on.
+**Status:** ✅ Tier 0 + the crit hole (Tier 1) DONE + fresh-context-reviewed (2026-06-22, 316 tests
+green, browser-validated). Remaining Tier 1–3 items specced below for follow-on.
 **Why this exists:** the app's plumbing + cast simulation are sound, but the **scoring/analysis
 model is blind to the real Noita meta**, so "best build" / the tier list / suggestions can't be
 trusted. This spec grounds the scorer in real mechanics (cited) and stages the fix so the
@@ -83,11 +84,12 @@ blast (radius>0, damage 0) no longer scores like a nuke.
 
 ### Tier 1 — multiplicative correctness (VERIFY engine fields first, then implement)
 
-- **Crit / velocity multipliers.** FIRST verify `damage_critical_chance` / `damage_critical_multiplier`
-  are actually set by modifier actions (the engine comments say default 0.0 — grep `gun_actions`). If
-  real: model `critMul = 1 + min(chance,1)·(5·max(1, chance) − 1)` per the wiki, applied AFTER additive
-  adds, per shot's `castState`; keep flat adds additive *under* the multiplier (that ordering is the
-  meta). If NOT populated by actions: **defer — do not fabricate.**
+- **✅ Crit (DONE 2026-06-22).** Verified: `damage_critical_chance` IS set by 13 actions (crit spells /
+  triggers); `damage_critical_multiplier` is never set (the ×5 is a game constant). Implemented in
+  `metrics.ts` `critMultiplier = 1 + min(c,1)·(5·max(1,c) − 1)` (c = chance/100), applied per shot to
+  direct projectile damage AFTER additive adds. `c=0 → ×1`, so goldens are byte-identical. Validated:
+  `CRITICAL_HIT` → ×1.5, ×3 → ×2.5. **Remaining:** explosion-crit + **velocity damage**
+  (`speed_multiplier` is set by 68 actions, but needs impact-speed modeling — harder, deferred).
 - **Range/lifetime usability factor** — down-weight DPS that can't reach a reference engagement
   distance, from `projectileStats` lifetime × speed. (Modeling choice; pick the reference distance.)
 - **Effective-DPS mana model** — blend burst-rate for `secondsUntilStall` then the regen-limited rate,

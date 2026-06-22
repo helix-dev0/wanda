@@ -150,12 +150,13 @@ spells render "×-1". Normalize `< 0` → null at ingestion (and/or emit `null` 
 - **Scope:** owned-only. Shop/pedestal "go grab" availability + provenance counts = **Phase 2**
   (needs the M1-T6 world-scan to emit `world_seen`).
 
-## 🔴 Engine grounding — the scoring is NOT meta-faithful (2026-06-22, TOP PRIORITY)
+## ✅ Engine grounding — scoring re-grounded in the meta (2026-06-22)
 
-Driving the live app on a real run exposed the deepest issue: **the plumbing + simulation are sound,
-but the SCORING/analysis model is blind to the real Noita meta**, so "best build" / the tier list /
-suggestions can't be trusted. Evidence + web-research grounding (noita.wiki.gg + the salinecitrine
-reference) in **[`docs/scoring-grounding-spec.md`](./scoring-grounding-spec.md)**. The three holes:
+Driving the live app on a real run exposed the deepest issue: **the plumbing + simulation were sound,
+but the SCORING/analysis model was blind to the real Noita meta**, so "best build" / the tier list /
+suggestions couldn't be trusted. Web-research grounding (noita.wiki.gg + the salinecitrine reference) +
+the staged fix live in **[`docs/scoring-grounding-spec.md`](./scoring-grounding-spec.md)**. The three
+holes — now **FIXED** (see "Fixed" below):
 
 1. **SPAM has no damage term** — `scoreSpam = sat(projectilesPerSecond, 8)` (`archetypes.ts`), nothing
    else. A 0-damage **CHAINSAW** (mana 1, the game's cast-delay *enabler*, not a damage spell) maxes it
@@ -174,11 +175,15 @@ Plus: generation hill-climbs this broken fitness, so it actively *seeks* the cha
 fix generation for free), builds only on the HELD chassis (never the player's bigger wands or an ideal
 one — spec §6.3 wants chassis selection), and depth-1 search can't *discover* multi-slot trigger chains.
 
-**Staged fix (spec has the cited detail):** Tier 0 (structural, tractable, doing now) = payload-aware
-damage (walk `projectile.trigger` recursively) + a damage term for SPAM + AoE weights explosion *damage*
-not just radius. Tier 1 (needs engine-field verification + calibration) = multiplicative crit/velocity,
-range/lifetime usability, mana effective-DPS. Tier 2+ = status/DoT, generation chassis-selection +
-multiplicative-stack templates + deeper search, REF-constant calibration against real captures.
+**✅ Fixed (2026-06-22, all 3 holes):** payload-aware damage (`shotDamage` recurses
+`Projectile.trigger`) + `maxExplosionDamage`; SPAM = `sat(sustainedDps)×rate×mana-gate` (chainsaw
+inversion gone — held **S-84** vs chainsaw **B-51** live); AoE weights explosion DAMAGE not just radius;
+and multiplicative **crit** (`CRITICAL_HIT` → ×1.5, stacks; from the engine-populated
+`damage_critical_chance` + the wiki ×5 formula). **316 tests green, fresh-context review APPROVE,
+browser-validated, goldens byte-identical.** **Remaining (Tier 1+, specced, NOT guessed):** velocity +
+range/lifetime usability, status/DoT, effective-DPS mana model, generation **chassis-selection** (build
+on your *best* wand — the "best wand from my spells" gap) + multiplicative-stack templates + deeper
+search, and REF-constant **calibration against real captures** (`npm run record`).
 
 ## Tooling — recording real runs (2026-06-22)
 `npm run record` (`bridge/record.mjs`) persists every distinct live snapshot to `captures/` (gitignored),
