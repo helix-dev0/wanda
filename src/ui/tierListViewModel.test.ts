@@ -179,3 +179,26 @@ describe('tierListView — multiple carried wands + active flag (M1-T2)', () => 
     expect(entries.some((e) => e.title === 'Wand · slot 0')).toBe(true)
   })
 })
+
+describe('tierListView — owned caps thread into live suggestions', () => {
+  beforeEach(() => clearSimCache())
+
+  const held = makeWand({ slot: 0, active: true, spells: ['GRENADE'] })
+  // A swap GRENADE -> a sustainable spam spell raises the SPAM score (see suggestions
+  // tests); the "Swap " prefix is stable regardless of spell display names.
+  const swaps = (v: TierListView) =>
+    (v.columns.find((c) => c.archetype === 'SPAM')?.suggestions ?? []).filter((s) =>
+      s.label.startsWith('Swap'),
+    )
+
+  it('suggests swaps from the pool when caps are omitted (unlimited)', () => {
+    expect(swaps(tierListView([held], [], pool, { rung: 'suggest' })).length).toBeGreaterThan(0)
+  })
+
+  it('suppresses swaps to spells the player does not own (caps exclude them)', () => {
+    // Own only the single GRENADE already in the deck — nothing in the pool is a
+    // spare you could socket, so no swap is advised.
+    const caps = new Map([['GRENADE', 1]])
+    expect(swaps(tierListView([held], [], pool, { rung: 'suggest', caps })).length).toBe(0)
+  })
+})

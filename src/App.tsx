@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { runStore } from './store/runStore'
+import { useEffect, useMemo } from 'react'
+import { ownedCounts, runStore } from './store/runStore'
 import { useRunStore } from './ui/useRunStore'
 import { demoRun } from './data/demoRun'
 import { WandPanel } from './ui/WandPanel'
@@ -45,6 +45,9 @@ function App() {
   const pool = useRunStore((s) => s.ledger.spells)
   const provenance = useRunStore((s) => s.ledger.provenance)
   const heldWand = activeWand(wands)
+  // Owned copy counts (current frame): caps live suggestions to what the player can
+  // actually socket — never advise a swap to a spell you don't hold a spare of.
+  const caps = useMemo(() => ownedCounts(wands, bag), [wands, bag])
 
   return (
     <div className="app">
@@ -90,7 +93,7 @@ function App() {
 
         <section className="col col-builds">
           <h2 className="section-title">Best Builds</h2>
-          <TierListPanel wands={wands} perks={perks} pool={pool} provenance={provenance} />
+          <TierListPanel wands={wands} perks={perks} pool={pool} provenance={provenance} caps={caps} />
         </section>
 
         <aside className="col col-run">

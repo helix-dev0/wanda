@@ -20,11 +20,13 @@ export function TierListPanel({
   perks,
   pool,
   provenance,
+  caps,
 }: {
   wands: readonly Wand[]
   perks: readonly PerkRef[]
   pool: ReadonlySet<string>
   provenance: ReadonlyMap<string, ProvenanceEntry>
+  caps: ReadonlyMap<string, number>
 }) {
   const rung = useUiStore((s) => s.rung)
   const drilled = useUiStore((s) => s.drilled)
@@ -33,8 +35,8 @@ export function TierListPanel({
   const [active, setActive] = useState<Archetype>('DAMAGE')
 
   const view = useMemo(
-    () => tierListView(wands, perks, pool, { generated, provenance, rung, drilled }),
-    [wands, perks, pool, generated, provenance, rung, drilled],
+    () => tierListView(wands, perks, pool, { generated, provenance, rung, drilled, caps }),
+    [wands, perks, pool, generated, provenance, rung, drilled, caps],
   )
 
   const column = view.columns.find((c) => c.archetype === active) ?? view.columns[0]

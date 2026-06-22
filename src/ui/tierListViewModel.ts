@@ -130,6 +130,9 @@ export interface TierListOptions {
   rung?: Rung
   /** wandKeys of cards individually drilled to Prescribe detail. */
   drilled?: ReadonlySet<string>
+  /** Per-spell owned copy caps (from `ownedCounts`): a suggested swap never uses a
+   *  spell more times than the player owns. Omitted ⇒ unlimited (the M4 behavior). */
+  caps?: ReadonlyMap<string, number>
 }
 
 const EMPTY_DRILLED: ReadonlySet<string> = new Set()
@@ -246,7 +249,7 @@ export function tierListView(
       bands,
       suggestions:
         showSuggestions && primary
-          ? suggestEdits(primary, archetype, pool, perks).map(suggestionView)
+          ? suggestEdits(primary, archetype, pool, perks, opts.caps).map(suggestionView)
           : [],
       note: colReveal.generated ? generated?.[archetype].note : undefined,
     }
