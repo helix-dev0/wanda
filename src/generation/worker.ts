@@ -28,6 +28,7 @@ ctx.onmessage = (e) => {
       chassis: msg.chassis,
       perks: msg.perks,
       constraints: msg.constraints,
+      counts: msg.counts, // forward owned caps — the worker lists each field, no spread
       archetypes: msg.archetypes,
     })
     ctx.postMessage({ type: 'result', reqId: msg.reqId, result })

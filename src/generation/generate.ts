@@ -141,8 +141,9 @@ function generateForArchetype(
   archetype: Archetype,
   constraints: Constraints,
   perks: readonly PerkRef[],
+  caps: ReadonlyMap<string, number> | undefined,
 ): ArchetypeBuilds {
-  const ctx = { index: ix, capacity: chassis.stats.capacity, shuffle: chassis.stats.shuffle, archetype }
+  const ctx = { index: ix, capacity: chassis.stats.capacity, shuffle: chassis.stats.shuffle, archetype, caps }
   const templates = TEMPLATES.filter(
     (t) => t.archetypes.includes(archetype) && !(chassis.stats.shuffle && t.orderDependent),
   )
@@ -182,9 +183,12 @@ function generateForArchetype(
  */
 export function generate(req: GenerateRequest): GenerateResult {
   const ix = buildPoolIndex(req.pool)
+  // Owned-copy caps (M5 quantity fix): a Map for O(1) lookups in templates + polish.
+  // Absent ⇒ unlimited (theorycraft); never constrains a build to fewer copies.
+  const caps = req.counts ? new Map(req.counts) : undefined
   const archetypes = req.archetypes ?? ARCHETYPES
   const result = {} as GenerateResult
   for (const a of ARCHETYPES) result[a] = { builds: [] }
-  for (const a of archetypes) result[a] = generateForArchetype(ix, req.chassis, a, req.constraints, req.perks)
+  for (const a of archetypes) result[a] = generateForArchetype(ix, req.chassis, a, req.constraints, req.perks, caps)
   return result
 }

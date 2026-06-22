@@ -68,6 +68,10 @@ export interface GenerateRequest {
   chassis: Wand
   perks: PerkRef[]
   constraints: Constraints
+  /** Per-spell OWNED copy caps as [id, count] pairs (array, not a Map, so it survives
+   *  postMessage): a generated deck uses each id at most `count` times. Omitted ⇒
+   *  unlimited (theorycraft mode), where builds aren't constrained by ownership. */
+  counts?: [string, number][]
   /** Defaults to all archetypes. */
   archetypes?: Archetype[]
 }

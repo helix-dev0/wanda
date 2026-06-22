@@ -16,6 +16,11 @@ export interface TemplateContext {
   capacity: number
   shuffle: boolean
   archetype: Archetype
+  /** Per-spell OWNED copy cap (from `ownedCounts`): a seed may use each id at most
+   *  `caps.get(id) ?? 0` times. `undefined` ⇒ unlimited (theorycraft + pre-cap
+   *  callers) — the load-bearing default that keeps theorycraft and existing tests
+   *  byte-identical. */
+  caps?: ReadonlyMap<string, number>
 }
 
 export interface Template {
@@ -31,16 +36,53 @@ export interface Template {
 const truncate = (deck: string[], capacity: number): string[] => deck.slice(0, Math.max(0, capacity))
 const unique = (ids: string[]): string[] => [...new Set(ids)]
 
+type Caps = ReadonlyMap<string, number> | undefined
+
+/** Try to reserve ONE copy of `id` against the shared `used` multiset under `caps`.
+ *  Returns true (and records the use) if a copy is still available, false once `id`
+ *  is at its owned cap. `caps === undefined` ⇒ unlimited. The buckets in a PoolIndex
+ *  are OVERLAPPING views of one multiset (NUKE is a nuke AND a projectile; CHAINSAW
+ *  a digger AND a projectile), so EVERY placement in a seed must go through one
+ *  shared `used` — no template may charge a different counter or skip the guard. */
+function place(caps: Caps, used: Map<string, number>, id: string): boolean {
+  const u = used.get(id) ?? 0
+  if (caps && u >= (caps.get(id) ?? 0)) return false
+  used.set(id, u + 1)
+  return true
+}
+
+/** Greedily draw up to `n` ids from `candidates` (in order), reserving each against
+ *  the shared `used` multiset. Exhausts a candidate's remaining copies before moving
+ *  on (so the cheapest spam shot fills first, spilling to the next when capped) and
+ *  stops EARLY once nothing is placeable — the seed is then short and `seedWand` pads
+ *  the rest with null, so a spell never repeats beyond how many the player owns. With
+ *  `caps === undefined`, the first candidate fills every slot (the pre-cap behavior). */
+function draftFill(candidates: readonly string[], n: number, caps: Caps, used: Map<string, number>): string[] {
+  const out: string[] = []
+  for (const id of candidates) {
+    while (out.length < n && place(caps, used, id)) out.push(id)
+    if (out.length >= n) break
+  }
+  return out
+}
+
 /** One nuke, with damage modifiers stacked before it. Fires regardless of order,
  *  so it is allowed on shuffle (the pre-nuke modifiers are then a best-effort). */
 const singleNuke: Template = {
   id: 'single-nuke',
   orderDependent: false,
   archetypes: ['DAMAGE', 'AOE'],
-  instantiate({ index, capacity }) {
+  instantiate({ index, capacity, caps }) {
     if (index.nukes.length === 0 || capacity < 1) return []
-    const mods = index.modifiers.slice(0, Math.max(0, capacity - 1))
-    return [truncate([...mods, index.nukes[0]], capacity)]
+    const used = new Map<string, number>()
+    const nuke = index.nukes[0]
+    if (!place(caps, used, nuke)) return [] // must own the nuke
+    const mods: string[] = []
+    for (const m of index.modifiers) {
+      if (mods.length >= capacity - 1) break
+      if (place(caps, used, m)) mods.push(m)
+    }
+    return [truncate([...mods, nuke], capacity)]
   },
 }
 
@@ -50,12 +92,22 @@ const triggerPayload: Template = {
   id: 'trigger-payload',
   orderDependent: true,
   archetypes: ['DAMAGE', 'AOE'],
-  instantiate({ index, capacity }) {
+  instantiate({ index, capacity, caps }) {
     if (index.triggers.length === 0 || index.projectiles.length === 0 || capacity < 2) return []
+    const used = new Map<string, number>()
+    const trigger = index.triggers[0]
+    if (!place(caps, used, trigger)) return [] // must own the trigger
     const proj = projectilesByMana(index)
     const carrier = proj[0]
-    const payload = proj[1] ?? proj[0]
-    const deck = capacity >= 3 ? [index.triggers[0], carrier, payload] : [index.triggers[0], carrier]
+    if (!place(caps, used, carrier)) return [] // must own a carrier projectile
+    const deck = [trigger, carrier]
+    // Prefer a DISTINCT 2nd-cheapest payload (the original heuristic); fall back to a
+    // second copy of the carrier only when one is still owned — never duplicate it
+    // into a deck that holds a single owned projectile.
+    if (capacity >= 3) {
+      const payload = proj[1] ?? proj[0]
+      if (place(caps, used, payload)) deck.push(payload)
+    }
     return [truncate(deck, capacity)]
   },
 }
@@ -66,11 +118,14 @@ const multicastStack: Template = {
   id: 'multicast-stack',
   orderDependent: false,
   archetypes: ['SPAM', 'AOE', 'DAMAGE'],
-  instantiate({ index, capacity }) {
+  instantiate({ index, capacity, caps }) {
     if (index.multicasts.length === 0 || index.projectiles.length === 0 || capacity < 2) return []
-    const cheap = projectilesByMana(index)[0]
-    const shots = Array.from({ length: Math.max(1, capacity - 1) }, () => cheap)
-    return [truncate([index.multicasts[0], ...shots], capacity)]
+    const used = new Map<string, number>()
+    const mc = index.multicasts[0]
+    if (!place(caps, used, mc)) return [] // must own the multicast
+    const shots = draftFill(projectilesByMana(index), capacity - 1, caps, used)
+    if (shots.length === 0) return [] // need at least one owned shot to multicast
+    return [truncate([mc, ...shots], capacity)]
   },
 }
 
@@ -79,10 +134,11 @@ const spammer: Template = {
   id: 'spammer',
   orderDependent: false,
   archetypes: ['SPAM'],
-  instantiate({ index, capacity }) {
+  instantiate({ index, capacity, caps }) {
     const cheap = projectilesByMana(index)
     if (cheap.length === 0 || capacity < 1) return []
-    return [truncate(Array.from({ length: capacity }, () => cheap[0]), capacity)]
+    const deck = draftFill(cheap, capacity, caps, new Map())
+    return deck.length > 0 ? [deck] : []
   },
 }
 
@@ -92,7 +148,7 @@ const featureFill: Template = {
   id: 'feature-fill',
   orderDependent: false,
   archetypes: ['MOBILITY', 'DEFENSIVE'],
-  instantiate({ index, capacity, archetype }) {
+  instantiate({ index, capacity, archetype, caps }) {
     const wanted =
       archetype === 'MOBILITY'
         ? unique([...index.diggers, ...index.mobility])
@@ -100,12 +156,17 @@ const featureFill: Template = {
           ? unique([...index.defensive, ...index.homing])
           : []
     if (wanted.length === 0 || capacity < 1) return []
-    const deck = wanted.slice(0, capacity)
-    const filler = projectilesByMana(index)
-    for (let fi = 0; deck.length < capacity && filler.length > 0; fi++) {
-      deck.push(filler[fi % filler.length])
+    const used = new Map<string, number>()
+    const deck: string[] = []
+    for (const id of wanted) {
+      if (deck.length >= capacity) break
+      if (place(caps, used, id)) deck.push(id)
     }
-    return [truncate(deck, capacity)]
+    // Pad with cheap projectiles so the wand still attacks — charged against the SAME
+    // `used`, so a dual-role spell (e.g. CHAINSAW: digger AND projectile) already
+    // placed as a feature spell can't reappear as filler beyond its owned count.
+    deck.push(...draftFill(projectilesByMana(index), capacity - deck.length, caps, used))
+    return deck.length > 0 ? [truncate(deck, capacity)] : []
   },
 }
 
