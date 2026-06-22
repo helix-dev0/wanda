@@ -5,8 +5,8 @@
 import type { Wand } from '../schema/snapshot'
 import { spellTile, type SpellTileModel } from './viewModel'
 import { formatFrames, formatSpread } from './format'
-import { simulateWand } from '../sim/simulateWand'
-import { computeMetrics, type WandMetrics } from '../sim/metrics'
+import { evalWand } from '../analysis/simCache'
+import { type WandMetrics } from '../sim/metrics'
 import { condenseActionsAndProjectiles } from '../engine/eval/condense'
 import type { GroupedProjectile } from '../engine/eval/types'
 import {
@@ -98,8 +98,7 @@ function metricRows(m: WandMetrics): MetricRow[] {
 /** Simulate a wand and build the full renderable cast view (tree + metrics). */
 export function castView(wand: Wand): CastView {
   const slot = wand.slot
-  const sim = simulateWand(wand)
-  const metrics = computeMetrics(sim.shots, sim.reloadTime, wand.stats, sim.hitIterationLimit)
+  const { sim, metrics } = evalWand(wand)
 
   const shots: CastShotView[] = sim.shots.map((shot, i) => {
     const grouped = condenseActionsAndProjectiles(shot)

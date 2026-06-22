@@ -1,5 +1,8 @@
 import { createStore } from 'zustand/vanilla'
 import type { Snapshot, Wand, SpellInventoryEntry, PerkRef, WorldSeen } from '../schema/snapshot'
+// The pool-dedup key. Extracted to src/analysis so the M4 sim cache and this
+// ledger dedup share ONE keying scheme (excludes slot + volatile mana).
+import { wandKey as wandSignature } from '../analysis/wandKey'
 
 /**
  * Run-state store + "seen this run" ledger (spec §3.2 module 2, plan M2-T2).
@@ -73,20 +76,6 @@ export function freshInitial(): RunStateData {
     worldSeen: null,
     ledger: emptyLedger(),
   }
-}
-
-/** Stable identity key for a wand. Excludes `slot` (a wand moves between slots)
- *  and the volatile current `mana`; everything else is part of the chassis. The
- *  stat entries are sorted so the signature is independent of the emitter's key
- *  order (the Linux maintainer and Windows co-player may serialize stats in
- *  different orders — otherwise the same wand would double-count in the pool). */
-function wandSignature(w: Wand): string {
-  const stableStats = Object.fromEntries(
-    Object.entries(w.stats)
-      .filter(([k]) => k !== 'mana')
-      .sort(([a], [b]) => a.localeCompare(b)),
-  )
-  return JSON.stringify({ stats: stableStats, always_cast: w.always_cast, spells: w.spells })
 }
 
 /** Spell action_ids a single wand contributes (deck minus empties + always-cast). */
