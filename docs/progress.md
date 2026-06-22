@@ -2,7 +2,7 @@
 
 > Living status doc. Companion to [`plan.md`](./plan.md) (the milestone breakdown) and
 > [`../noita-wand-assistant-spec.md`](../noita-wand-assistant-spec.md) (the design).
-> **Last updated: 2026-06-22** · branch `feat/m4-analysis` (off `feat/m3-engine`; M0 merged to `master`).
+> **Last updated: 2026-06-22** · branch `feat/m5-generation` (off `feat/m3-engine`; M0 merged to `master`).
 
 ## Milestone status
 
@@ -92,6 +92,17 @@ New analysis engine under `src/analysis/` (pure, React-free, node-tested) feedin
 - **Search bounds + the polish-pool trim are uncalibrated** (`budget.ts`) — they keep generation interactive (measured), but the specific caps/`POLISH_POOL_MAX=60` aren't tuned against real large pools.
 - **Inherits all M4 approximations** (DPS approximate, scoring constants provisional) — generated builds are ranked on the same uncalibrated yardstick.
 
+## Post-M5 — app polish (2026-06-22, `feat/m5-generation`)
+
+Quality/UX work layered on the finished engine — all [APP], fixture-driven, browser-verified:
+
+- **Real game sprites, extracted OFFLINE** (no game/mod). `scripts/extract-sprites.mjs` parses the install's `data/data.wak` index and embeds a base64 `sprite_base64` per entry into the bundled spell/perk DBs (422/422 spells + 105/105 perks). The app was already sprite-ready, so icons render on every tile + perk chip. Vanilla "bundled fallback" (invariant #5); the mod stays for modded/version-accurate live sprites (same field). (Open item #5.)
+- **In-game-style hover tooltips** (spells + perks) via **`@floating-ui/react`** (Context7-grounded: `useFloating` + `useHover`/`useFocus`/`useDismiss`/`useRole` + `flip`/`shift`/`offset` + `FloatingPortal`). Shows real **name (type-coloured) + type + mana/uses + description**. Real names/descriptions resolved from the engine's vendored vanilla translation table by a UI-only `src/ui/loc.ts` (kept OUT of the engine/worker bundle). New `src/ui/{useTooltip,GameTooltip,PerkChip}` + `loc` (unit-tested).
+- **Compact 3-column layout** — app widened (1240→2200px); the stacked sections split into *current · builds · run* columns, so the whole page fits a maximized 1440p (2560×1440) window with **zero scroll** (verified). Stacks to one column under 1400px.
+- **Dial self-explains** — the active rung's meaning shows inline (e.g. "Mirror — just your wands + what they do, no advice"), answering "what is the Mirror rung?".
+
+New dep: `@floating-ui/react` 0.27 (0 vulns, React 19 OK). Bundle: ~340 kB sprites (main + worker) + ~150 kB translations (main only) → main ≈ 343 kB gzip; fine for a local app, splittable later. 271 tests pass; one narrow, documented `react-hooks/refs` eslint-disable in the two tooltip files (Floating UI callback-ref false positive).
+
 ## Current fixtures
 - `snapshot_01.json` — starting wand `RUBBER_BALL ×2`, cap 2; **empty bag, no perks** (fresh game). `snapshot_02/03.json` — captured 2026-06-21 (modded co-op).
 - `snapshot_04.json` — **HAND-AUTHORED synthetic** (M5): continues run-10 with a populated `world_seen` (shop/pedestal/perk offerings) so the provenance + Prescribe "go grab X" path renders in the browser. Not a real capture (mod world-scan is M1-T6).
@@ -120,16 +131,28 @@ New analysis engine under `src/analysis/` (pure, React-free, node-tested) feedin
 - **Pool = owned + seen-in-world** (read-only; current shop/pedestal/Holy-Mountain only; never the unexplored map). Stricter owned-only available as a setting.
 - **Performance is a hard requirement** — fast/responsive sim so the tier list re-ranks at interactive speed (bounded search, heavy work off the UI thread, cached sims). Shapes the M3 engine choice + M4/M5 search.
 
-## What's next — M1 or M6 (M5 ✅ complete)
+## What's next — M1 (make it LIVE), then M6
 
-The app is now feature-complete against fixtures through the full ambition (mirror → simulate → analyze → generate → dial). The two remaining fronts:
+Everything doable against fixtures is done: the app is feature-complete (mirror → simulate →
+analyze → generate → dial) and polished (real sprites, hover tooltips, 1440p layout). The remaining
+value is **live data** — connecting to the running game.
 
-- **M1 — extraction mod + bridge** (human-in-the-loop; the only work needing the running game). This is what unblocks the big M4/M5 caveats: **real perks** (validates self-danger + perk-pick advice end-to-end) and the **world-scan slice (M1-T6)** — real shop/pedestal/Holy-Mountain contents that turn provenance + Prescribe's "go grab X" from synthetic into live. Also: real `run_id`, all-wand enumeration, Advanced Spell Inventory compat, and `sprite_base64` for real icons. See "Open items / flags" + "Deferred to M1" below.
-- **M6 — in-game overlay** (Tauri v2). Defer until the app + live bridge (M1-T5) are settled.
+- **M1 — extraction mod + live bridge** is the next milestone, and the ONLY work needing the running
+  game. It unblocks the standing caveats: **real perks** (retro-validates self-danger + perk-pick
+  advice end-to-end), the **world-scan slice M1-T6** (real shop/pedestal/Holy-Mountain → live
+  provenance + "go grab X"), real `run_id`, all-wand enumeration, and Advanced Spell Inventory
+  compat. (Sprites are already handled offline.)
+  - **M1-T5 (live bridge sidecar) is [APP]-testable** — a small chokidar→WebSocket sidecar behind
+    `VITE_LIVE=1`; buildable + unit-tested solo and provable with a fake snapshot file before the mod
+    is ready. Good first slice, no game needed.
+  - **M1-T1..T4 + T6 are [MOD]** = human-in-the-loop: implement thin Lua → STOP → hand a copy-paste
+    in-game test script → user verifies/pastes. Carries the 12-point in-game checklist. Keep the mod
+    thin (every line added can't be auto-tested).
+- **M6 — Tauri v2 overlay** — defer until live data flows (the overlay shows the live assistant
+  in-game; pointless before M1).
+- **Calibration** (M4 REF constants, generation bounds) needs real wands → after M1 captures land.
 
-M5 carry-forward to mind whenever real data lands: provenance/perk-advice are synthetic-only until M1; the search bounds + scoring constants are uncalibrated (first real-wand tuning is the priority once captures exist).
-
-Build in a **fresh session** (this one is context-heavy).
+Start M1 in a **fresh session** (this one is context-heavy); the mod is the untestable piece.
 
 Two product asks captured during M2 (do NOT lose):
 - **Real icons** "from the actual run" — M1 mod must export `sprite_base64` (item 5 above); app is already sprite-ready.

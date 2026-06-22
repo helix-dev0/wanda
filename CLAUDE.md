@@ -119,7 +119,8 @@ always run without the bridge.**
 | Lint | `npm run lint` (`eslint .`) |
 
 Test config: `vitest.config.ts` (Node env, `src/**/*.test.ts`, globals off — import from `vitest`).
-chokidar 5 / Tauri v2 / Zustand 5 are NOT yet installed — added at their milestones (M1-T5 / M6 / M2).
+Also installed since: **Zustand 5** (M2 run-state), **@floating-ui/react 0.27** (M5+ hover tooltips).
+**chokidar 5 / Tauri v2 are NOT yet installed** — added at their milestones (M1-T5 / M6).
 
 ## Workflow notes
 - Spec → plan → implementation are distinct phases; the `.md` artifact is the handoff.
