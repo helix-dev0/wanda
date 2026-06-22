@@ -9,9 +9,11 @@ export const BUILDS_PER_ARCHETYPE = 3
 /** Greedy polish hill-climb: max improving steps applied to one seed deck. */
 export const MAX_ROUNDS = 3
 
-/** Hard ceiling on total candidate sims per generate() request (all seeds × all
- *  rounds). The safety valve against a pathologically large pool (e.g. the full-DB
- *  theorycraft mode); when tripped, generation returns its best-so-far. */
+/** Hard ceiling on distinct candidate sims PER ARCHETYPE (across that archetype's
+ *  seeds × polish rounds). Measured live via the sim-cache size delta. The safety
+ *  valve against a pathologically large pool (e.g. full-DB theorycraft); when
+ *  tripped, generation returns its best-so-far for that archetype and moves on, so
+ *  every archetype still gets a fair share of the budget. */
 export const MAX_CANDIDATES = 1500
 
 /** Minimum target-archetype score gain (points, 0–100) worth taking a polish step

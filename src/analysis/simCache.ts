@@ -45,3 +45,10 @@ export function evalWand(wand: Wand): WandEval {
 export function clearSimCache(): void {
   cache.clear()
 }
+
+/** Number of distinct wands simulated since the last clear. M5 generation reads
+ *  this as a live "distinct candidates evaluated" count to bound its search: in
+ *  the worker the cache is cleared per request, so its size is exactly that. */
+export function simCacheSize(): number {
+  return cache.size
+}

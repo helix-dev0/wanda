@@ -1,0 +1,50 @@
+// M5 — the dial's curated, DETERMINISTIC teaching copy. The dial is a presentation
+// layer (spec §6.5): the engine computes the build + its reasons; this library
+// supplies the mechanic "why" the Teach/Prescribe rungs compose with the wand's
+// own M4 reasons[]. No runtime LLM → every line is fixed, exhaustive, and testable.
+
+import type { TemplateId } from './types'
+import type { SpellFeature } from '../analysis/features/spellFeatures'
+import type { Edit } from '../analysis/suggestions'
+
+/** Why each template's shape works — the Teach-rung explanation for a build. */
+export const TEMPLATE_COPY: Record<TemplateId, string> = {
+  'single-nuke': 'One big nuke carries the damage; modifiers placed before it stack onto that single hit.',
+  'trigger-payload':
+    'A trigger fires a second spell on impact — the payload goes right after it in the deck.',
+  'multicast-stack':
+    'A multicast draws several spells at once and throws them together — burst damage and spread.',
+  spammer: 'Cheap, fast projectiles fired continuously — low mana per shot keeps it going.',
+  'feature-fill':
+    'Built around your utility spells — digging and movement (or shields) matter more than raw damage here.',
+}
+
+/** What each spell feature does — used in Teach/Prescribe to explain a build. */
+export const FEATURE_COPY: Record<SpellFeature, string> = {
+  DIG: 'digs through terrain',
+  MOBILITY: 'moves you (teleport / levitation)',
+  DEFENSIVE: 'shields or protects you',
+  HOMING: 'steers toward enemies',
+  MULTICAST: 'casts several spells at once',
+  TRIGGER: 'fires a follow-up spell on impact',
+  NUKE: 'one massive explosion',
+}
+
+/** What a polish edit accomplished — the Suggest/Prescribe "what we changed" note. */
+export const EDIT_KIND_COPY: Record<Edit['kind'], string> = {
+  swap: 'swapped in a stronger spell',
+  remove: 'dropped a spell to fire faster',
+  reorder: 'reordered the deck for a better cast sequence',
+}
+
+export function templateWhy(id: TemplateId): string {
+  return TEMPLATE_COPY[id]
+}
+
+export function featureWhy(f: SpellFeature): string {
+  return FEATURE_COPY[f]
+}
+
+export function editWhy(kind: Edit['kind']): string {
+  return EDIT_KIND_COPY[kind]
+}
