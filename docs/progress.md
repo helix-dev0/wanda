@@ -2,7 +2,7 @@
 
 > Living status doc. Companion to [`plan.md`](./plan.md) (the milestone breakdown) and
 > [`../noita-wand-assistant-spec.md`](../noita-wand-assistant-spec.md) (the design).
-> **Last updated: 2026-06-22** · branch `feat/m3-engine` (off `master`; M0 merged to `master`).
+> **Last updated: 2026-06-22** · branch `feat/m4-analysis` (off `feat/m3-engine`; M0 merged to `master`).
 
 ## Milestone status
 
@@ -12,7 +12,7 @@
 | M1 — Extraction mod + bridge | ⬜ not started | Evolve the M0 capture seed into the real emit-on-change mod + live bridge. |
 | **M2 — Ingestion + store + mirror UI** | ✅ **COMPLETE** (T1–T4) | First **visible** milestone — single-page wand-mirror dashboard, fixture-driven + browser-verified. |
 | **M3 — Simulator integration** | ✅ **COMPLETE** (T1–T4) | Vendored `salinecitrine` `calc/`; sim layer + projectile-damage table + metrics + cast-tree UI. Fixture-driven + browser-verified. |
-| M4 — Analysis engine | ⬜ | Archetype scoring + self-danger (perk-aware) + local search → **tier list per type** for held wands. |
+| **M4 — Analysis engine** | ✅ **COMPLETE** (T1–T4) | Archetype scoring + self-danger (perk-aware veto, separate **Unsafe** band) + depth-1 local search → **tier list per archetype** for held wands. Fixture-driven + browser-verified. |
 | M5 — Generation engine | ⬜ | Template-seeded generation → **tier list of buildable options** per type, from owned+seen pool. |
 | M6 — In-game overlay | ⬜ | Tauri v2 overlay. |
 
@@ -55,6 +55,30 @@
 - **Lua-driven meta-projectiles** (`ALL_*` like `all_nukes`) have no `ProjectileComponent` → absent from the table → read as 0 damage with `damageApproximate` set. No fixture exercises them yet.
 - **always_cast = prepend** (not true always-cast semantics) and **shuffle wands report one deterministic seed-0 sample**. Both flagged; revisit when M1 captures such wands.
 
+## M4 — what landed (all committed on `feat/m4-analysis`)
+
+New analysis engine under `src/analysis/` (pure, React-free, node-tested) feeding a tier-list UI. Built on M3's evaluator, now memoized.
+
+- **A — sim cache** `src/analysis/{wandKey,simCache}` — extracted runStore's pool-dedup signature → `wandKey` (ONE keying scheme; excludes volatile mana), and `evalWand` memoizes `simulateWand`→`computeMetrics`. `castViewModel` now consumes it (killed the per-render double-simulation). Performance is a hard requirement (spec §6.4).
+- **B — feature maps** `src/analysis/features/{spellFeatures,perkEffects}` — curated spell-id→feature tags (DIG/MOBILITY/DEFENSIVE/HOMING/MULTICAST/TRIGGER/NUKE) since `type=UTILITY` is a grab-bag (only MULTICAST is type-derivable, +a drill-damage entity fallback); curated perk-id→`PerkEffects` populating the schema's **existing** immunity shape + the PROJECTILE_REPULSION/EATER self-neutralizers.
+- **C — self-danger** `src/analysis/selfDanger.ts` — perk-relative veto. Point-blank FIRE + explosion-IN-FACE are lethal (→ Unsafe band); TOXIC + RECOIL are warn-only. "In your face" is geometric (blast radius vs projectile reach = `speedMax×lifetime/60`), anchored by the game's `is_dangerous_blast` flag, **gated on `explosionDamage>0`** so harmless digging explosions (digger) are excluded. Immunities + projectile-repulsion neutralize.
+- **D — scoring** `src/analysis/{archetypes,index}` — signature-dominant per-archetype scoring on **absolute** bands (S/A/B/C/D at 80/60/40/20) via a saturating normalization; mana-sustainability is a near-gate (×0.6 DAMAGE, ×0.35 SPAM). `analyzeWand(wand, perks)` joins cached metrics + scores + the self-danger report.
+- **E — suggestions** `src/analysis/suggestions.ts` — depth-1 local search (single swap from the owned+seen pool / adjacent reorder / removal) ranked by target-archetype gain; self-danger is a veto (discards danger-introducing edits, rewards hazard-removing ones with a visibility bonus); equivalent edits deduped by label. Main thread + memoized; beam/worker deferred to M5.
+- **F — UI** `src/ui/{tierListViewModel,TierListPanel,ArchetypeBoard}` — archetype tabs over one rich ranked **S/A/B/C/D + Unsafe** column each, replacing the "Best Builds" placeholder; reuses `SpellTile` + grimoire tokens.
+- **Verified:** 206 unit tests pass · typecheck · lint · build · `npm audit` 0 vulns. **Fresh-context review = ship** (all six settled decisions confirmed; no blocking issues). Browser-verified (Playwright) — Damage↔AoE tab switch re-renders per-archetype metrics + deduped suggestions (Bubbleshot→Nuke +73 AoE), `?capture=1` null-slot degrades gracefully; **zero console errors**.
+
+### M4 settled decisions (this milestone)
+- **Self-danger = separate Unsafe band** (user-chosen; not cap-at-tier, not a soft penalty): a self-lethal held wand is banished below the S–D ladder in **every** column, still showing its would-be tier + the fixing perk.
+- **Scoring = signature-dominant + mana near-gate**; **absolute** tier bands, not relative-within-pool (M5 must rank generated builds on the same yardstick).
+- **UI = archetype tabs** (one rich column, single page).
+
+### M4 known approximations / carry-forward (none block M5; flagged in code)
+- **Self-danger + perk-immunity is tested with SYNTHETIC perks only** — `perks: []` in every fixture (M1-deferred), so it is **not validated end-to-end** against a real perk-bearing capture.
+- **Scoring reference constants are provisional/uncalibrated** (`archetypes.ts` REF/MANA_PENALTY) — the only goldens are the 3 tiny fixtures, and DPS itself is approximate (M3). First thing to tune against real wands.
+- **FIRE danger leans on a curated `CLOSE_FIRE` set** (flamethrower) for point-blank fire that geometry alone wouldn't flag; modded flame streams won't be caught until added. **RECOIL** uses a single provisional `warn` threshold (50, not the plan's illustrative 12) and is latent (the engine may not populate `castState.recoil`). **NUKE-class** projectiles aren't flagged self-dangerous (they fly far before detonating, per the reach heuristic) — defensible but uncalibrated.
+- **`secondsUntilStall` is cached at first-seen mana** (wandKey excludes volatile mana); scoring keys off the mana-independent `manaSustainable`, so tiers are unaffected.
+- **Suggestions feed targets the primary held wand** (slot 0); multi-wand suggestion merging is future.
+
 ## Current fixtures (captured 2026-06-21)
 - `snapshot_01.json` — starting wand `RUBBER_BALL ×2`, cap 2; **empty bag, no perks** (fresh game).
 - `spell_db.json` — 422 spells. `perk_db.json` — 105 perks. (Captured in the maintainer's **modded** setup, not pristine vanilla — see open items.)
@@ -82,12 +106,13 @@
 - **Pool = owned + seen-in-world** (read-only; current shop/pedestal/Holy-Mountain only; never the unexplored map). Stricter owned-only available as a setting.
 - **Performance is a hard requirement** — fast/responsive sim so the tier list re-ranks at interactive speed (bounded search, heavy work off the UI thread, cached sims). Shapes the M3 engine choice + M4/M5 search.
 
-## What's next — M4 (M3 ✅ complete)
+## What's next — M5 (M4 ✅ complete)
 
-**Active next step: M4 — analysis engine** ([APP], fixture-driven). Archetype scoring (Damage / Spam / AoE / Utility-mobility / Defensive) + **self-danger** (perk-aware veto) + local search → a **tier list (S/A/B/C) per archetype** ranking held wands. Build on what M3 landed:
-- `src/sim/{simulateWand,metrics}` is the per-wand evaluator the scorer calls; `WandMetrics` already exposes DPS/throughput/mana/spread/AoE. **Reuse cached sims** for interactive re-ranking (performance is a hard requirement — spec §6.4).
-- `runStore.ledger` is the pool; the **"Cast Simulation"** slot in `App.tsx` is where the ranked tier list renders (replaces/extends the per-wand cast panels).
-- Mind the **M3 approximations above** when scoring (DPS is relative, not absolute-accurate); self-danger needs perk data (deferred to M1 — `perks: []` today).
+**Active next step: M5 — generation engine** ([APP], fixture-driven). Template-seeded build generation → a **tier list of buildable options** per archetype from the owned+seen pool, with perk-pick advice. Build on what M4 landed:
+- `src/analysis/{index,archetypes,selfDanger,suggestions}` is the scorer / veto / local-search the generator reuses: `analyzeWand` ranks any candidate, `suggestEdits` is the depth-1 polish, the **Unsafe band + perk-aware veto** already exist. **Reuse `evalWand`'s cache** for interactive generation (performance is a hard requirement — spec §6.4).
+- Pool = `runStore.ledger.spells` (owned+seen); add the theorycraft full-DB toggle (M5-T1), template detection — nuke / trigger / multicast / spammer (M5-T2), template-seeded generation under a real chassis + constraints + **perk-pick advice** "take Projectile Repulsion to make this build safe" (M5-T3), and the "Build me a wand" UI (M5-T4). The tier list drops into the same "Best Builds" columns.
+- **Bound the combinatorial search** (spec §6.4) and **push heavy work off the UI thread** (web worker) — deferred from M4 where depth-1 single-edit was enough.
+- Mind the M4 carry-forward above: scoring constants are uncalibrated and self-danger is synthetic-perk-only until M1 captures real perks.
 
 Build in a **fresh session** (this one is context-heavy).
 
