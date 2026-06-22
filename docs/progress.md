@@ -2,7 +2,7 @@
 
 > Living status doc. Companion to [`plan.md`](./plan.md) (the milestone breakdown) and
 > [`../noita-wand-assistant-spec.md`](../noita-wand-assistant-spec.md) (the design).
-> **Last updated: 2026-06-21** · branch `feat/m2-mirror` (off `master`; M0 merged to `master`).
+> **Last updated: 2026-06-22** · branch `feat/m3-engine` (off `master`; M0 merged to `master`).
 
 ## Milestone status
 
@@ -11,7 +11,7 @@
 | **M0 — Fixtures & schema** | ✅ **COMPLETE** (T1–T5) | App is now buildable against fixtures with zero further game access through M5. |
 | M1 — Extraction mod + bridge | ⬜ not started | Evolve the M0 capture seed into the real emit-on-change mod + live bridge. |
 | **M2 — Ingestion + store + mirror UI** | ✅ **COMPLETE** (T1–T4) | First **visible** milestone — single-page wand-mirror dashboard, fixture-driven + browser-verified. |
-| M3 — Simulator integration | ⬜ | Fork `salinecitrine` `calc/`; adapt to our runtime spell-DB dump. |
+| **M3 — Simulator integration** | ✅ **COMPLETE** (T1–T4) | Vendored `salinecitrine` `calc/`; sim layer + projectile-damage table + metrics + cast-tree UI. Fixture-driven + browser-verified. |
 | M4 — Analysis engine | ⬜ | Archetype scoring + self-danger (perk-aware) + local search → **tier list per type** for held wands. |
 | M5 — Generation engine | ⬜ | Template-seeded generation → **tier list of buildable options** per type, from owned+seen pool. |
 | M6 — In-game overlay | ⬜ | Tauri v2 overlay. |
@@ -41,6 +41,20 @@
 - **Sprite-ready:** tiles render a real game `<img>` icon when sprite bytes exist, else the text tile (see M1 icon-export item below).
 - **Verified:** 94 unit tests pass · typecheck · lint · production build all clean. **Two fresh-context subagent reviews** (T1+T2 logic; T3+T4 UI + data modules) — both verdict **ship**; all findings addressed (order-independent wand signature; negative-zero formatting; NaN-safe `?capture`; empty-string id guard). Browser-verified (Playwright) across all 3 fixtures — stats incl. negative spread, the GRENADE null slot, the 2×NUKE bag, and pool accumulation 1→3→4; zero console errors. Data source = recorded fixtures via `src/data/demoRun.ts` (`?capture=N` dev override); the live bridge replaces it at M1-T5.
 
+## M3 — what landed (all committed on `feat/m3-engine`)
+
+- **T1** vendored `salinecitrine/noita-wand-simulator`'s `src/app/calc/` into `src/engine/` (byte-faithful + characterization tests; `fast-deep-equal` swapped in for lodash). See `src/engine/README.md`.
+- **T2** `src/sim/simulateWand.ts` — maps a snapshot wand → engine `Gun` + `Action[]` (`getActionById`, throw-safe → `missingSpells`/`approximate`) → `clickWand`. always_cast is **prepended** (approximation; flagged). First app-side engine import, so it also established the **engine→app declaration boundary** (`tsconfig.engine.json` is now `composite`/`emitDeclarationOnly`; `tsconfig.app.json` references it) — the app consumes the engine's `.d.ts` instead of re-checking vendored source under the app's stricter `noUnusedLocals`.
+- **T3a** `scripts/generate-projectile-stats.mjs` → committed `src/sim/data/projectileStats.generated.ts` (375 entries). The engine carries no projectile damage, so this table is generated from the game's projectile XMLs (`<ProjectileComponent damage>` + `<config_explosion>`, `<Base>` inheritance resolved). **Damage unit 1.0 = 25 HP** (cross-checked 3 ways). Default input = sparse `vexx32/noita-data` clone (`.noita-data/`, gitignored); `NOITA_DATA` path-configurable for the maintainer's own `data/`. `fast-xml-parser` is a devDep. Only the derived numeric table is committed (license caveat in `src/sim/data/README.md`).
+- **T3b** `src/sim/metrics.ts` — timing (per-shot delay = `castState.fire_rate_wait`; castDelay already baked in by clickWand, **not** re-added), projectiles/sec, **absolute sustained/burst DPS** (`(base+damage_projectile_add)×25` + explosion), mana sustainability + stall time, effective spread, AoE radius. Characterization goldens for all 3 fixtures.
+- **T4** `src/ui/{castViewModel,CastTree,MetricsPanel,CastSimPanel}` into the dashboard's reserved slot (now **"Cast Simulation"**, grimoire theme). The pure `castViewModel` also exercises the lightly-tested `condense`/`combineGroups` grouping.
+- **Verified:** 143 unit tests pass · typecheck · lint · build · `npm audit` clean. **Fresh-context review = ship** (one asymmetry fixed: modifier-added explosion damage now counted). Browser-verified (Playwright) across all 3 fixtures — DPS/mana/spread/AoE match the goldens (rubber_ball 7.2 HP/s sustainable · grenade 80 HP "stalls in 6.1s", AoE 7px · bubbleshot 3 casts, AoE 4px); **zero console errors**.
+
+### M3 known approximations / carry-forward (none block M4; flagged in code)
+- **DPS is approximate**: raw HP, neutral resistances, single-hit (no pierce/bounce/multi-hit), **crit excluded** (engine state's `damage_critical_multiplier` default is 0.0), triggers not counted in headline DPS, `damage_by_type` captured but not resistance-modeled.
+- **Lua-driven meta-projectiles** (`ALL_*` like `all_nukes`) have no `ProjectileComponent` → absent from the table → read as 0 damage with `damageApproximate` set. No fixture exercises them yet.
+- **always_cast = prepend** (not true always-cast semantics) and **shuffle wands report one deterministic seed-0 sample**. Both flagged; revisit when M1 captures such wands.
+
 ## Current fixtures (captured 2026-06-21)
 - `snapshot_01.json` — starting wand `RUBBER_BALL ×2`, cap 2; **empty bag, no perks** (fresh game).
 - `spell_db.json` — 422 spells. `perk_db.json` — 105 perks. (Captured in the maintainer's **modded** setup, not pristine vanilla — see open items.)
@@ -68,11 +82,14 @@
 - **Pool = owned + seen-in-world** (read-only; current shop/pedestal/Holy-Mountain only; never the unexplored map). Stricter owned-only available as a setting.
 - **Performance is a hard requirement** — fast/responsive sim so the tier list re-ranks at interactive speed (bounded search, heavy work off the UI thread, cached sims). Shapes the M3 engine choice + M4/M5 search.
 
-## What's next — M3 (M2 ✅ complete)
+## What's next — M4 (M3 ✅ complete)
 
-**Active next step: M3 — simulator integration** (mostly [APP]; one [MOD] spot-check). Fork `salinecitrine/noita-wand-simulator`'s `src/app/calc/` into `src/engine/`, then adapt it to ingest our runtime spell-DB dump (the build-time-vs-runtime reconciliation — see plan M3-T1/T2). Then derive metrics (M3-T3) and render the cast tree (M3-T4) into the existing dashboard's reserved **"Best Builds"** slot, keeping the **grimoire × wand-edit** visual identity (see memory `ui-visual-direction`). Build in a **fresh session** (this one is context-heavy).
+**Active next step: M4 — analysis engine** ([APP], fixture-driven). Archetype scoring (Damage / Spam / AoE / Utility-mobility / Defensive) + **self-danger** (perk-aware veto) + local search → a **tier list (S/A/B/C) per archetype** ranking held wands. Build on what M3 landed:
+- `src/sim/{simulateWand,metrics}` is the per-wand evaluator the scorer calls; `WandMetrics` already exposes DPS/throughput/mana/spread/AoE. **Reuse cached sims** for interactive re-ranking (performance is a hard requirement — spec §6.4).
+- `runStore.ledger` is the pool; the **"Cast Simulation"** slot in `App.tsx` is where the ranked tier list renders (replaces/extends the per-wand cast panels).
+- Mind the **M3 approximations above** when scoring (DPS is relative, not absolute-accurate); self-danger needs perk data (deferred to M1 — `perks: []` today).
 
-The dashboard is ready for M3+: `runStore.ledger` is the pool the analysis/generation will consume; the UI has a marked slot for ranked output; spell/perk lookups + formatters exist in `src/data` + `src/ui/format.ts`.
+Build in a **fresh session** (this one is context-heavy).
 
 Two product asks captured during M2 (do NOT lose):
 - **Real icons** "from the actual run" — M1 mod must export `sprite_base64` (item 5 above); app is already sprite-ready.
