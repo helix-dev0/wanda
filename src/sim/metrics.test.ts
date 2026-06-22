@@ -139,6 +139,52 @@ describe('computeMetrics — edge cases', () => {
     expect(computeMetrics([], undefined, stats, true).truncated).toBe(true)
   })
 
+  // --- Tier-0 grounding: payload-aware damage + explosion DAMAGE ---
+  const P = 'data/entities/projectiles/'
+  const RUBBER = `${P}deck/rubber_ball.xml` // 0.12 dmg = 3 HP, explosion 0, radius 1 (digging)
+  const GRENADE = `${P}deck/grenade.xml` // 1.3 + 1.9 explosion = 80 HP, explosion 1.9 = 47.5 HP, radius 7
+  const shotWith = (over: Partial<WandShot>): WandShot => ({
+    projectiles: [],
+    calledActions: [],
+    actionTree: [],
+    ...over,
+  })
+
+  it('counts TRIGGER PAYLOAD damage (walks projectile.trigger recursively)', () => {
+    // A cheap carrier (rubber_ball, 3 HP) that triggers a heavy payload (grenade, 80 HP).
+    // The whole high-damage Noita meta is payloads; per cast = carrier + payload delivered.
+    const shot = shotWith({
+      projectiles: [{ entity: RUBBER, trigger: shotWith({ projectiles: [{ entity: GRENADE }] }) }],
+    })
+    const m = computeMetrics([shot], 20, stats, false)
+    expect(m.damagePerCast).toBeCloseTo(83) // 3 carrier + 80 payload (was 3 before the fix)
+  })
+
+  it('recurses nested trigger chains and is bounded (no blow-up)', () => {
+    // carrier -> trigger -> trigger (grenade): 3 + 3 + 80
+    const inner = shotWith({ projectiles: [{ entity: GRENADE }] })
+    const mid = shotWith({ projectiles: [{ entity: RUBBER, trigger: inner }] })
+    const shot = shotWith({ projectiles: [{ entity: RUBBER, trigger: mid }] })
+    const m = computeMetrics([shot], 20, stats, false)
+    expect(m.damagePerCast).toBeCloseTo(86)
+  })
+
+  it('maxExplosionDamage: 0 for a digging blast, >0 for a damaging blast', () => {
+    const dig = computeMetrics([shotWith({ projectiles: [{ entity: RUBBER }] })], 20, stats, false)
+    expect(dig.maxExplosionRadius).toBe(1)
+    expect(dig.maxExplosionDamage).toBe(0) // rubber_ball digs but deals no blast damage
+    const blast = computeMetrics([shotWith({ projectiles: [{ entity: GRENADE }] })], 20, stats, false)
+    expect(blast.maxExplosionDamage).toBeCloseTo(47.5) // 1.9 × 25
+    expect(blast.maxExplosionRadius).toBe(7)
+  })
+
+  it('sees a damaging explosion inside a trigger payload', () => {
+    const shot = shotWith({
+      projectiles: [{ entity: RUBBER, trigger: shotWith({ projectiles: [{ entity: GRENADE }] }) }],
+    })
+    expect(computeMetrics([shot], 20, stats, false).maxExplosionDamage).toBeCloseTo(47.5)
+  })
+
   it('modifier-added explosion damage on a non-exploding base IS counted', () => {
     // rubber_ball has intrinsic explosionDamage 0; an EXPLOSIVE_PROJECTILE-style
     // modifier adds +0.2 (=5 HP). Direct 0.12×25=3 + explosion 0.2×25=5 → 8 HP.

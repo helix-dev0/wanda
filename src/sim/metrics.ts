@@ -43,6 +43,9 @@ export interface WandMetrics {
   effectiveSpread: number
   /** Largest explosion radius produced in the cycle (px); 0 if none. */
   maxExplosionRadius: number
+  /** Largest explosion DAMAGE produced in the cycle (HP); 0 if none. Separates a
+   *  lethal blast from a harmless digging explosion (same radius, no damage). */
+  maxExplosionDamage: number
 
   /** Engine hit its 10-iteration cap — cycle figures are a truncated lower bound. */
   truncated: boolean
@@ -58,29 +61,32 @@ function perShotFrames(shot: WandShot, stats: WandStats): number {
   return Math.max(0, shot.castState?.fire_rate_wait ?? stats.castDelay)
 }
 
-// Expected HP of one shot: every top-level projectile gets the shot's accumulated
-// damage_*_add (same 1.0 = 25 HP unit as the projectile base). Explosions are a
-// separate source, counted only when the projectile actually explodes.
-function shotDamage(
-  shot: WandShot,
-  onMissing: () => void,
-): number {
+/** Max trigger/timer nesting we descend. Real chains are shallow; this only guards a
+ *  pathological deep tree (the engine builds fresh WandShots, so there is no cycle). */
+const TRIGGER_DEPTH_CAP = 16
+
+// Expected HP of one shot INCLUDING its trigger payloads: every top-level projectile
+// gets the shot's accumulated damage_*_add (1.0 = 25 HP), plus its explosion when it
+// explodes; and a TRIGGER projectile recursively adds the damage its payload delivers
+// on impact (the payload is its own WandShot with its own castState). This is "damage
+// per cast assuming the trigger connects" — optimistic, like the single-hit model
+// elsewhere. Without the recursion the entire trigger meta reads as ~0 damage.
+function shotDamage(shot: WandShot, onMissing: () => void, depth = 0): number {
   const projAdd = shot.castState?.damage_projectile_add ?? 0
   const explAdd = shot.castState?.damage_explosion_add ?? 0
   let hp = 0
   for (const p of shot.projectiles) {
     const st = getProjectileStats(p.entity)
-    if (!st) {
-      onMissing()
-      continue
+    if (st) {
+      hp += Math.max(0, st.damage + projAdd) * DAMAGE_UNIT_HP
+      if (st.explosionDamage > 0 || explAdd > 0) {
+        hp += Math.max(0, st.explosionDamage + explAdd) * DAMAGE_UNIT_HP
+      }
+    } else {
+      onMissing() // modded base — damage understated, but still descend its payload
     }
-    hp += Math.max(0, st.damage + projAdd) * DAMAGE_UNIT_HP
-    // Count explosion damage for intrinsically-explosive projectiles AND when a
-    // modifier adds explosion damage to a non-exploding base (e.g. EXPLOSIVE_
-    // PROJECTILE's +damage_explosion_add). Kept symmetric with maxExplosionRadius,
-    // which likewise adds the modifier delta.
-    if (st.explosionDamage > 0 || explAdd > 0) {
-      hp += Math.max(0, st.explosionDamage + explAdd) * DAMAGE_UNIT_HP
+    if (p.trigger && depth < TRIGGER_DEPTH_CAP) {
+      hp += shotDamage(p.trigger, onMissing, depth + 1)
     }
   }
   return hp
@@ -127,18 +133,27 @@ export function computeMetrics(
 
   // --- spread / AoE ---
   const effectiveSpread = stats.spread + (shots[0]?.castState?.spread_degrees ?? 0)
-  // Largest blast the wand makes: a fired projectile's INTRINSIC explosion radius
-  // (from the stats table) plus any modifier-added radius on that shot
-  // (castState.explosion_radius). castState alone would miss intrinsic explosions
-  // like nuke's 250 / grenade's 7. Includes non-damaging (digging) explosions.
+  // Largest blast the wand makes — RADIUS and DAMAGE — descending trigger payloads
+  // (a trigger→bomb's explosion lives in the payload, invisible at top level). Radius
+  // = a projectile's intrinsic radius + the shot's modifier delta; damage likewise.
+  // Tracking damage separately lets AoE scoring reward a lethal blast over a harmless
+  // digging explosion (same radius, 0 damage).
   let maxExplosionRadius = 0
-  for (const s of shots) {
-    const radiusAdd = s.castState?.explosion_radius ?? 0
-    for (const p of s.projectiles) {
-      const r = (getProjectileStats(p.entity)?.explosionRadius ?? 0) + radiusAdd
+  let maxExplosionDamage = 0
+  const scanExplosions = (shot: WandShot, depth: number): void => {
+    const radiusAdd = shot.castState?.explosion_radius ?? 0
+    const explAdd = shot.castState?.damage_explosion_add ?? 0
+    for (const p of shot.projectiles) {
+      const st = getProjectileStats(p.entity)
+      const r = (st?.explosionRadius ?? 0) + radiusAdd
       if (r > maxExplosionRadius) maxExplosionRadius = r
+      const baseExpl = st?.explosionDamage ?? 0
+      const dHp = (baseExpl > 0 || explAdd > 0 ? Math.max(0, baseExpl + explAdd) : 0) * DAMAGE_UNIT_HP
+      if (dHp > maxExplosionDamage) maxExplosionDamage = dHp
+      if (p.trigger && depth < TRIGGER_DEPTH_CAP) scanExplosions(p.trigger, depth + 1)
     }
   }
+  for (const s of shots) scanExplosions(s, 0)
 
   return {
     shotsUntilReload: shots.length,
@@ -157,6 +172,7 @@ export function computeMetrics(
     secondsUntilStall,
     effectiveSpread,
     maxExplosionRadius,
+    maxExplosionDamage,
     truncated: hitIterationLimit,
     damageApproximate,
   }
