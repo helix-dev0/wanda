@@ -8,7 +8,7 @@ import { RunSidebar } from './ui/RunSidebar'
 import { CastSimPanel } from './ui/CastSimPanel'
 import { TierListPanel } from './ui/TierListPanel'
 import { useGeneration } from './ui/useGeneration'
-import { liveEnabled, startLiveBridge } from './bridge/liveClient'
+import { isLive, startLive } from './bridge/startLive'
 
 /**
  * M2 live-mirror dashboard. Everything visible on one page — current wand(s) on
@@ -23,10 +23,11 @@ import { liveEnabled, startLiveBridge } from './bridge/liveClient'
  */
 function App() {
   useEffect(() => {
-    // Live mode (VITE_LIVE=1): stream snapshots from the bridge. Default: fixtures.
-    if (liveEnabled()) {
+    // Live mode: Tauri file-watch in the packaged app, WS bridge in browser dev
+    // (VITE_LIVE=1). Default in a plain browser: replay the recorded fixtures.
+    if (isLive()) {
       runStore.getState().reset()
-      return startLiveBridge()
+      return startLive()
     }
     const cap = new URLSearchParams(window.location.search).get('capture')
     const last = demoRun.length - 1
@@ -55,8 +56,8 @@ function App() {
         <h1>
           <span className="rune" aria-hidden="true">☿</span> Wand Grimoire
         </h1>
-        {liveEnabled() ? (
-          <span className="status-pill" title="streaming from the live bridge (VITE_LIVE)">
+        {isLive() ? (
+          <span className="status-pill" title="streaming live (Tauri file-watch, or the dev bridge with VITE_LIVE)">
             ◉ live
           </span>
         ) : (
