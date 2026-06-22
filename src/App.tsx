@@ -50,7 +50,7 @@ function App() {
       </header>
 
       <div className="dashboard">
-        <main className="wands-area">
+        <section className="col col-current">
           <h2 className="section-title">Your Wands</h2>
           {wands.length === 0 ? (
             <p className="empty-note">No wand held in this capture.</p>
@@ -72,11 +72,14 @@ function App() {
               ))}
             </div>
           )}
+        </section>
+
+        <section className="col col-builds">
           <h2 className="section-title">Best Builds</h2>
           <TierListPanel wands={wands} perks={perks} pool={pool} provenance={provenance} />
-        </main>
+        </section>
 
-        <aside className="run-side">
+        <aside className="col col-run">
           <RunSidebar bag={bag} perks={perks} pool={[...pool]} />
         </aside>
       </div>

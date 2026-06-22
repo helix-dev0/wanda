@@ -64,9 +64,9 @@ body {
 /* --- app frame ------------------------------------------------------------- */
 
 .app {
-  max-width: 1240px;
+  max-width: 2200px;
   margin: 0 auto;
-  padding: 26px clamp(16px, 4vw, 40px) 64px;
+  padding: 22px clamp(16px, 3vw, 36px) 32px;
 }
 
 .app-header {
@@ -116,12 +116,17 @@ h1 .rune {
 
 .dashboard {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 26px;
+  grid-template-columns: minmax(340px, 400px) minmax(0, 1fr) 340px;
+  gap: 22px;
   align-items: start;
 }
 
-@media (max-width: 920px) {
+.col {
+  min-width: 0;
+}
+
+/* Stack into one column when there isn't room for three side by side. */
+@media (max-width: 1400px) {
   .dashboard {
     grid-template-columns: 1fr;
   }
@@ -139,8 +144,8 @@ h1 .rune {
   border-bottom: 1px dotted var(--rule);
 }
 
-.wands-area .section-title:not(:first-child) {
-  margin-top: 28px;
+.col .section-title:not(:first-child) {
+  margin-top: 22px;
 }
 
 /* --- wand panels (carved stone tablets) ------------------------------------ */
@@ -750,6 +755,19 @@ h1 .rune {
   background: var(--bg-inset);
   border: 1px solid var(--rule);
   border-radius: 4px;
+}
+
+.dial-desc {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+.dial-desc b {
+  color: var(--ink-dim);
+  font-style: normal;
 }
 
 .dial-rungs {

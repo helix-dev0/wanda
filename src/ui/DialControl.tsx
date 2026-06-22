@@ -46,6 +46,9 @@ export function DialControl() {
           </button>
         ))}
       </div>
+      <p className="dial-desc">
+        <b>{RUNG_LABEL[rung]}</b> — {RUNG_HINT[rung]}
+      </p>
       <div className="dial-options">
         <label className="dial-toggle" title="Only builds that dig through terrain">
           <input
