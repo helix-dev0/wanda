@@ -523,3 +523,207 @@ h1 .rune {
   font-style: italic;
   font-size: 12px;
 }
+
+/* --- best builds: per-archetype tier list (M4-T4) -------------------------- */
+
+.archetype-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.archetype-tab {
+  font-family: var(--serif);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  color: var(--ink-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+}
+
+.archetype-tab:hover {
+  color: var(--ink);
+}
+
+.archetype-tab.active {
+  color: var(--gold-bright);
+  background: linear-gradient(var(--bg-panel), #181309);
+  border-color: var(--rule);
+  box-shadow: inset 0 2px 0 var(--gold-deep);
+}
+
+.archetype-board {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tier-bands {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tier-band {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  padding: 8px;
+  background: var(--bg-inset);
+  border: 1px solid var(--rule-soft);
+  border-radius: 4px;
+}
+
+.tier-band.unsafe {
+  border-color: #5a2620;
+  background: linear-gradient(#1a0f0c, var(--bg-inset));
+}
+
+.tier-badge {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 22px;
+  text-align: center;
+  line-height: 40px;
+  border-radius: 3px;
+  background: #0e0b07;
+  border: 1px solid var(--rule);
+  color: var(--ink-dim);
+}
+
+.tier-badge.tier-S {
+  color: var(--gold-bright);
+  border-color: var(--gold-deep);
+  text-shadow: 0 0 10px rgba(236, 208, 122, 0.4);
+}
+.tier-badge.tier-A { color: var(--gold); }
+.tier-badge.tier-B { color: var(--ink); }
+.tier-badge.tier-C { color: var(--ink-dim); }
+.tier-badge.tier-D { color: var(--ink-faint); }
+.tier-badge.tier-UNSAFE { color: var(--t-projectile); border-color: #5a2620; }
+
+.tier-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+
+.tier-empty {
+  color: var(--ink-faint);
+  font-size: 14px;
+}
+
+.tier-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.tier-entry-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tier-entry-title {
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.tier-entry-score {
+  font-size: 13px;
+  color: var(--gold);
+}
+
+.danger-chip {
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: #f0b8b0;
+  background: #3a1714;
+  border: 1px solid #5a2620;
+  border-radius: 3px;
+  padding: 2px 8px;
+}
+
+.tier-entry-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 12px;
+  color: var(--gold);
+}
+
+.tm-label {
+  color: var(--ink-dim);
+}
+
+.would-be {
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+.tier-deck {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.suggestions {
+  border: 1px dashed var(--rule);
+  border-radius: 4px;
+  padding: 12px 14px;
+  background: #ffffff04;
+}
+
+.suggestions-title {
+  display: block;
+  font-family: var(--serif);
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 8px;
+}
+
+.suggestion-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.suggestion {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.sugg-label {
+  color: var(--ink);
+}
+
+.sugg-delta {
+  color: var(--t-utility);
+  font-size: 12px;
+}
+
+.sugg-fix {
+  color: #f0b8b0;
+  font-size: 11px;
+  font-style: italic;
+}

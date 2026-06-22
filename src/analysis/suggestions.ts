@@ -126,5 +126,15 @@ export function suggestEdits(
   })
 
   scored.sort((a, b) => b.rank - a.rank)
-  return scored.slice(0, MAX_SUGGESTIONS).map((x) => x.s)
+
+  // Collapse equivalent edits that read the same to the user — e.g. swapping any
+  // of three identical BUBBLESHOT slots for NUKE is one suggestion, not three.
+  // Sorted desc, so the first kept per label is the highest-ranked.
+  const seenLabels = new Set<string>()
+  const deduped = scored.filter((x) => {
+    if (seenLabels.has(x.s.label)) return false
+    seenLabels.add(x.s.label)
+    return true
+  })
+  return deduped.slice(0, MAX_SUGGESTIONS).map((x) => x.s)
 }

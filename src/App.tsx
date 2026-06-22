@@ -5,6 +5,7 @@ import { demoRun } from './data/demoRun'
 import { WandPanel } from './ui/WandPanel'
 import { RunSidebar } from './ui/RunSidebar'
 import { CastSimPanel } from './ui/CastSimPanel'
+import { TierListPanel } from './ui/TierListPanel'
 
 /**
  * M2 live-mirror dashboard. Everything visible on one page — current wand(s) on
@@ -66,10 +67,8 @@ function App() {
               ))}
             </div>
           )}
-          <p className="coming-soon muted-note">
-            Ranked builds per archetype (S/A/B/C) — the tier list — drop in here once the
-            analysis/generation engines (M4–M5) land. This is the simulator (M3) those build on.
-          </p>
+          <h2 className="section-title">Best Builds</h2>
+          <TierListPanel wands={wands} perks={perks} pool={pool} />
         </main>
 
         <aside className="run-side">

@@ -39,6 +39,14 @@ describe('suggestEdits — improvement', () => {
     expect(out[0].label).toMatch(/^Swap /)
   })
 
+  it('collapses equivalent edits to one suggestion (no duplicate labels)', () => {
+    // Three identical slots → "Swap Bubbleshot → Nuke" must appear once, not 3×.
+    const wand = makeWand({ spells: ['BUBBLESHOT', 'BUBBLESHOT', 'BUBBLESHOT'] })
+    const pool = new Set(['BUBBLESHOT', 'NUKE', 'GRENADE'])
+    const labels = suggestEdits(wand, 'DAMAGE', pool, []).map((s) => s.label)
+    expect(new Set(labels).size).toBe(labels.length)
+  })
+
   it('is sorted by descending benefit', () => {
     const wand = makeWand({ spells: ['GRENADE'] })
     const pool = new Set(['GRENADE', 'BUBBLESHOT', 'RUBBER_BALL'])
