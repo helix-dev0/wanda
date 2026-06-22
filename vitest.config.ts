@@ -5,7 +5,8 @@ import { defineConfig } from 'vitest/config'
 // tests import { describe, it, expect } from 'vitest' explicitly.
 export default defineConfig({
   test: {
-    include: ['src/**/*.test.ts'],
+    // src unit tests (.ts) + the live-bridge sidecar integration test (.mjs).
+    include: ['src/**/*.test.ts', 'bridge/**/*.test.mjs'],
     environment: 'node',
   },
 })

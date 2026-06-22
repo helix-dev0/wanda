@@ -7,6 +7,7 @@ import { RunSidebar } from './ui/RunSidebar'
 import { CastSimPanel } from './ui/CastSimPanel'
 import { TierListPanel } from './ui/TierListPanel'
 import { useGeneration } from './ui/useGeneration'
+import { liveEnabled, startLiveBridge } from './bridge/liveClient'
 
 /**
  * M2 live-mirror dashboard. Everything visible on one page — current wand(s) on
@@ -21,6 +22,11 @@ import { useGeneration } from './ui/useGeneration'
  */
 function App() {
   useEffect(() => {
+    // Live mode (VITE_LIVE=1): stream snapshots from the bridge. Default: fixtures.
+    if (liveEnabled()) {
+      runStore.getState().reset()
+      return startLiveBridge()
+    }
     const cap = new URLSearchParams(window.location.search).get('capture')
     const last = demoRun.length - 1
     const n = parseInt(cap ?? '', 10) // 1-based; absent/non-numeric → full run
@@ -44,9 +50,15 @@ function App() {
         <h1>
           <span className="rune" aria-hidden="true">☿</span> Wand Grimoire
         </h1>
-        <span className="status-pill" title="reading recorded fixtures (no game needed)">
-          ◉ demo data
-        </span>
+        {liveEnabled() ? (
+          <span className="status-pill" title="streaming from the live bridge (VITE_LIVE)">
+            ◉ live
+          </span>
+        ) : (
+          <span className="status-pill" title="reading recorded fixtures (no game needed)">
+            ◉ demo data
+          </span>
+        )}
       </header>
 
       <div className="dashboard">
