@@ -6,6 +6,7 @@ import { WandPanel } from './ui/WandPanel'
 import { RunSidebar } from './ui/RunSidebar'
 import { CastSimPanel } from './ui/CastSimPanel'
 import { TierListPanel } from './ui/TierListPanel'
+import { useGeneration } from './ui/useGeneration'
 
 /**
  * M2 live-mirror dashboard. Everything visible on one page — current wand(s) on
@@ -27,6 +28,9 @@ function App() {
     runStore.getState().reset()
     for (let i = 0; i <= upto; i++) runStore.getState().applySnapshot(demoRun[i])
   }, [])
+
+  // Drive build generation off the UI thread into uiStore.gen (rendered at M5-T4).
+  useGeneration()
 
   const wands = useRunStore((s) => s.wands)
   const bag = useRunStore((s) => s.spellInventory)

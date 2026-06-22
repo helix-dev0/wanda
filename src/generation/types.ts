@@ -71,3 +71,24 @@ export interface GenerateRequest {
   /** Defaults to all archetypes. */
   archetypes?: Archetype[]
 }
+
+// --- worker protocol (all structured-cloneable; no Sets/Maps/functions) ---------
+
+/** main → worker: a generation request tagged with a monotonic id. */
+export type GenRequestMsg = GenerateRequest & { type: 'generate'; reqId: number }
+
+/** worker → main: success. */
+export interface GenResponseMsg {
+  type: 'result'
+  reqId: number
+  result: GenerateResult
+}
+
+/** worker → main: the generate() call threw. */
+export interface GenErrorMsg {
+  type: 'error'
+  reqId: number
+  message: string
+}
+
+export type WorkerResponse = GenResponseMsg | GenErrorMsg
