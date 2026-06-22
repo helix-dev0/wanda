@@ -1,0 +1,42 @@
+{
+  "_synthetic": "M5 quantity-fix regression fixture — HAND-AUTHORED, not a real capture. Mirrors the confirmed in-game bug (docs/progress.md 'First live run'): the player owns CHAINSAW x8 but only ONE each of DIGGER / SPITTER / MINE / BOMB / NUKE / BURST_3 / DAMAGE / ADD_TRIGGER. DIGGER is type-0 mana-0 — the CHEAPEST projectile — so pre-fix the spammer/multicast templates filled the deck with ~capacity DIGGER (the reported '~15 DIGGER when I own 1'). The chassis capacity (10) exceeds the 8 owned CHAINSAW, so a correct spammer must spill to other projectiles rather than repeat past ownership. Used by generate.test.ts to assert no generated deck exceeds ownedCounts.",
+  "schema": 1,
+  "run_id": "run-50",
+  "timestamp": 50000,
+  "player": { "perks": [] },
+  "wands": [
+    {
+      "slot": 0,
+      "active": true,
+      "always_cast": [],
+      "spells": ["CHAINSAW", "CHAINSAW", "DIGGER", null, null, null, null, null, null, null],
+      "stats": {
+        "shuffle": false,
+        "spellsPerCast": 1,
+        "castDelay": 8,
+        "rechargeTime": 25,
+        "manaMax": 1000,
+        "mana": 1000,
+        "manaChargeSpeed": 300,
+        "capacity": 10,
+        "spread": 0,
+        "speedMultiplier": 1.0
+      }
+    }
+  ],
+  "spell_inventory": [
+    { "action_id": "CHAINSAW", "uses_remaining": -1 },
+    { "action_id": "CHAINSAW", "uses_remaining": -1 },
+    { "action_id": "CHAINSAW", "uses_remaining": -1 },
+    { "action_id": "CHAINSAW", "uses_remaining": -1 },
+    { "action_id": "CHAINSAW", "uses_remaining": -1 },
+    { "action_id": "CHAINSAW", "uses_remaining": -1 },
+    { "action_id": "SPITTER", "uses_remaining": null },
+    { "action_id": "MINE", "uses_remaining": null },
+    { "action_id": "BOMB", "uses_remaining": null },
+    { "action_id": "NUKE", "uses_remaining": null },
+    { "action_id": "BURST_3", "uses_remaining": null },
+    { "action_id": "DAMAGE", "uses_remaining": null },
+    { "action_id": "ADD_TRIGGER", "uses_remaining": null }
+  ]
+}
