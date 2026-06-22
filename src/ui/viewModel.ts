@@ -1,10 +1,11 @@
 import type { Wand } from '../schema/snapshot'
+import type { SpellDbEntry } from '../schema/spell-db'
 import { spellDisplayName, spellTypeName, getSpell } from '../data/spellDb'
 import { formatFrames, formatSpread, formatMana } from './format'
 
 /**
- * Presentational view-model for the wand panel (M2-T3). Pure functions only — no
- * React, no DOM — so the values shown are unit-tested in node; components stay
+ * Presentational view-model for the wand panel (M2-T3/T4). Pure functions only —
+ * no React, no DOM — so the values shown are unit-tested in node; components stay
  * thin and are verified by rendering in a real browser.
  */
 
@@ -21,6 +22,25 @@ export const SPELL_TYPE_CLASS: Record<string, string> = {
   PASSIVE: 'passive',
 }
 
+/**
+ * Resolve a renderable image source for a spell's real game icon, or null to
+ * fall back to the type-coloured text tile.
+ *
+ * Real icons come "from the actual run": the extraction mod exports each spell's
+ * sprite PNG (the DB entry only carries a game-internal `sprite` PATH like
+ * `data/ui_gfx/gun_actions/rubber_ball.png`, whose bytes live packed in the
+ * game's data.wak — not loadable in a browser). The agreed transport is a
+ * base64 `sprite_base64` field added to the DB dump at M1; the spell-DB schema is
+ * a looseObject, so that field round-trips today without a schema change, and
+ * this resolver lights up the instant a sprite-carrying DB is captured. Until
+ * then it returns null and the tile shows text.
+ */
+export function resolveSpriteSrc(entry: SpellDbEntry | undefined): string | null {
+  if (!entry) return null
+  const b64 = (entry as Record<string, unknown>).sprite_base64
+  return typeof b64 === 'string' && b64.length > 0 ? `data:image/png;base64,${b64}` : null
+}
+
 export interface SpellTileModel {
   empty: boolean
   id: string | null
@@ -30,10 +50,19 @@ export interface SpellTileModel {
   typeClass: string
   mana: number | null
   alwaysCast: boolean
+  /** Charges left for a bag spell; null = unlimited or not a bag spell. */
+  usesRemaining: number | null
+  /** Real game icon as a data URL when available (see resolveSpriteSrc), else null. */
+  spriteSrc: string | null
 }
 
-/** Build the view-model for one deck slot. `id === null` is an empty slot. */
-export function spellTile(id: string | null, opts: { alwaysCast?: boolean } = {}): SpellTileModel {
+export interface SpellTileOpts {
+  alwaysCast?: boolean
+  usesRemaining?: number | null
+}
+
+/** Build the view-model for one spell slot/card. `id === null` is an empty slot. */
+export function spellTile(id: string | null, opts: SpellTileOpts = {}): SpellTileModel {
   const alwaysCast = opts.alwaysCast ?? false
   if (id === null) {
     return {
@@ -44,8 +73,11 @@ export function spellTile(id: string | null, opts: { alwaysCast?: boolean } = {}
       typeClass: 'empty',
       mana: null,
       alwaysCast,
+      usesRemaining: null,
+      spriteSrc: null,
     }
   }
+  const entry = getSpell(id)
   const typeName = spellTypeName(id) ?? null
   return {
     empty: false,
@@ -53,8 +85,10 @@ export function spellTile(id: string | null, opts: { alwaysCast?: boolean } = {}
     name: spellDisplayName(id),
     typeName,
     typeClass: (typeName && SPELL_TYPE_CLASS[typeName]) || 'unknown',
-    mana: getSpell(id)?.mana ?? null,
+    mana: entry?.mana ?? null,
     alwaysCast,
+    usesRemaining: opts.usesRemaining ?? null,
+    spriteSrc: resolveSpriteSrc(entry),
   }
 }
 

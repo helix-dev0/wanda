@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { spellTile, wandStatRows, SPELL_TYPE_CLASS } from './viewModel'
+import { spellTile, wandStatRows, SPELL_TYPE_CLASS, resolveSpriteSrc } from './viewModel'
 import type { Wand } from '../schema/snapshot'
+import type { SpellDbEntry } from '../schema/spell-db'
 
 // M2-T3: the presentational logic the wand panel renders. Kept pure (no React,
 // no DOM) so "matches the stat values" is proven in a fast node unit test; the
@@ -53,6 +54,34 @@ describe('spellTile', () => {
     expect(t.name).toBe('Totally Made Up Spell') // prettified id fallback
     expect(t.typeName).toBeNull()
     expect(t.typeClass).toBe('unknown')
+  })
+
+  it('carries uses-remaining for a limited bag spell', () => {
+    const t = spellTile('NUKE', { usesRemaining: 1 })
+    expect(t.usesRemaining).toBe(1)
+    expect(t.mana).toBe(200) // NUKE drains 200 mana
+  })
+
+  it('defaults uses-remaining to null (deck spells / unlimited)', () => {
+    expect(spellTile('RUBBER_BALL').usesRemaining).toBeNull()
+    expect(spellTile(null).usesRemaining).toBeNull()
+  })
+
+  it('has no sprite source yet (fixtures carry only a game-internal path)', () => {
+    // Real icons arrive once the mod exports sprite bytes + we re-capture (M1).
+    expect(spellTile('RUBBER_BALL').spriteSrc).toBeNull()
+  })
+})
+
+describe('resolveSpriteSrc — sprite-ready, lights up when the mod exports bytes', () => {
+  it('returns null without sprite bytes', () => {
+    expect(resolveSpriteSrc(undefined)).toBeNull()
+    expect(resolveSpriteSrc({ id: 'X', type: 0, name: '$x' } as SpellDbEntry)).toBeNull()
+  })
+
+  it('builds a data URL from a base64 sprite the DB dump may carry (looseObject)', () => {
+    const entry = { id: 'X', type: 0, name: '$x', sprite_base64: 'AAAA' } as unknown as SpellDbEntry
+    expect(resolveSpriteSrc(entry)).toBe('data:image/png;base64,AAAA')
   })
 })
 

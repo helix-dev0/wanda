@@ -1,82 +1,76 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { runStore } from './store/runStore'
 import { useRunStore } from './ui/useRunStore'
 import { demoRun } from './data/demoRun'
 import { WandPanel } from './ui/WandPanel'
+import { RunSidebar } from './ui/RunSidebar'
 
 /**
- * M2 live-mirror shell. Drives the run-state store from the recorded fixtures via
- * a frame stepper (the fixture-driven default; live bridge data replaces this at
- * M1-T5). Replaying frames 0..n from a reset keeps the seen-this-run pool exact.
- * T3 renders the wand panels; T4 will add the spell-pool / perks / ledger side.
+ * M2 live-mirror dashboard. Everything visible on one page — current wand(s) on
+ * the left, the run-state side (bag / perks / seen-this-run pool) on the right —
+ * no pagination. The ranked "best builds" tier list (M4/M5, needs the simulator
+ * + analysis) drops into the marked slot on this same page.
+ *
+ * Data source is the recorded fixtures (the fixture-driven default; the live
+ * bridge replaces this at M1-T5). The whole run is applied so the seen-this-run
+ * pool is complete and the current wand is the latest capture. `?capture=N` is a
+ * dev/verification override to view an earlier capture (e.g. the null-slot wand).
  */
 function App() {
-  const [frame, setFrame] = useState(0)
-
   useEffect(() => {
+    const cap = new URLSearchParams(window.location.search).get('capture')
+    const last = demoRun.length - 1
+    const upto = cap ? Math.min(Math.max(parseInt(cap, 10) - 1, 0), last) : last
     runStore.getState().reset()
-    for (let i = 0; i <= frame && i < demoRun.length; i++) {
-      runStore.getState().applySnapshot(demoRun[i])
-    }
-  }, [frame])
+    for (let i = 0; i <= upto; i++) runStore.getState().applySnapshot(demoRun[i])
+  }, [])
 
   const wands = useRunStore((s) => s.wands)
-  const runId = useRunStore((s) => s.runId)
-  const timestamp = useRunStore((s) => s.timestamp)
-  const poolSize = useRunStore((s) => s.ledger.spells.size)
-
-  const atStart = frame === 0
-  const atEnd = frame >= demoRun.length - 1
+  const bag = useRunStore((s) => s.spellInventory)
+  const perks = useRunStore((s) => s.perks)
+  const pool = useRunStore((s) => s.ledger.spells)
 
   return (
     <div className="app">
       <header className="app-header">
-        <div className="title-block">
-          <h1>
-            <span className="rune" aria-hidden="true">☿</span> Wand Grimoire
-          </h1>
-          <p className="tagline">live mirror of the current run</p>
-        </div>
-
-        <dl className="run-meta">
-          <div>
-            <dt>run</dt>
-            <dd>{runId ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>frame</dt>
-            <dd>{timestamp ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>pool</dt>
-            <dd>{poolSize} seen</dd>
-          </div>
-        </dl>
-
-        <div className="stepper" role="group" aria-label="fixture stepper">
-          <button type="button" onClick={() => setFrame((f) => Math.max(0, f - 1))} disabled={atStart}>
-            ‹ prev
-          </button>
-          <span className="frame-count">
-            fixture {frame + 1} / {demoRun.length}
-          </span>
-          <button
-            type="button"
-            onClick={() => setFrame((f) => Math.min(demoRun.length - 1, f + 1))}
-            disabled={atEnd}
-          >
-            next ›
-          </button>
-        </div>
+        <h1>
+          <span className="rune" aria-hidden="true">☿</span> Wand Grimoire
+        </h1>
+        <span className="status-pill" title="reading recorded fixtures (no game needed)">
+          ◉ demo data
+        </span>
       </header>
 
-      <main className="wands">
-        {wands.length === 0 ? (
-          <p className="empty-note">No wands in this snapshot.</p>
-        ) : (
-          wands.map((wand) => <WandPanel key={wand.slot} wand={wand} />)
-        )}
-      </main>
+      <div className="dashboard">
+        <main className="wands-area">
+          <h2 className="section-title">Your Wands</h2>
+          {wands.length === 0 ? (
+            <p className="empty-note">No wand held in this capture.</p>
+          ) : (
+            <div className="wands">
+              {wands.map((wand) => (
+                <WandPanel key={wand.slot} wand={wand} />
+              ))}
+            </div>
+          )}
+
+          <h2 className="section-title">Best Builds</h2>
+          <div className="coming-soon">
+            <p>
+              Ranked builds per archetype (S/A/B/C) appear here — right on this page, no clicking
+              away.
+            </p>
+            <p className="muted">
+              Arrives once the wand simulator (M3) and analysis/generation (M4–M5) land. M2 is the
+              live mirror those build on.
+            </p>
+          </div>
+        </main>
+
+        <aside className="run-side">
+          <RunSidebar bag={bag} perks={perks} pool={[...pool]} />
+        </aside>
+      </div>
     </div>
   )
 }

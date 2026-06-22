@@ -1,9 +1,11 @@
 /* =============================================================================
-   Wand Grimoire — visual theme (M2-T3).
+   Wand Grimoire — visual theme (M2-T3/T4).
    Direction: "grimoire x wand-edit screen" — Noita's in-game wand panel layout
    (stat grid + a deck of type-coloured spell runes) dressed as a candlelit
    carved-stone tome: dark warm ground, parchment ink, gold leaf accents, a
    serif tome voice for titles + a monospace for the precise stat readouts.
+   Everything lives on one page (no pagination): current wands, the run side
+   (bag / perks / seen-this-run pool), and a slot for the future build tier list.
    ============================================================================= */
 
 :root {
@@ -56,31 +58,27 @@
 body {
   margin: 0;
   min-height: 100svh;
-  background:
-    radial-gradient(120% 90% at 50% -10%, #221a12 0%, var(--bg) 55%, #0c0906 100%) fixed;
+  background: radial-gradient(120% 90% at 50% -10%, #221a12 0%, var(--bg) 55%, #0c0906 100%) fixed;
 }
 
 /* --- app frame ------------------------------------------------------------- */
 
 .app {
-  max-width: 1180px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 28px clamp(16px, 4vw, 40px) 64px;
+  padding: 26px clamp(16px, 4vw, 40px) 64px;
 }
 
 .app-header {
   display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px 32px;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 20px 32px;
-  padding-bottom: 18px;
-  margin-bottom: 28px;
+  padding-bottom: 16px;
+  margin-bottom: 26px;
   border-bottom: 1px solid var(--rule);
   box-shadow: 0 1px 0 #0008;
-}
-
-.title-block {
-  margin-right: auto;
 }
 
 h1 {
@@ -99,100 +97,71 @@ h1 .rune {
   opacity: 0.9;
 }
 
-.tagline {
-  margin: 4px 0 0;
-  font-size: 12px;
-  letter-spacing: 2.5px;
+.status-pill {
+  font-size: 11px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-dim);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 4px 12px;
+  background: #0e0b0788;
 }
 
-/* run metadata — small "data plate" readout */
-.run-meta {
-  display: flex;
-  gap: 22px;
-  margin: 0;
-}
-
-.run-meta div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.run-meta dt {
-  font-size: 10px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.run-meta dd {
-  margin: 0;
-  font-size: 14px;
+.status-pill::first-letter {
   color: var(--gold);
 }
 
-/* stepper controls */
-.stepper {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* --- one-page dashboard layout --------------------------------------------- */
+
+.dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 26px;
+  align-items: start;
 }
 
-.stepper button {
-  font-family: var(--mono);
-  font-size: 13px;
-  color: var(--ink);
-  background: linear-gradient(#241d15, #1a140e);
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  padding: 7px 14px;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+@media (max-width: 920px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
 }
 
-.stepper button:hover:not(:disabled) {
-  color: var(--gold-bright);
-  border-color: var(--gold-deep);
-  box-shadow: 0 0 12px rgba(201, 162, 39, 0.2);
-}
-
-.stepper button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.frame-count {
-  font-size: 12px;
+.section-title {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   color: var(--ink-dim);
-  min-width: 92px;
-  text-align: center;
+  margin: 0 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px dotted var(--rule);
+}
+
+.wands-area .section-title:not(:first-child) {
+  margin-top: 28px;
 }
 
 /* --- wand panels (carved stone tablets) ------------------------------------ */
 
 .wands {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 22px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
   align-items: start;
 }
 
 .wand-panel {
   position: relative;
-  background:
-    linear-gradient(var(--bg-panel), #181309);
+  background: linear-gradient(var(--bg-panel), #181309);
   border: 1px solid var(--rule);
   border-radius: 4px;
   padding: 16px 18px 18px;
-  box-shadow:
-    inset 0 0 0 1px #00000055,
-    inset 0 1px 0 #ffffff0a,
-    0 8px 24px #00000066;
+  box-shadow: inset 0 0 0 1px #00000055, inset 0 1px 0 #ffffff0a, 0 8px 24px #00000066;
 }
 
-/* a thin gold rule across the top — gilt edge of the tablet */
+/* gilt top edge of the tablet */
 .wand-panel::before {
   content: '';
   position: absolute;
@@ -226,7 +195,7 @@ h1 .rune {
   color: var(--ink);
 }
 
-/* stat grid — two columns, dim label / gilt value, like a wand-edit readout */
+/* stat grid — two columns, dim label / gilt value */
 .wand-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -273,8 +242,8 @@ h1 .rune {
 .deck {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px;
+  gap: 7px;
+  padding: 9px;
   background: var(--bg-inset);
   border: 1px solid var(--rule-soft);
   border-radius: 3px;
@@ -284,14 +253,14 @@ h1 .rune {
 .spell-tile {
   --type: var(--t-unknown);
   position: relative;
-  width: 70px;
-  height: 64px;
+  width: 84px;
+  height: 76px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 4px;
+  gap: 3px;
+  padding: 5px 4px;
   text-align: center;
   background: radial-gradient(120% 120% at 50% 0%, #271f15, #15100a);
   border: 1px solid var(--type);
@@ -299,7 +268,7 @@ h1 .rune {
   box-shadow: inset 0 0 10px #0009, 0 0 0 1px #00000066;
 }
 
-/* type-tinted top edge + glow */
+/* type-tinted top edge */
 .spell-tile::before {
   content: '';
   position: absolute;
@@ -321,36 +290,54 @@ h1 .rune {
 .spell-tile.unknown { --type: var(--t-unknown); }
 
 .spell-name {
-  font-size: 9.5px;
+  font-size: 11px;
   line-height: 1.15;
   letter-spacing: 0.2px;
   color: var(--ink);
   word-break: break-word;
 }
 
+/* real game icon (pixel art — keep crisp when scaled), shown when available */
+.spell-icon {
+  image-rendering: pixelated;
+  width: 28px;
+  height: 28px;
+}
+
 .spell-mana {
-  font-size: 9px;
+  font-size: 10px;
   color: var(--t-modifier);
   opacity: 0.85;
+}
+
+.spell-uses {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-size: 8.5px;
+  letter-spacing: 0.3px;
+  color: var(--gold-bright);
+  background: #000a;
+  padding: 0 3px;
+  border-radius: 2px;
 }
 
 .spell-ac {
   position: absolute;
   top: 2px;
   right: 3px;
-  font-size: 7.5px;
+  font-size: 8.5px;
   letter-spacing: 0.5px;
   color: var(--gold-bright);
   background: #000a;
-  padding: 0 2px;
+  padding: 0 3px;
   border-radius: 2px;
 }
 
 /* empty deck socket */
 .spell-tile.empty {
   border: 1px dashed var(--rule);
-  background:
-    repeating-linear-gradient(45deg, #00000000, #00000000 5px, #ffffff06 5px, #ffffff06 6px);
+  background: repeating-linear-gradient(45deg, #00000000, #00000000 5px, #ffffff06 5px, #ffffff06 6px);
   box-shadow: inset 0 0 8px #000a;
 }
 
@@ -358,7 +345,87 @@ h1 .rune {
   display: none;
 }
 
+/* --- run side (bag / perks / seen-this-run pool) --------------------------- */
+
+.run-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.side-card {
+  background: linear-gradient(var(--bg-panel), #181309);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 13px 14px 14px;
+  box-shadow: inset 0 1px 0 #ffffff08, 0 6px 18px #00000055;
+}
+
+.side-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  margin: 0 0 10px;
+  color: var(--ink);
+}
+
+.count {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--gold);
+  background: #0e0b07;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.perk-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.perk-chip {
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 4px 9px;
+}
+
+.perk-chip b {
+  color: var(--gold);
+}
+
+/* --- placeholders + empty states ------------------------------------------- */
+
+.coming-soon {
+  border: 1px dashed var(--rule);
+  border-radius: 4px;
+  padding: 18px 20px;
+  background: #ffffff04;
+}
+
+.coming-soon p {
+  margin: 0;
+  color: var(--ink-dim);
+  font-style: italic;
+}
+
+.coming-soon .muted {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
 .empty-note {
   color: var(--ink-dim);
   font-style: italic;
+  font-size: 13px;
+  margin: 0;
 }
