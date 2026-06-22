@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { parseSnapshot, type Wand, type WandStats } from '../schema/snapshot'
 import type { WandShot } from '../engine/eval/types'
+import type { GunActionState } from '../engine/extra/types'
 import { simulateWand } from './simulateWand'
 import { computeMetrics, type WandMetrics } from './metrics'
+
+/** Minimal castState carrying only the modifier deltas metrics reads. */
+const castState = (over: Partial<GunActionState>): GunActionState =>
+  ({ damage_projectile_add: 0, damage_explosion_add: 0, explosion_radius: 0, ...over }) as GunActionState
 
 const fixtures = import.meta.glob('../data/fixtures/snapshot_*.json', {
   eager: true,
@@ -132,5 +137,19 @@ describe('computeMetrics — edge cases', () => {
 
   it('truncated flag passes through from the iteration limit', () => {
     expect(computeMetrics([], undefined, stats, true).truncated).toBe(true)
+  })
+
+  it('modifier-added explosion damage on a non-exploding base IS counted', () => {
+    // rubber_ball has intrinsic explosionDamage 0; an EXPLOSIVE_PROJECTILE-style
+    // modifier adds +0.2 (=5 HP). Direct 0.12×25=3 + explosion 0.2×25=5 → 8 HP.
+    const shot: WandShot = {
+      projectiles: [{ entity: 'data/entities/projectiles/deck/rubber_ball.xml' }],
+      calledActions: [],
+      actionTree: [],
+      castState: castState({ damage_explosion_add: 0.2 }),
+    }
+    const m = computeMetrics([shot], 20, stats, false)
+    expect(m.damagePerCast).toBeCloseTo(8)
+    expect(m.damageApproximate).toBe(false)
   })
 })

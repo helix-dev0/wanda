@@ -75,7 +75,11 @@ function shotDamage(
       continue
     }
     hp += Math.max(0, st.damage + projAdd) * DAMAGE_UNIT_HP
-    if (st.explosionDamage > 0) {
+    // Count explosion damage for intrinsically-explosive projectiles AND when a
+    // modifier adds explosion damage to a non-exploding base (e.g. EXPLOSIVE_
+    // PROJECTILE's +damage_explosion_add). Kept symmetric with maxExplosionRadius,
+    // which likewise adds the modifier delta.
+    if (st.explosionDamage > 0 || explAdd > 0) {
       hp += Math.max(0, st.explosionDamage + explAdd) * DAMAGE_UNIT_HP
     }
   }
@@ -116,6 +120,8 @@ export function computeMetrics(
   let secondsUntilStall: number | null = null
   if (!manaSustainable && cycleSeconds > 0) {
     const netDrainPerSecond = (manaPerCycle - regenPerCycle) / cycleSeconds
+    // Starts from the CURRENT pool (stats.mana) — answers "from now", so a
+    // partially-depleted wand reports a shorter stall than its steady state.
     secondsUntilStall = stats.mana / netDrainPerSecond
   }
 
