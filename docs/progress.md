@@ -58,6 +58,13 @@
 - **Pool = owned + seen-in-world** (read-only; current shop/pedestal/Holy-Mountain only; never the unexplored map). Stricter owned-only available as a setting.
 - **Performance is a hard requirement** — fast/responsive sim so the tier list re-ranks at interactive speed (bounded search, heavy work off the UI thread, cached sims). Shapes the M3 engine choice + M4/M5 search.
 
-## What's next
-- **Recommended:** one richer capture (mid-run: ~5 varied wands, loose spells in bag, a perk or two) to give M2–M5 real coverage and close flags #2/#3. Output lands in the Noita install dir; can be read straight off disk.
-- Then **M2** (ingestion + run-state store + wand-mirror UI) — the first visible milestone — and/or **M1** (real mod + live bridge), which can proceed in parallel.
+## What's next — M2 (decided 2026-06-21)
+
+**Active next step: M2 — ingestion + run-state store + wand-mirror UI** (first visible milestone; pure app/fixtures, no game needed). Build in a **fresh session** (this one is context-heavy with M0 detail). Handoff = this doc + `plan.md` (M2-T1..T4) + spec v0.2.1 + committed fixtures/schemas.
+
+Suggested M2 approach:
+- **M2-T1 ingestion + M2-T2 store/ledger:** straight TDD over fixtures (reuse `parseSnapshot`; ledger accumulates spells/wands/perks, resets on `run_id` change — note the run_id collision flag above; for fixtures, drive run-change tests with synthetic ids).
+- **M2-T3/T4 UI:** decide a **UI visual direction first** (intentional, Noita-flavored — not a templated dashboard), then build + **browser-verify** (no console errors; renders all 3 wand fixtures incl. the GRENADE null-slot + the 2×NUKE bag). Use the 3 snapshots + spell_db for icons/names.
+- Tier-list output (spec v0.2.1) is **M4/M5**, not M2 — M2 only mirrors state.
+
+**Deferred to M1** (human-loop, logged above): quant.ew perk read, Advanced Spell Inventory spells, all-4-wands enumeration, real `run_id`, and the **world-scan slice (M1-T6)** — "nearby" / shop / pedestal / Holy-Mountain wands, spells, and perk offerings. The optional `world_seen` field already exists in the snapshot schema, so the app can ingest it now; **capturing** it is M1-T6 (test standing in a shop / Holy Mountain, [MOD]), and **using** it as the "seen-in-world" pool is M5. Exact shape (shop spells vs shop/pedestal wands vs floor drops) gets pinned against real captures then. Do when richer live data is needed.
