@@ -65,6 +65,17 @@ function perShotFrames(shot: WandShot, stats: WandStats): number {
  *  pathological deep tree (the engine builds fresh WandShots, so there is no cycle). */
 const TRIGGER_DEPTH_CAP = 16
 
+/** Expected damage multiplier from accumulated crit chance — the multiplicative
+ *  stacking the meta is built on. Noita's formula (noita.wiki.gg/wiki/Critical_hit):
+ *  TotalDamage = Base × (1 + min(c,1)·(5·max(1,c) − 1)), c = critChance fraction. So
+ *  0% → ×1 (no change, goldens safe), 25% → ×2, 100% → ×5, 200% → ×10. Crit chance is
+ *  populated by real actions (crit spells / triggers add it); the ×5 is the game
+ *  constant, not stored in the action state. Applies to direct projectile damage. */
+function critMultiplier(critChancePercent: number): number {
+  const c = Math.max(0, critChancePercent) / 100
+  return 1 + Math.min(c, 1) * (5 * Math.max(1, c) - 1)
+}
+
 // Expected HP of one shot INCLUDING its trigger payloads: every top-level projectile
 // gets the shot's accumulated damage_*_add (1.0 = 25 HP), plus its explosion when it
 // explodes; and a TRIGGER projectile recursively adds the damage its payload delivers
@@ -74,11 +85,14 @@ const TRIGGER_DEPTH_CAP = 16
 function shotDamage(shot: WandShot, onMissing: () => void, depth = 0): number {
   const projAdd = shot.castState?.damage_projectile_add ?? 0
   const explAdd = shot.castState?.damage_explosion_add ?? 0
+  // Crit is a shot-level stat (accumulated from this shot's draws), so it multiplies
+  // every projectile in the shot; a trigger payload's own crit applies in its recursion.
+  const critMul = critMultiplier(shot.castState?.damage_critical_chance ?? 0)
   let hp = 0
   for (const p of shot.projectiles) {
     const st = getProjectileStats(p.entity)
     if (st) {
-      hp += Math.max(0, st.damage + projAdd) * DAMAGE_UNIT_HP
+      hp += Math.max(0, st.damage + projAdd) * DAMAGE_UNIT_HP * critMul
       if (st.explosionDamage > 0 || explAdd > 0) {
         hp += Math.max(0, st.explosionDamage + explAdd) * DAMAGE_UNIT_HP
       }

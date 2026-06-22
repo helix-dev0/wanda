@@ -185,6 +185,32 @@ describe('computeMetrics — edge cases', () => {
     expect(computeMetrics([shot], 20, stats, false).maxExplosionDamage).toBeCloseTo(47.5)
   })
 
+  // Crit (the multiplicative-stacking meta). Noita: TotalDamage = Base × (1 +
+  // min(c,1)·(5·max(1,c) − 1)) with c = critChance fraction. RUBBER = 3 HP base.
+  it('applies the crit multiplier from castState.damage_critical_chance', () => {
+    const at = (chance: number) =>
+      computeMetrics(
+        [shotWith({ projectiles: [{ entity: RUBBER }], castState: castState({ damage_critical_chance: chance }) })],
+        20,
+        stats,
+        false,
+      ).damagePerCast
+    expect(at(0)).toBeCloseTo(3) // no crit → unchanged (goldens safe)
+    expect(at(25)).toBeCloseTo(6) // 1 + 4·0.25 = 2× → 6
+    expect(at(100)).toBeCloseTo(15) // 5× → 15
+    expect(at(200)).toBeCloseTo(30) // >100%: 5·2 = 10× → 30
+  })
+
+  it('crit applies per-shot, so a payload with its own crit is multiplied independently', () => {
+    // carrier RUBBER (3, no crit) + payload RUBBER at 100% crit (3 → 15) = 18.
+    const shot = shotWith({
+      projectiles: [
+        { entity: RUBBER, trigger: shotWith({ projectiles: [{ entity: RUBBER }], castState: castState({ damage_critical_chance: 100 }) }) },
+      ],
+    })
+    expect(computeMetrics([shot], 20, stats, false).damagePerCast).toBeCloseTo(18)
+  })
+
   it('modifier-added explosion damage on a non-exploding base IS counted', () => {
     // rubber_ball has intrinsic explosionDamage 0; an EXPLOSIVE_PROJECTILE-style
     // modifier adds +0.2 (=5 HP). Direct 0.12×25=3 + explosion 0.2×25=5 → 8 HP.
