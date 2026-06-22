@@ -4,6 +4,7 @@ import { useRunStore } from './ui/useRunStore'
 import { demoRun } from './data/demoRun'
 import { WandPanel } from './ui/WandPanel'
 import { RunSidebar } from './ui/RunSidebar'
+import { CastSimPanel } from './ui/CastSimPanel'
 
 /**
  * M2 live-mirror dashboard. Everything visible on one page — current wand(s) on
@@ -55,17 +56,20 @@ function App() {
             </div>
           )}
 
-          <h2 className="section-title">Best Builds</h2>
-          <div className="coming-soon">
-            <p>
-              Ranked builds per archetype (S/A/B/C) appear here — right on this page, no clicking
-              away.
-            </p>
-            <p className="muted">
-              Arrives once the wand simulator (M3) and analysis/generation (M4–M5) land. M2 is the
-              live mirror those build on.
-            </p>
-          </div>
+          <h2 className="section-title">Cast Simulation</h2>
+          {wands.length === 0 ? (
+            <p className="empty-note">No wand to simulate in this capture.</p>
+          ) : (
+            <div className="cast-sims">
+              {wands.map((wand) => (
+                <CastSimPanel key={wand.slot} wand={wand} />
+              ))}
+            </div>
+          )}
+          <p className="coming-soon muted-note">
+            Ranked builds per archetype (S/A/B/C) — the tier list — drop in here once the
+            analysis/generation engines (M4–M5) land. This is the simulator (M3) those build on.
+          </p>
         </main>
 
         <aside className="run-side">

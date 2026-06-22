@@ -429,3 +429,97 @@ h1 .rune {
   font-size: 13px;
   margin: 0;
 }
+
+/* --- cast simulation (M3-T4): metrics + cast tree --------------------------- */
+
+.cast-sims {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.cast-sim .wand-header .sigil {
+  color: var(--gold-bright);
+}
+
+/* derived metrics — same two-column readout as the wand stat grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 24px;
+  margin-bottom: 16px;
+}
+
+.metric-approx {
+  color: var(--ink-faint);
+  font-size: 11px;
+}
+
+.cast-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cast-node {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cast-tile {
+  position: relative;
+  display: inline-flex;
+}
+
+/* ×N badge when the engine grouped identical projectiles */
+.cast-count {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  z-index: 1;
+  font-size: 9px;
+  letter-spacing: 0.3px;
+  color: var(--gold-bright);
+  background: #000b;
+  padding: 0 4px;
+  border-radius: 2px;
+}
+
+/* trigger payload — indented under the projectile that triggers it */
+.cast-children {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 2px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cast-trigger-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--t-modifier);
+}
+
+.cast-approx-note {
+  margin: 12px 0 0;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ink-faint);
+  line-height: 1.4;
+}
+
+.cast-warn {
+  color: var(--t-projectile);
+  font-style: normal;
+}
+
+.muted-note {
+  margin-top: 18px;
+  color: var(--ink-dim);
+  font-style: italic;
+  font-size: 12px;
+}
