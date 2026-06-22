@@ -9,6 +9,7 @@ import { CastSimPanel } from './ui/CastSimPanel'
 import { TierListPanel } from './ui/TierListPanel'
 import { useGeneration } from './ui/useGeneration'
 import { isLive, startLive } from './bridge/startLive'
+import { SnapshotSettings } from './ui/SnapshotSettings'
 
 /**
  * M2 live-mirror dashboard. Everything visible on one page — current wand(s) on
@@ -65,13 +66,18 @@ function App() {
             ◉ demo data
           </span>
         )}
+        <SnapshotSettings />
       </header>
 
       <div className="dashboard">
         <section className="col col-current">
           <h2 className="section-title">Your Wands</h2>
           {wands.length === 0 ? (
-            <p className="empty-note">No wand held in this capture.</p>
+            <p className="empty-note">
+              {isLive()
+                ? 'Waiting for Noita — enable the wand_capture mod and start a run (press F8 to capture).'
+                : 'No wand held in this capture.'}
+            </p>
           ) : (
             <div className="wands">
               {wands.map((wand) => (
