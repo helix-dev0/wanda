@@ -76,9 +76,16 @@ export function freshInitial(): RunStateData {
 }
 
 /** Stable identity key for a wand. Excludes `slot` (a wand moves between slots)
- *  and the volatile current `mana`; everything else is part of the chassis. */
+ *  and the volatile current `mana`; everything else is part of the chassis. The
+ *  stat entries are sorted so the signature is independent of the emitter's key
+ *  order (the Linux maintainer and Windows co-player may serialize stats in
+ *  different orders — otherwise the same wand would double-count in the pool). */
 function wandSignature(w: Wand): string {
-  const stableStats = Object.fromEntries(Object.entries(w.stats).filter(([k]) => k !== 'mana'))
+  const stableStats = Object.fromEntries(
+    Object.entries(w.stats)
+      .filter(([k]) => k !== 'mana')
+      .sort(([a], [b]) => a.localeCompare(b)),
+  )
   return JSON.stringify({ stats: stableStats, always_cast: w.always_cast, spells: w.spells })
 }
 

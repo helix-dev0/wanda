@@ -53,6 +53,16 @@ describe('seen-this-run ledger — accumulates the pool across snapshots', () =>
     expect([...s.ledger.spells].sort()).toEqual(['GRENADE', 'NUKE', 'RUBBER_BALL'])
   })
 
+  it('retains a spell in the pool after it vanishes from the entire snapshot', () => {
+    // RUBBER_BALL appears only in snapshot_01; snapshot_02 contains it nowhere.
+    // This is the ledger's headline promise: the pool outlives the live view.
+    let s = apply(load('snapshot_01.json'))
+    s = apply(load('snapshot_02.json'), s)
+    expect(s.wands.flatMap((w) => w.spells)).not.toContain('RUBBER_BALL')
+    expect(s.spellInventory.map((e) => e.action_id)).not.toContain('RUBBER_BALL')
+    expect(s.ledger.spells.has('RUBBER_BALL')).toBe(true)
+  })
+
   it('builds the full spell pool over all three fixtures', () => {
     let s = freshInitial()
     for (const f of ['snapshot_01.json', 'snapshot_02.json', 'snapshot_03.json']) {
@@ -92,6 +102,19 @@ describe('seen-this-run ledger — accumulates the pool across snapshots', () =>
     expect(s.ledger.wands).toHaveLength(1)
   })
 
+  it('dedups a wand even when its stat keys arrive in a different order', () => {
+    // The cross-platform emitters (Linux maintainer vs Windows co-player) may
+    // serialize the stats table in a different key order; the signature must not
+    // depend on it, or the same wand double-counts in the pool.
+    const a = load('snapshot_01.json')
+    const b = structuredClone(a)
+    const reordered = Object.fromEntries(Object.entries(b.wands[0].stats).reverse())
+    b.wands[0].stats = reordered as Wand['stats']
+    let s = apply(a)
+    s = apply(b, s)
+    expect(s.ledger.wands).toHaveLength(1)
+  })
+
   it('accumulates perks (acquired) and dedups by id while current stacks update', () => {
     const a = structuredClone(load('snapshot_01.json'))
     a.player.perks = [{ id: 'PROTECTION_FIRE', stacks: 1 }]
@@ -121,6 +144,17 @@ describe('seen-this-run ledger — accumulates the pool across snapshots', () =>
     expect(s.ledger.spells.has('LUMINOUS_DRILL')).toBe(true)
     expect(s.ledger.perks.has('VAMPIRISM')).toBe(true)
     expect(s.worldSeen?.shop_spells).toEqual(['CHAINSAW'])
+  })
+
+  it('retains world-seen items in the pool after world_seen is dropped', () => {
+    const a = structuredClone(load('snapshot_01.json'))
+    a.world_seen = { shop_spells: ['CHAINSAW'], pedestal_wands: [], perk_offerings: ['VAMPIRISM'] }
+    const b = structuredClone(load('snapshot_01.json')) // same run, no world_seen
+    let s = apply(a)
+    s = apply(b, s)
+    expect(s.worldSeen).toBeNull() // current-frame view clears
+    expect(s.ledger.spells.has('CHAINSAW')).toBe(true) // pool retains
+    expect(s.ledger.perks.has('VAMPIRISM')).toBe(true)
   })
 })
 
