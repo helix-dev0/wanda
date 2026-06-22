@@ -150,10 +150,47 @@ spells render "×-1". Normalize `< 0` → null at ingestion (and/or emit `null` 
 - **Scope:** owned-only. Shop/pedestal "go grab" availability + provenance counts = **Phase 2**
   (needs the M1-T6 world-scan to emit `world_seen`).
 
+## 🔴 Engine grounding — the scoring is NOT meta-faithful (2026-06-22, TOP PRIORITY)
+
+Driving the live app on a real run exposed the deepest issue: **the plumbing + simulation are sound,
+but the SCORING/analysis model is blind to the real Noita meta**, so "best build" / the tier list /
+suggestions can't be trusted. Evidence + web-research grounding (noita.wiki.gg + the salinecitrine
+reference) in **[`docs/scoring-grounding-spec.md`](./scoring-grounding-spec.md)**. The three holes:
+
+1. **SPAM has no damage term** — `scoreSpam = sat(projectilesPerSecond, 8)` (`archetypes.ts`), nothing
+   else. A 0-damage **CHAINSAW** (mana 1, the game's cast-delay *enabler*, not a damage spell) maxes it
+   and out-ranks the player's real wand that did **~3× the DPS** (294 vs 107 by our own metric; SPAM 93
+   vs 99). Confirmed: *"high projectiles/sec alone is insufficient"* (Rapid-Fire guide).
+2. **Trigger PAYLOAD damage is invisible** — `shotDamage` (`sim/metrics.ts`) sums only TOP-LEVEL
+   `shot.projectiles`. The entire high-damage meta delivers damage through payloads (a trigger casts the
+   payload on impact); our forked engine already holds it at `Projectile.trigger?: WandShot` (recursive,
+   built in `clickWand.ts`) — we just never walk it. So the strongest builds score **~0 damage**. Biggest
+   blind spot.
+3. **Multiplicative stacking ignored** — damage is additive (`damage_projectile_add`) only; crit (×5+),
+   velocity (×200), and the multicast-modifier-broadcast are unmodeled. (Flat adds like Damage Plus +10
+   ARE additive — so additive isn't *wrong*, it's *incomplete*.)
+
+Plus: generation hill-climbs this broken fitness, so it actively *seeks* the chainsaw deck (fix scoring →
+fix generation for free), builds only on the HELD chassis (never the player's bigger wands or an ideal
+one — spec §6.3 wants chassis selection), and depth-1 search can't *discover* multi-slot trigger chains.
+
+**Staged fix (spec has the cited detail):** Tier 0 (structural, tractable, doing now) = payload-aware
+damage (walk `projectile.trigger` recursively) + a damage term for SPAM + AoE weights explosion *damage*
+not just radius. Tier 1 (needs engine-field verification + calibration) = multiplicative crit/velocity,
+range/lifetime usability, mana effective-DPS. Tier 2+ = status/DoT, generation chassis-selection +
+multiplicative-stack templates + deeper search, REF-constant calibration against real captures.
+
+## Tooling — recording real runs (2026-06-22)
+`npm run record` (`bridge/record.mjs`) persists every distinct live snapshot to `captures/` (gitignored),
+keyed by frame, surviving death/restart (the mod overwrites `snapshot.json` in place). Promote good
+captures to `src/data/fixtures/` to ground/calibrate the engine on real wand complexity. `snapshot_06`
+is the first real capture (a fresh-run starter setup).
+
 ## Current fixtures
 - `snapshot_01.json` — starting wand `RUBBER_BALL ×2`, cap 2; **empty bag, no perks** (fresh game). `snapshot_02/03.json` — captured 2026-06-21 (modded co-op).
 - `snapshot_04.json` — **HAND-AUTHORED synthetic** (M5): continues run-10 with a populated `world_seen` (shop/pedestal/perk offerings) so the provenance + Prescribe "go grab X" path renders in the browser. Not a real capture (mod world-scan is M1-T6).
 - `snapshot_05.json` — **HAND-AUTHORED synthetic** (quantity fix): run-50, CHAINSAW×8 + 1 each of DIGGER/SPITTER/MINE/BOMB/NUKE/BURST_3/DAMAGE/ADD_TRIGGER, on a cap-10 chassis. Mirrors the in-game bug (DIGGER is the cheapest projectile, owned 1). Drives the no-over-cap generation test. Kept OUT of `demoRun` (it's a separate run; `demoRun` filters to the first run_id) so it doesn't bury the run-10 demo.
+- `snapshot_06.json` — **REAL capture** (`npm run record`): a fresh-run starter (LIGHT_BULLET×3 + GRENADE). First non-synthetic wand fixture; richer captures get promoted from `captures/` as runs develop. run_id relabeled off the `run-10` placeholder.
 - `spell_db.json` — 422 spells. `perk_db.json` — 105 perks. (Captured in the maintainer's **modded** setup, not pristine vanilla — see open items.)
 
 ## Open items / flags (updated after 2nd capture, 2026-06-21)
@@ -179,23 +216,30 @@ spells render "×-1". Normalize `< 0` → null at ingestion (and/or emit `null` 
 - **Pool = owned + seen-in-world** (read-only; current shop/pedestal/Holy-Mountain only; never the unexplored map). Stricter owned-only available as a setting.
 - **Performance is a hard requirement** — fast/responsive sim so the tier list re-ranks at interactive speed (bounded search, heavy work off the UI thread, cached sims). Shapes the M3 engine choice + M4/M5 search.
 
-## What's next — finish M1, then M6 (quantity bug ✅ fixed)
+## What's next — re-ground the engine (TOP), then finish M1, then M6
 
 The live pipe works (mod → bridge → app, validated in-game): auto emit-on-change (M1-T1), the bridge
-(M1-T5), and all carried wands (M1-T2) are in. The headline build-correctness gap (per-spell
-quantity) is now **fixed** (see "✅ FIXED" above), so the remaining work is M1's mod slices + M6.
+(M1-T5), all carried wands (M1-T2), and per-spell quantity caps are in. The headline gap is now
+**engine fidelity** — the scorer doesn't model the real Noita meta (see "🔴 Engine grounding" above).
 
-**1. ✅ DONE — Per-spell quantity ([APP]).** Generated builds + live suggestions now respect owned
-copy counts; `uses_remaining < 0 → null` normalized. Full writeup under "✅ FIXED" above. Phase 2
-(owned **+ seen-in-world** counts with provenance) is unblocked by M1-T6.
+**1. 🔴 Re-ground the scoring/sim engine — TOP PRIORITY ([APP], fixture/real-capture-testable).**
+Design + cited meta in [`docs/scoring-grounding-spec.md`](./scoring-grounding-spec.md). Tier 0 (now):
+payload-aware damage (walk `Projectile.trigger`), a damage term for SPAM (kills the chainsaw
+inversion), AoE weights explosion damage. Tier 1: multiplicative crit/velocity (verify the engine
+fields first), range/lifetime usability, effective-DPS mana model. Tier 2+: status/DoT, generation
+chassis-selection + multiplicative-stack templates + deeper search, REF-constant calibration vs real
+captures. Validate against a REAL captured wand, not just toy fixtures.
 
-**2. Finish M1** (the rest, mostly [MOD] human-in-the-loop — implement thin Lua → STOP → hand a
-copy-paste in-game test → user verifies): real `run_id` = world seed (M1-T3), Advanced Spell
-Inventory compat (M1-T4), and the additive **world-scan** — shop/pedestal/Holy-Mountain (M1-T6) →
-makes provenance + "go grab X" live. ✅ M1-T1/T2/T5 done.
+**2. ✅ DONE — Per-spell quantity ([APP]).** Owned-count caps; `uses_remaining < 0 → null`. Writeup
+under "✅ FIXED" above. Phase 2 (owned + seen-in-world counts) unblocked by M1-T6.
 
-**3. M6 — Tauri v2 overlay** once the above settles. Calibration (M4 REF constants, generation
-bounds) is now unblocked too — real wands can be captured live.
+**3. Finish M1** (mostly [MOD] human-in-the-loop — implement thin Lua → STOP → hand a copy-paste
+in-game test → user verifies): real `run_id` = world seed (M1-T3), Advanced Spell Inventory compat
+(M1-T4), the additive **world-scan** — shop/pedestal/Holy-Mountain (M1-T6) → makes provenance + "go
+grab X" live. ✅ M1-T1/T2/T5 done.
+
+**4. M6 — Tauri v2 overlay** once the above settles. Calibration (M4 REF constants, generation
+bounds) is now unblocked — real wands can be captured live (`npm run record`).
 - **M6 — Tauri v2 overlay** — defer until live data flows (the overlay shows the live assistant
   in-game; pointless before M1).
 - **Calibration** (M4 REF constants, generation bounds) needs real wands → after M1 captures land.
