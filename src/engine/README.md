@@ -92,12 +92,17 @@ Other useful exports: `getActionById(id)` (`eval/util.ts`), the `actions` table
      by two dead-code helpers (`isSinglePreset`/`isPresetGroup`) the engine never
      calls. They are inlined locally as minimal structural types so the file is
      self-contained. The `'../calc/gun_enums'` import became `'../gun_enums'`.
-   - `util/combineGroups.ts`: vendored verbatim; uses lodash `isEqual`.
-3. **`lodash`** added as an engine dependency for `combineGroups.ts`'s deep
-   `_.isEqual` (only one helper is used; installing keeps grouping behavior
-   byte-faithful rather than reimplementing deep-equality). Installed version is
-   `4.18.1` (this environment's registry; the `isEqual` API is stable across all
-   lodash 4.x).
+   - `util/combineGroups.ts`: vendored; the one deep-equality call uses
+     `fast-deep-equal` (see below). Now covered by `__tests__/combineGroups.test.ts`.
+3. **`fast-deep-equal`** is the engine's only runtime dependency, used for
+   `combineGroups.ts`'s single deep-equality check (one `equal(a, b)` call).
+   Upstream used `lodash` `_.isEqual`; swapped post-port because lodash carries a
+   **high-severity advisory** (`_.template`/`_.unset`/`_.omit` — paths we never
+   use) and is a heavy dep for one function, and the version originally resolved
+   here (`4.18.1`) does not exist on public npm (would break `npm install` on the
+   maintainer's + co-player's machines). `fast-deep-equal` is a zero-dependency,
+   advisory-free drop-in with identical semantics for this plain-object data;
+   `npm audit` is clean. Behaviour verified by `__tests__/combineGroups.test.ts`.
 
 ## Strict-mode / lint concessions (documented per task)
 

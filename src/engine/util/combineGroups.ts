@@ -1,8 +1,9 @@
 // @ts-nocheck — VENDORED, do not restyle.
 // Vendored verbatim from salinecitrine/noita-wand-simulator:
 // src/app/util/combineGroups.ts. No logic changes. `chunk` resolves to the
-// sibling vendored ./util; lodash's deep `isEqual` is kept for byte-faithful
-// grouping behavior (lodash installed as an engine dependency).
+// sibling vendored ./util. Upstream used lodash's `_.isEqual` for deep grouping
+// equality; swapped to fast-deep-equal (drop-in, zero deps, no CVEs) to avoid a
+// heavy dependency + a high-severity lodash advisory for one isEqual call.
 //
 // Concession: the upstream `GroupedObject<T extends Object>` generic recursion
 // compiled under CRA's looser tsconfig but trips our config's generic-constraint
@@ -11,7 +12,7 @@
 // this single vendored file is exempted from type-checking via @ts-nocheck. Its
 // exported types (GroupedObject, etc.) are still consumed normally by callers.
 import { chunk } from './util';
-import _ from 'lodash';
+import equal from 'fast-deep-equal';
 
 export type MultipleObject<T> = {
   first: GroupedObject<T>;
@@ -138,7 +139,7 @@ export function _combineGroups<T>(
           // index within comparison
           const cmpA = k(result[i + cmpi]);
           const cmpB = k(result[i + matchi * seqLen + cmpi]);
-          if (cmpA === null || cmpB === null || !_.isEqual(cmpA, cmpB)) {
+          if (cmpA === null || cmpB === null || !equal(cmpA, cmpB)) {
             match = false;
             break;
           }
