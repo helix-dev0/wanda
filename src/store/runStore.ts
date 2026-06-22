@@ -109,6 +109,25 @@ function spellsOfWand(w: Wand): string[] {
   return [...w.spells.filter((s): s is string => s !== null), ...w.always_cast]
 }
 
+/** Per-spell OWNED copy count from the CURRENT snapshot: how many physical cards the
+ *  player can draft into a build — one per non-null deck slot across ALL carried wands
+ *  + one per loose bag entry. EXCLUDES always-cast (locked to its wand, not draftable)
+ *  and world_seen (shop/pedestal are SEEN, not owned — owned-only v1; Phase 2 adds
+ *  them with provenance). Ignores `uses_remaining` (per-card durability, NOT a copy
+ *  count — a `{BOMB, uses:3}` entry is ONE card). This is the generation + suggestion
+ *  CAP source (M5 quantity fix); it is deliberately distinct from the cumulative
+ *  ledger Set, which is "seen this run" and dedupes to distinct ids. */
+export function ownedCounts(
+  wands: readonly Wand[],
+  spellInventory: readonly SpellInventoryEntry[],
+): Map<string, number> {
+  const counts = new Map<string, number>()
+  const bump = (id: string) => counts.set(id, (counts.get(id) ?? 0) + 1)
+  for (const w of wands) for (const s of w.spells) if (s !== null) bump(s)
+  for (const e of spellInventory) bump(e.action_id)
+  return counts
+}
+
 /** Every spell action_id a snapshot exposes, tagged with where it was observed:
  *  owned (held decks + always-cast + loose bag), shop, or pedestal. The single
  *  source enumeration — both the pool Set and the provenance map derive from it, so

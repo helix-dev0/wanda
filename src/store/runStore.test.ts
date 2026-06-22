@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { ingestSnapshot } from '../ingestion/ingest'
-import { applySnapshotToState, createRunStore, freshInitial } from './runStore'
+import { applySnapshotToState, createRunStore, freshInitial, ownedCounts } from './runStore'
 import type { Snapshot, Wand } from '../schema/snapshot'
 
 // M2-T2: the run-state store + "seen this run" ledger (spec §3.2 module 2).
@@ -42,6 +42,71 @@ describe('applySnapshotToState — mirrors current frame state', () => {
     // current view is snapshot_02: the GRENADE wand + the 2x NUKE bag
     expect(s.wands[0].spells).toEqual(['GRENADE', null])
     expect(s.spellInventory.map((e) => e.action_id)).toEqual(['NUKE', 'NUKE'])
+  })
+})
+
+describe('ownedCounts — per-spell OWNED quantity from the current snapshot', () => {
+  it('counts deck occurrences across all wands + each bag entry', () => {
+    // snapshot_03: deck BUBBLESHOT x3, bag NUKE x2 (two separate entries)
+    const s = apply(load('snapshot_03.json'))
+    const counts = ownedCounts(s.wands, s.spellInventory)
+    expect(counts.get('BUBBLESHOT')).toBe(3)
+    expect(counts.get('NUKE')).toBe(2)
+    expect(counts.size).toBe(2)
+  })
+
+  it('counts a bag entry as 1 regardless of uses_remaining (durability != copies)', () => {
+    const snap = structuredClone(load('snapshot_01.json'))
+    snap.spell_inventory = [
+      { action_id: 'BOMB', uses_remaining: 3 }, // 3 uses left, but ONE physical card
+      { action_id: 'BOMB', uses_remaining: 3 }, // a second card
+    ]
+    const counts = ownedCounts(snap.wands, snap.spell_inventory)
+    expect(counts.get('BOMB')).toBe(2) // two entries -> 2 copies, NOT 6
+  })
+
+  it('excludes always_cast spells (locked to the wand, not draftable)', () => {
+    const snap = structuredClone(load('snapshot_01.json')) // deck RUBBER_BALL x2
+    snap.wands[0].always_cast = ['ENERGY_SHIELD']
+    const counts = ownedCounts(snap.wands, snap.spell_inventory)
+    expect(counts.get('RUBBER_BALL')).toBe(2)
+    expect(counts.has('ENERGY_SHIELD')).toBe(false)
+  })
+
+  it('ignores empty (null) deck slots', () => {
+    const s = apply(load('snapshot_02.json')) // deck ['GRENADE', null], bag NUKE x2
+    const counts = ownedCounts(s.wands, s.spellInventory)
+    expect(counts.get('GRENADE')).toBe(1)
+    expect(counts.get('NUKE')).toBe(2)
+    expect(counts.size).toBe(2) // the null slot contributes nothing
+  })
+
+  it('does not count world_seen shop/pedestal spells (owned-only, v1)', () => {
+    const snap = structuredClone(load('snapshot_01.json')) // owns RUBBER_BALL x2
+    snap.world_seen = {
+      shop_spells: ['CHAINSAW'],
+      pedestal_wands: [
+        { slot: 99, stats: { ...snap.wands[0].stats }, always_cast: [], spells: ['LUMINOUS_DRILL'] },
+      ],
+      perk_offerings: [],
+    }
+    const counts = ownedCounts(snap.wands, snap.spell_inventory)
+    expect(counts.get('RUBBER_BALL')).toBe(2)
+    expect(counts.has('CHAINSAW')).toBe(false)
+    expect(counts.has('LUMINOUS_DRILL')).toBe(false)
+  })
+
+  it('sums copies across multiple carried wands', () => {
+    const snap = structuredClone(load('snapshot_01.json')) // wand 0: RUBBER_BALL x2
+    snap.wands.push({
+      slot: 1,
+      stats: { ...snap.wands[0].stats },
+      always_cast: [],
+      spells: ['RUBBER_BALL', 'GRENADE', null],
+    })
+    const counts = ownedCounts(snap.wands, snap.spell_inventory)
+    expect(counts.get('RUBBER_BALL')).toBe(3) // 2 + 1
+    expect(counts.get('GRENADE')).toBe(1)
   })
 })
 
