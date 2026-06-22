@@ -54,34 +54,48 @@ function evalCandidate(wand: Wand, target: Archetype, perks: readonly PerkRef[])
   }
 }
 
-const withDeck = (wand: Wand, spells: (string | null)[]): Wand => ({ ...wand, spells })
+/**
+ * Apply a single depth-1 edit to a wand's deck, returning a NEW wand (pure; never
+ * mutates the input). The one place deck edits are realized — the suggestion
+ * neighborhood here and M5's generation polish loop both go through this, so the
+ * two can never drift apart.
+ */
+export function applyEdit(wand: Wand, edit: Edit): Wand {
+  const deck = [...wand.spells]
+  switch (edit.kind) {
+    case 'swap':
+      deck[edit.slot] = edit.to
+      break
+    case 'remove':
+      deck[edit.slot] = null
+      break
+    case 'reorder': // swap deck[slot] and deck[slot+1]
+      ;[deck[edit.slot], deck[edit.slot + 1]] = [deck[edit.slot + 1], deck[edit.slot]]
+      break
+  }
+  return { ...wand, spells: deck }
+}
 
 /** All depth-1 edits, each paired with the wand it produces. */
 function neighborhood(wand: Wand, pool: ReadonlySet<string>): { edit: Edit; wand: Wand }[] {
   const out: { edit: Edit; wand: Wand }[] = []
   const deck = wand.spells
+  const push = (edit: Edit) => out.push({ edit, wand: applyEdit(wand, edit) })
 
   deck.forEach((cur, i) => {
     if (cur !== null) {
       // swap this slot for each distinct pool spell
       for (const to of pool) {
         if (to === cur) continue
-        const next = [...deck]
-        next[i] = to
-        out.push({ edit: { kind: 'swap', slot: i, from: cur, to }, wand: withDeck(wand, next) })
+        push({ kind: 'swap', slot: i, from: cur, to })
       }
       // removal
-      const removed = [...deck]
-      removed[i] = null
-      out.push({ edit: { kind: 'remove', slot: i, from: cur }, wand: withDeck(wand, removed) })
+      push({ kind: 'remove', slot: i, from: cur })
     }
     // adjacent reorder (only when both slots hold a spell and they differ)
     const nextSpell = deck[i + 1]
     if (cur !== null && nextSpell != null && cur !== nextSpell) {
-      const swapped = [...deck]
-      swapped[i] = nextSpell
-      swapped[i + 1] = cur
-      out.push({ edit: { kind: 'reorder', slot: i }, wand: withDeck(wand, swapped) })
+      push({ kind: 'reorder', slot: i })
     }
   })
   return out
