@@ -63,8 +63,9 @@ const CURATED_TOXIC: ReadonlySet<string> = new Set([
   'TOXIC_TO_ACID',
 ])
 
-/** Recoil magnitude that earns a warn. PROVISIONAL / uncalibrated — the engine
- *  may not even populate castState.recoil yet, so this is latent until verified. */
+/** Recoil magnitude that earns a warn. The engine DOES populate castState.recoil
+ *  (a couple of actions mutate it), but the right threshold is uncalibrated, so
+ *  this stays deliberately conservative — PROVISIONAL. */
 const RECOIL_WARN = 50
 
 /** Distance a projectile travels before it dies (px). 0 = stationary (detonates
