@@ -28,9 +28,9 @@ describe('suggestEdits — improvement', () => {
   beforeEach(() => clearSimCache())
 
   it('ranks a score-raising swap first', () => {
-    // A mana-limited grenade is a poor spammer; swapping in a sustainable spam
-    // spell from the pool raises the SPAM score.
-    const wand = makeWand({ spells: ['GRENADE'] })
+    // A weak rubber-ball wand is a poor spammer; swapping in a higher-damage
+    // sustainable spell from the pool raises the SPAM score (now damage-aware).
+    const wand = makeWand({ spells: ['RUBBER_BALL'] })
     const pool = new Set(['GRENADE', 'BUBBLESHOT', 'RUBBER_BALL'])
     const out = suggestEdits(wand, 'SPAM', pool, [])
     expect(out.length).toBeGreaterThan(0)
@@ -48,7 +48,7 @@ describe('suggestEdits — improvement', () => {
   })
 
   it('is sorted by descending benefit', () => {
-    const wand = makeWand({ spells: ['GRENADE'] })
+    const wand = makeWand({ spells: ['RUBBER_BALL'] })
     const pool = new Set(['GRENADE', 'BUBBLESHOT', 'RUBBER_BALL'])
     const out = suggestEdits(wand, 'SPAM', pool, [])
     const ranks = out.map((s) => s.deltaScore)
@@ -123,7 +123,7 @@ describe('suggestEdits — respects owned-copy caps', () => {
   it('never suggests swapping in a spell the player does not own (absent cap => 0)', () => {
     // BUBBLESHOT is a strong spam pick (see the improvement test) and sits in the
     // SEEN pool, but is owned 0 — so a swap to it is unavailable in owned-only mode.
-    const wand = makeWand({ spells: ['GRENADE'] })
+    const wand = makeWand({ spells: ['RUBBER_BALL'] })
     const pool = new Set(['GRENADE', 'BUBBLESHOT', 'RUBBER_BALL'])
     const caps = new Map([
       ['GRENADE', 1],
@@ -134,7 +134,7 @@ describe('suggestEdits — respects owned-copy caps', () => {
   })
 
   it('omitting caps preserves the unlimited behavior (a raising swap still ranks first)', () => {
-    const wand = makeWand({ spells: ['GRENADE'] })
+    const wand = makeWand({ spells: ['RUBBER_BALL'] })
     const pool = new Set(['GRENADE', 'BUBBLESHOT', 'RUBBER_BALL'])
     const out = suggestEdits(wand, 'SPAM', pool, []) // no caps => unlimited
     expect(out[0]?.edit.kind).toBe('swap')

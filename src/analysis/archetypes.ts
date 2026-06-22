@@ -36,17 +36,20 @@ function sat(x: number, ref: number): number {
   return 100 * (1 - Math.exp(-Math.max(0, x) / ref))
 }
 
-/** Reference points where a single signal reaches ~63/100. Provisional. */
+/** Reference points where a single signal reaches ~63/100. PROVISIONAL — calibrate
+ *  against real captured wands (docs/scoring-grounding-spec.md Tier 2). */
 const REF = {
   sustainedDps: 150,
   burstDps: 400,
   projPerSec: 8,
   aoeRadius: 60,
+  aoeDamage: 100, // HP of a strong blast (bomb 125, grenade 47.5, nuke 250)
   projPerCycle: 12,
 } as const
 
-/** Multipliers applied when the wand can't sustain fire (the near-gate). */
-const MANA_PENALTY = { damage: 0.6, spam: 0.35 } as const
+/** Multipliers applied when the wand can't sustain fire (the near-gate). A spammer
+ *  MUST fire continuously, so its mana gate is harsher than a burst dealer's. */
+const MANA_PENALTY = { damage: 0.6, spam: 0.2 } as const
 
 export function tierForScore(score: number): Tier {
   if (score >= 80) return 'S'
@@ -87,7 +90,14 @@ function scoreDamage(m: WandMetrics): ArchetypeScore {
 }
 
 function scoreSpam(m: WandMetrics): ArchetypeScore {
-  let score = sat(m.projectilesPerSecond, REF.projPerSec)
+  // A spammer = sustained EFFECTIVE damage you can fire continuously (meta: "high
+  // projectiles/sec alone is insufficient"). Base on sustained DPS so a 0-damage
+  // CHAINSAW can't win on rate alone (the headline bug); modulate by fire rate (the
+  // spam identity, as a gentle 0.6–1.0 factor so damage leads); and HARD-gate on mana
+  // sustain (a spammer that stalls is a poor spammer). REFs/penalty provisional.
+  // rate ∈ [0.6, 1.0] — sat() returns 0–100, so normalize to a fraction.
+  const rate = 0.6 + 0.4 * (sat(m.projectilesPerSecond, REF.projPerSec) / 100)
+  let score = sat(m.sustainedDps, REF.sustainedDps) * rate
   const reasons: string[] = []
   if (!m.manaSustainable) {
     score *= MANA_PENALTY.spam
@@ -99,6 +109,7 @@ function scoreSpam(m: WandMetrics): ArchetypeScore {
     'SPAM',
     score,
     [
+      { label: 'Sustained DPS', value: hp(m.sustainedDps) },
       { label: 'Projectiles/s', value: m.projectilesPerSecond.toFixed(1) },
       { label: 'Mana', value: m.manaSustainable ? 'sustainable' : 'stalls' },
     ],
@@ -107,19 +118,25 @@ function scoreSpam(m: WandMetrics): ArchetypeScore {
 }
 
 function scoreAoe(m: WandMetrics): ArchetypeScore {
-  // Radius-dominant: crowd clear is fundamentally about blast size, with a small
-  // bonus for spraying many projectiles.
+  // Crowd clear = blast DAMAGE first (a harmless digging explosion of the same radius
+  // is not AoE), blast radius second, many projectiles third. Damage + radius both
+  // descend trigger payloads (a trigger→bomb's blast lives in the payload).
   const score =
-    0.8 * sat(m.maxExplosionRadius, REF.aoeRadius) + 0.2 * sat(m.projectilesPerCycle, REF.projPerCycle)
+    0.6 * sat(m.maxExplosionDamage, REF.aoeDamage) +
+    0.25 * sat(m.maxExplosionRadius, REF.aoeRadius) +
+    0.15 * sat(m.projectilesPerCycle, REF.projPerCycle)
   return mk(
     'AOE',
     score,
     [
       {
+        label: 'Blast damage',
+        value: m.maxExplosionDamage > 0 ? hp(m.maxExplosionDamage) : '—',
+      },
+      {
         label: 'Blast radius',
         value: m.maxExplosionRadius > 0 ? `${Math.round(m.maxExplosionRadius)} px` : '—',
       },
-      { label: 'Projectiles/cycle', value: String(m.projectilesPerCycle) },
     ],
     [],
   )

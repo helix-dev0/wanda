@@ -76,6 +76,46 @@ describe('scoreWand — fixture orderings (signature-dominant)', () => {
   })
 })
 
+describe('scoreWand — SPAM rewards effective damage, not raw projectile count (Tier 0)', () => {
+  beforeEach(() => clearSimCache())
+
+  // The exact stats of the maintainer's real held wand (cap-5, sustainable).
+  const RUN_STATS = {
+    shuffle: false,
+    spellsPerCast: 1,
+    castDelay: 7,
+    rechargeTime: 21,
+    manaMax: 83,
+    mana: 83,
+    manaChargeSpeed: 255,
+    capacity: 5,
+    spread: 1,
+    speedMultiplier: 1.13,
+  }
+
+  it('the real held wand out-spams the chainsaw build that wrongly beat it', () => {
+    // THE reported bug: on the old formula (projectiles/sec only) the chainsaw deck
+    // (more, weaker shots) scored SPAM 99 vs the held wand's 93 despite ~⅓ the DPS.
+    const held = makeWand({
+      spells: ['MANA_REDUCE', 'BURST_3', 'DAMAGE', 'BUCKSHOT', 'CHAINSAW'],
+      stats: RUN_STATS,
+    })
+    const chainsaw = makeWand({
+      spells: ['BUCKSHOT', 'CHAINSAW', 'CHAINSAW', 'CHAINSAW', 'SPITTER'],
+      stats: RUN_STATS,
+    })
+    expect(scoreOf(held).SPAM.score).toBeGreaterThan(scoreOf(chainsaw).SPAM.score)
+  })
+
+  it('adding a damage modifier raises SPAM (it now has a damage term)', () => {
+    const sustainable = { manaMax: 2000, mana: 2000, manaChargeSpeed: 1000, capacity: 6 }
+    const plain = makeWand({ spells: ['SPITTER', 'SPITTER'], stats: { ...makeWand().stats, ...sustainable } })
+    const boosted = makeWand({ spells: ['DAMAGE', 'SPITTER', 'SPITTER'], stats: { ...makeWand().stats, ...sustainable } })
+    // same shots, more damage each → a better spammer (was identical under proj/sec-only)
+    expect(scoreOf(boosted).SPAM.score).toBeGreaterThan(scoreOf(plain).SPAM.score)
+  })
+})
+
 describe('scoreWand — AoE responds to real blast size', () => {
   beforeEach(() => clearSimCache())
 
