@@ -131,9 +131,29 @@ First real end-to-end run (mod → bridge → app, no fixtures). **Validated in-
 **Also found:** `uses_remaining: -1` (Noita's "unlimited" sentinel) isn't normalized → unlimited
 spells render "×-1". Normalize `< 0` → null at ingestion (and/or emit `null` from the mod).
 
+### ✅ FIXED (2026-06-22, `feat/m5-generation`) — per-spell quantity + the `-1` render
+- **Owned-count cap (owned-only v1).** `ownedCounts(wands, spellInventory)` (`src/store/runStore.ts`)
+  = occurrences across all carried wand decks + bag entries (excludes always-cast & world_seen;
+  ignores `uses_remaining`). Threaded `GenerateRequest.counts` → `worker.ts` → `generate()` → a
+  **shared per-seed `used` multiset** in every template (`place`/`draftFill`, so overlapping index
+  buckets like DIGGER = digger **and** projectile can't double-place) + `suggestEdits` (a swap is
+  dropped once the deck already holds all owned copies). `useGeneration` builds the pool **and** caps
+  from the CURRENT snapshot (not the cumulative ledger); theorycraft stays uncapped. Tier-list live
+  suggestions cap too (`App` → `tierListView` `opts.caps`).
+- **`uses_remaining < 0 → null`** normalized at the schema boundary (valibot transform) → the bag no
+  longer renders "×-1".
+- **Verified:** 306 tests green — incl. a `snapshot_05` CHAINSAW×8 / DIGGER×1 fixture asserting no
+  generated deck exceeds owned counts, plus a CONTROL proving it floods *without* caps so the thread
+  can't silently regress; typecheck / lint / build / `audit` clean; **browser-confirmed live** (every
+  build DIGGER ≤ 1, CHAINSAW ≤ 8 with correct spill, bag shows no "×-1"). Fresh-context review:
+  APPROVE, nothing blocking.
+- **Scope:** owned-only. Shop/pedestal "go grab" availability + provenance counts = **Phase 2**
+  (needs the M1-T6 world-scan to emit `world_seen`).
+
 ## Current fixtures
 - `snapshot_01.json` — starting wand `RUBBER_BALL ×2`, cap 2; **empty bag, no perks** (fresh game). `snapshot_02/03.json` — captured 2026-06-21 (modded co-op).
 - `snapshot_04.json` — **HAND-AUTHORED synthetic** (M5): continues run-10 with a populated `world_seen` (shop/pedestal/perk offerings) so the provenance + Prescribe "go grab X" path renders in the browser. Not a real capture (mod world-scan is M1-T6).
+- `snapshot_05.json` — **HAND-AUTHORED synthetic** (quantity fix): run-50, CHAINSAW×8 + 1 each of DIGGER/SPITTER/MINE/BOMB/NUKE/BURST_3/DAMAGE/ADD_TRIGGER, on a cap-10 chassis. Mirrors the in-game bug (DIGGER is the cheapest projectile, owned 1). Drives the no-over-cap generation test. Kept OUT of `demoRun` (it's a separate run; `demoRun` filters to the first run_id) so it doesn't bury the run-10 demo.
 - `spell_db.json` — 422 spells. `perk_db.json` — 105 perks. (Captured in the maintainer's **modded** setup, not pristine vanilla — see open items.)
 
 ## Open items / flags (updated after 2nd capture, 2026-06-21)
@@ -159,19 +179,15 @@ spells render "×-1". Normalize `< 0` → null at ingestion (and/or emit `null` 
 - **Pool = owned + seen-in-world** (read-only; current shop/pedestal/Holy-Mountain only; never the unexplored map). Stricter owned-only available as a setting.
 - **Performance is a hard requirement** — fast/responsive sim so the tier list re-ranks at interactive speed (bounded search, heavy work off the UI thread, cached sims). Shapes the M3 engine choice + M4/M5 search.
 
-## What's next — fix the quantity bug, then finish M1, then M6
+## What's next — finish M1, then M6 (quantity bug ✅ fixed)
 
 The live pipe works (mod → bridge → app, validated in-game): auto emit-on-change (M1-T1), the bridge
-(M1-T5), and all carried wands (M1-T2) are in. The headline gap is now **build correctness**, not
-plumbing.
+(M1-T5), and all carried wands (M1-T2) are in. The headline build-correctness gap (per-spell
+quantity) is now **fixed** (see "✅ FIXED" above), so the remaining work is M1's mod slices + M6.
 
-**1. 🔴 Per-spell quantity — TOP PRIORITY ([APP], fixture-testable).** Generated builds use more
-copies of a spell than you own (see "First live run" — a build with ~15 DIGGER vs 1 owned). Track
-OWNED counts (`Map<id, count>` from the *current* snapshot's decks + bag) and thread them into
-`suggestEdits` (cap swaps at available copies) + the templates (don't repeat a spell beyond its
-count) so decks are actually buildable. Add a synthetic multi-copy fixture (e.g. CHAINSAW×8,
-DIGGER×1) + unit-test that no generated deck exceeds owned counts. Also normalize
-`uses_remaining < 0 → null` (Noita's "unlimited" sentinel) at ingestion.
+**1. ✅ DONE — Per-spell quantity ([APP]).** Generated builds + live suggestions now respect owned
+copy counts; `uses_remaining < 0 → null` normalized. Full writeup under "✅ FIXED" above. Phase 2
+(owned **+ seen-in-world** counts with provenance) is unblocked by M1-T6.
 
 **2. Finish M1** (the rest, mostly [MOD] human-in-the-loop — implement thin Lua → STOP → hand a
 copy-paste in-game test → user verifies): real `run_id` = world seed (M1-T3), Advanced Spell
