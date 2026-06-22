@@ -42,6 +42,14 @@ export function perkDisplayName(id: string): string {
   return prettifyId(id)
 }
 
+/** Real perk icon as a data URL when the bundled DB carries sprite bytes
+ *  (embedded offline from data.wak by scripts/extract-sprites.mjs; the M1 mod emits
+ *  the same `sprite_base64` field live), else null → caller shows text. */
+export function perkSpriteSrc(id: string): string | null {
+  const b64 = (getPerk(id) as Record<string, unknown> | undefined)?.sprite_base64
+  return typeof b64 === 'string' && b64.length > 0 ? `data:image/png;base64,${b64}` : null
+}
+
 /** "CRITICAL_HIT" → "Critical Hit". Empty segments (stray underscores) dropped. */
 function prettifyId(id: string): string {
   return id

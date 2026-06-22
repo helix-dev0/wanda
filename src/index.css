@@ -390,12 +390,21 @@ h1 .rune {
 }
 
 .perk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   color: var(--ink);
   background: var(--bg-raised);
   border: 1px solid var(--rule);
   border-radius: 3px;
   padding: 4px 9px;
+}
+
+.perk-icon {
+  image-rendering: pixelated;
+  width: 20px;
+  height: 20px;
 }
 
 .perk-chip b {

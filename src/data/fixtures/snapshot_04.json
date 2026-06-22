@@ -1,9 +1,9 @@
 {
-  "_synthetic": "M5 demo fixture — HAND-AUTHORED, not a real capture. The extraction mod's world-scan (shop/pedestal/Holy-Mountain) is deferred to M1-T6, so no recorded fixture has a populated world_seen. This continues run-10 with a synthetic world_seen so the provenance + Prescribe 'go grab X' path renders in the browser. See docs/progress.md.",
+  "_synthetic": "M5 demo fixture — HAND-AUTHORED, not a real capture. The extraction mod's world-scan (shop/pedestal/Holy-Mountain) + perk read are deferred to M1, so no recorded fixture has world_seen or perks. This continues run-10 with a synthetic world_seen AND one acquired perk (PROTECTION_FIRE) so the provenance/Prescribe 'go grab X' path + perk icon + perk-aware self-danger render in the browser. See docs/progress.md.",
   "run_id": "run-10",
   "schema": 1,
   "timestamp": 30000,
-  "player": { "perks": [] },
+  "player": { "perks": [{ "id": "PROTECTION_FIRE", "stacks": 1 }] },
   "spell_inventory": [
     { "action_id": "ADD_TRIGGER", "uses_remaining": null },
     { "action_id": "BOMB", "uses_remaining": 3 },

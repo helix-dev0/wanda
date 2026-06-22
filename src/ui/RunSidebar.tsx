@@ -1,6 +1,6 @@
 import type { SpellInventoryEntry, PerkRef } from '../schema/snapshot'
 import { spellTile } from './viewModel'
-import { perkDisplayName } from '../data/perkDb'
+import { perkDisplayName, perkSpriteSrc } from '../data/perkDb'
 import { SpellTile } from './SpellTile'
 
 /** The run-state side: the loose spell bag (with use counts), acquired perks,
@@ -43,12 +43,16 @@ export function RunSidebar({
           <p className="empty-note">None acquired yet.</p>
         ) : (
           <div className="perk-chips">
-            {perks.map((perk) => (
-              <span className="perk-chip" key={perk.id} title={perk.id}>
-                {perkDisplayName(perk.id)}
-                {perk.stacks > 1 && <b> ×{perk.stacks}</b>}
-              </span>
-            ))}
+            {perks.map((perk) => {
+              const icon = perkSpriteSrc(perk.id)
+              return (
+                <span className="perk-chip" key={perk.id} title={perk.id}>
+                  {icon && <img className="perk-icon" src={icon} alt="" width={20} height={20} />}
+                  {perkDisplayName(perk.id)}
+                  {perk.stacks > 1 && <b> ×{perk.stacks}</b>}
+                </span>
+              )
+            })}
           </div>
         )}
       </section>

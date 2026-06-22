@@ -69,9 +69,15 @@ describe('spellTile', () => {
     expect(spellTile(null).usesRemaining).toBeNull()
   })
 
-  it('has no sprite source yet (fixtures carry only a game-internal path)', () => {
-    // Real icons arrive once the mod exports sprite bytes + we re-capture (M1).
-    expect(spellTile('RUBBER_BALL').spriteSrc).toBeNull()
+  it('renders the real game icon for a bundled spell (sprite_base64)', () => {
+    // The bundled vanilla DB now carries sprite bytes, extracted offline from
+    // data.wak (scripts/extract-sprites.mjs) — same transport the M1 mod will emit.
+    const src = spellTile('RUBBER_BALL').spriteSrc
+    expect(src).toMatch(/^data:image\/png;base64,/)
+  })
+
+  it('falls back to null spriteSrc for an unknown/modded spell', () => {
+    expect(spellTile('TOTALLY_FAKE_SPELL').spriteSrc).toBeNull()
   })
 })
 
