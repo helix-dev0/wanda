@@ -1,73 +1,95 @@
-# React + TypeScript + Vite
+# Wand Grimoire
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A live desktop assistant for [Noita](https://noitagame.com/) that mirrors your current run,
+simulates what your wands actually do, analyzes them, and generates strong builds. It runs
+natively on **Linux and Windows**, reading your run live from a thin in-game capture mod — or
+against bundled demo data with no game at all.
 
-Currently, two official plugins are available:
+> **Status:** feature-complete through build generation (mirror → simulate → analyze → generate).
+> Live in-game capture is experimental.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Install
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Download the latest from the repository's **Releases** page:
 
-## Expanding the ESLint configuration
+| OS | Download | Notes |
+|----|----------|-------|
+| **Windows** | `Wand Grimoire_<ver>_x64-setup.exe` (NSIS) or `_x64_en-US.msi` | Unsigned build → at the SmartScreen prompt click **More info → Run anyway**. The Edge **WebView2** runtime is fetched automatically if missing. |
+| **Linux — Debian/Ubuntu** | `Wand Grimoire_<ver>_amd64.deb` | `sudo apt install ./Wand*.deb` |
+| **Linux — Arch / other** | `Wand Grimoire_<ver>_amd64.AppImage` | `chmod +x Wand*.AppImage && ./Wand*.AppImage` (self-contained) |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+On first launch with no game running, the app shows a short "waiting for Noita" prompt. To preview
+it with **no game and no setup**, run the browser dev build (see *Develop*) — that loads bundled
+demo data.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Live in-game use
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. **Install the capture mod.** Download `wand-capture-mod.zip` from the same Release and extract
+   it into your Noita install's `mods/` folder so the path is `…/Noita/mods/wand_capture/`
+   (the folder **must** be named `wand_capture`).
+2. In Noita: **Mods → enable "Allow unsafe mods"** → enable **wand_capture** → restart when asked.
+3. Start a run. The mod writes `snapshot.json` on change (~2×/sec); **F8** forces a capture and
+   **F7** dumps the spell + perk databases.
+4. **Point the app at that `snapshot.json`.** It auto-detects the common Steam locations:
+   - Linux (native): `~/.local/share/Steam/steamapps/common/Noita/snapshot.json`
+   - Windows: `C:\Program Files (x86)\Steam\steamapps\common\Noita\snapshot.json`
+   - **Linux via Proton:** the file lands inside the game's Proton prefix, which can't be
+     auto-derived — set the path in the app's settings (it's under your Steam library's
+     `steamapps/compatdata/<appid>/pfx/drive_c/…`).
+
+---
+
+## Develop
+
+Requires **Node ≥ 20** (developed on 26); the native build also needs the **Rust** toolchain.
+
+| Task | Command |
+|------|---------|
+| Browser dev (demo data) | `npm run dev` |
+| Browser dev against a live game | `npm run bridge` in one shell, then `VITE_LIVE=1 npm run dev` |
+| Native app — dev window | `npm run tauri dev` |
+| Native installers — this OS | `npm run tauri build` |
+| Test · typecheck · lint | `npm test` · `npm run typecheck` · `npm run lint` |
+| Build the capture-mod zip | `npm run package:mod` |
+
+The app is **fixtures-first**: it runs fully against recorded snapshots in `src/data/fixtures/`
+with no game. Live data flows mod → transport → the same validation boundary as fixtures, where
+the transport is the **Tauri file-watch** (`src/bridge/tauriClient.ts`) inside the packaged app,
+or the **Node WebSocket sidecar** (`bridge/watch.mjs`) in browser dev.
+
+---
+
+## Release
+
+The version in `src-tauri/tauri.conf.json` is the source of truth. To cut a release:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The `release` GitHub Actions workflow builds installers for Linux + Windows via
+`tauri-apps/tauri-action` and **drafts** a Release with them plus `wand-capture-mod.zip`
+attached. Review and publish the draft.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+> Windows installers are only **build**-verified by CI. Confirm one actually runs on a Windows
+> machine before sharing the release.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+
+## Architecture & licensing
+
+Two parts, strict split of responsibility: a **thin Lua mod** (`mod/`) that does state extraction
+only, and this **TypeScript / React / Vite** app that holds all logic + UI. The cast simulator in
+`src/engine/` is vendored from
+[salinecitrine/noita-wand-simulator](https://github.com/salinecitrine/noita-wand-simulator), and
+the mod vendors GPL-3.0 [EZWand](https://github.com/TheHorscht/EZWand).
+
+**This repository is private.** The vendored engine ships without a license (all rights reserved) —
+do not redistribute it publicly without a grant from its author (see `src/engine/README.md`). The
+distributed mod is GPL-3.0 (see `mod/README.md`). Full design lives in
+[`noita-wand-assistant-spec.md`](./noita-wand-assistant-spec.md).

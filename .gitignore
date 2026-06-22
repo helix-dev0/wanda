@@ -19,6 +19,8 @@ dist-ssr
 # recorded live runs (npm run record) — raw captures, promote good ones to fixtures
 captures/
 salinecitrine-*.png
+# generated release artifact (npm run package:mod) — CI rebuilds it per release
+/wand-capture-mod.zip
 
 # Editor directories and files
 .vscode/*
