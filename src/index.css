@@ -284,15 +284,16 @@ h1 .rune {
   opacity: 0.9;
 }
 
-.spell-tile.projectile { --type: var(--t-projectile); }
-.spell-tile.static { --type: var(--t-static); }
-.spell-tile.modifier { --type: var(--t-modifier); }
-.spell-tile.multicast { --type: var(--t-multicast); }
-.spell-tile.material { --type: var(--t-material); }
-.spell-tile.utility { --type: var(--t-utility); }
-.spell-tile.passive { --type: var(--t-passive); }
-.spell-tile.other { --type: var(--t-other); }
-.spell-tile.unknown { --type: var(--t-unknown); }
+/* Action-type → accent colour, shared by the tile and its hover tooltip. */
+.spell-tile.projectile, .game-tooltip.projectile { --type: var(--t-projectile); }
+.spell-tile.static, .game-tooltip.static { --type: var(--t-static); }
+.spell-tile.modifier, .game-tooltip.modifier { --type: var(--t-modifier); }
+.spell-tile.multicast, .game-tooltip.multicast { --type: var(--t-multicast); }
+.spell-tile.material, .game-tooltip.material { --type: var(--t-material); }
+.spell-tile.utility, .game-tooltip.utility { --type: var(--t-utility); }
+.spell-tile.passive, .game-tooltip.passive { --type: var(--t-passive); }
+.spell-tile.other, .game-tooltip.other { --type: var(--t-other); }
+.spell-tile.unknown, .game-tooltip.unknown { --type: var(--t-unknown); }
 
 .spell-name {
   font-size: 11px;
@@ -959,4 +960,67 @@ h1 .rune {
 .prov-chip.prov-unknown {
   color: var(--ink-faint);
   border-style: dashed;
+}
+
+/* --- hover tooltips (spells + perks), Floating UI ---------------------------- */
+
+.tooltip-layer {
+  z-index: 1000;
+  width: max-content;
+}
+
+.game-tooltip {
+  max-width: 280px;
+  padding: 9px 11px;
+  background: linear-gradient(var(--bg-panel), var(--bg-inset));
+  border: 1px solid var(--gold-deep);
+  border-radius: 4px;
+  box-shadow: 0 10px 30px #000a, inset 0 1px 0 #ffffff12;
+  font-size: 12px;
+  color: var(--ink);
+  pointer-events: none; /* informational; never traps the cursor */
+}
+
+.gt-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.gt-icon {
+  image-rendering: pixelated;
+}
+
+.gt-name {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--type, var(--gold-bright));
+  text-shadow: 0 1px 2px #000;
+}
+
+.gt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-bottom: 5px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--gold);
+}
+
+.gt-type {
+  text-transform: capitalize;
+  color: var(--type, var(--ink-dim));
+}
+
+.gt-stat-label {
+  color: var(--ink-dim);
+}
+
+.gt-desc {
+  margin: 0;
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--ink-dim);
 }
