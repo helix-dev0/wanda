@@ -8,6 +8,7 @@ A live assistant for the game **Noita** that mirrors the player's current run, s
 what their wands actually do, analyzes them, and generates strong builds. Full design lives
 in [`noita-wand-assistant-spec.md`](./noita-wand-assistant-spec.md) — read it before any
 planning. Milestones run M0 (fixtures/schema) → M6 (in-game overlay).
+**Current status + what's next: [`docs/progress.md`](./docs/progress.md)** (M0 ✅ complete).
 
 ## NON-NEGOTIABLE invariants (already decided — do NOT re-litigate or "improve")
 
