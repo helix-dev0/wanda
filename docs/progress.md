@@ -36,12 +36,22 @@
 - `snapshot_01.json` — starting wand `RUBBER_BALL ×2`, cap 2; **empty bag, no perks** (fresh game).
 - `spell_db.json` — 422 spells. `perk_db.json` — 105 perks. (Captured in the maintainer's **modded** setup, not pristine vanilla — see open items.)
 
-## Open items / flags carried forward
-1. **Fixture coverage is thin** — 1 simple wand, no loose spells, no perks. Need a richer capture (varied wands, loose spells, perks) for meaningful M2–M5 work.
-2. **Spell-bag read unconfirmed** — bag was empty (new game), so we can't yet tell if the `inventory_full` child read works. A capture *with loose spells* confirms it.
-3. **Perk capture + stack counts unconfirmed** — no perks picked yet. `PERK_PICKED_<id>_PICKUP_COUNT` may not exist on this build (sources disagreed); the mod reads it with a default of `1`.
-4. **Diagnostics don't log** — Noita's *release* build doesn't route Lua `print()` to `logger.txt`. Use `GamePrint` or write a diagnostics file for any future in-game probes.
-5. **Modded vs vanilla** — fixtures reflect the maintainer's real modded co-op env (quant.ew etc.). Fine by the DB-from-game design; a clean vanilla capture may still help M3 engine validation + the bundled fallback.
+## Open items / flags (updated after 2nd capture, 2026-06-21)
+
+**Resolved by the 2nd capture:**
+- ✅ **Vanilla spell-bag read works** — captured 2× `NUKE` with `uses_remaining: 1` (so `inventory_full` enumeration + `ItemActionComponent.action_id` + `ItemComponent.uses_remaining` all work).
+- ✅ **Held-wand + 0-based deck confirmed** across 3 wands (RUBBER_BALL, GRENADE with a null gap, BUBBLESHOT×3).
+
+**Confirmed broken / open (feed M1):**
+1. **Perk capture returns empty** — `perks: []` despite a perk being held; `GameHasFlagRun("PERK_PICKED_<id>")` matched nothing. Likely **quant.ew (Entangled Worlds) perk handling** or a flag-name difference → M1-T3 must investigate (`_PICKUP_COUNT` stacks still unconfirmed too).
+2. **Advanced Spell Inventory spells not captured** — the mod reads only the vanilla bag; spells moved into the Advanced Spell Inventory mod are invisible. This is the planned **M1-T4** compat work (Globals `AdvancedSpellInventory_stored_spells`).
+3. **`run_id` collides** — both runs got `run-10` (placeholder = frame # at spawn). The app keys run-reset on `run_id`, so **M1 must use a real seed/session id**.
+4. **Inventory-slot wands** — M0 captures only the HELD wand; the player's other carried wands need **M1-T2** enumeration (press F8 per wand for now).
+
+**Still true:**
+- **Diagnostics don't log** — release build doesn't route `print()` to `logger.txt`; use `GamePrint` or write a diagnostics file.
+- **Fixture coverage** — now 3 wands + a non-empty bag, but still no shuffle/multicast/trigger/mana-hog wand and no perks; more variety welcome.
+- **Modded co-op env** — fixtures reflect quant.ew + Advanced Spell Inventory (representative of real use).
 
 ## Product decisions (2026-06-21 — full text in spec Decisions Log v0.2.1)
 - **Output = tier list (S/A/B/C) per archetype** (Damage / Spam / AoE / Utility-mobility / Defensive), ranking **both held wands and generated builds** — never a single "best wand."
