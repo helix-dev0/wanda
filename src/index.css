@@ -727,3 +727,209 @@ h1 .rune {
   font-size: 11px;
   font-style: italic;
 }
+
+/* --- M5 guidance dial -------------------------------------------------------- */
+
+.dial {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 18px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  background: var(--bg-inset);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+
+.dial-rungs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.dial-label {
+  font-family: var(--serif);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-right: 8px;
+}
+
+.dial-rung {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-dim);
+  background: #0e0b07;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.dial-rung:hover {
+  color: var(--ink);
+  border-color: var(--gold-deep);
+}
+
+.dial-rung.active {
+  color: var(--bg);
+  background: linear-gradient(var(--gold-bright), var(--gold));
+  border-color: var(--gold);
+  font-weight: 600;
+}
+
+.dial-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.dial-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+
+.dial-toggle input {
+  accent-color: var(--gold);
+}
+
+.gen-loading,
+.gen-error {
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin: 0 0 10px;
+}
+
+.gen-error {
+  color: #f0b8b0;
+}
+
+/* --- generated builds + per-card drill --------------------------------------- */
+
+.tier-entry.generated {
+  border-left: 2px solid var(--gold-deep);
+  padding-left: 8px;
+}
+
+.drill-toggle {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  background: transparent;
+  border: 1px solid var(--rule-soft);
+  border-radius: 3px;
+  padding: 1px 7px;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.drill-toggle:hover {
+  color: var(--gold);
+  border-color: var(--gold-deep);
+}
+
+.entry-teach {
+  margin: 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+
+.entry-reasons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.entry-edits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.edit-label {
+  color: var(--ink);
+}
+
+.edit-delta {
+  color: var(--t-utility);
+  font-size: 11px;
+  margin-left: 8px;
+}
+
+.entry-perk-advice {
+  margin: 0;
+  font-size: 12px;
+  color: #f0c8a0;
+}
+
+.entry-perk-advice em {
+  color: var(--gold-bright);
+  font-style: normal;
+}
+
+.tier-note {
+  margin: 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+/* --- provenance "go grab X" chips (Prescribe) -------------------------------- */
+
+.deck-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.prov-chip {
+  font-size: 9px;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+  text-align: center;
+  border-radius: 2px;
+  padding: 1px 4px;
+  max-width: 56px;
+  border: 1px solid var(--rule);
+  color: var(--ink-dim);
+}
+
+.prov-chip.prov-owned {
+  color: var(--t-utility);
+  border-color: #3c5a30;
+}
+.prov-chip.prov-shop {
+  color: var(--gold-bright);
+  border-color: var(--gold-deep);
+}
+.prov-chip.prov-pedestal {
+  color: var(--t-modifier);
+  border-color: #2c4a64;
+}
+.prov-chip.prov-stale {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+.prov-chip.prov-unknown {
+  color: var(--ink-faint);
+  border-style: dashed;
+}

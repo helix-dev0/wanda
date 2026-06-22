@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type { Wand, PerkRef } from '../schema/snapshot'
 import { clearSimCache } from '../analysis/simCache'
-import { tierListView } from './tierListViewModel'
+import { tierListView, type TierListView } from './tierListViewModel'
+import { generate } from '../generation/generate'
+import type { ProvenanceEntry } from '../store/runStore'
 
 const makeWand = (over: Partial<Wand> = {}): Wand => ({
   slot: 0,
@@ -79,5 +81,86 @@ describe('tierListView', () => {
     expect(dEntry.tiles).toHaveLength(1)
     expect(dEntry.tiles[0].name.length).toBeGreaterThan(0)
     expect(Array.isArray(damage.suggestions)).toBe(true)
+  })
+})
+
+describe('tierListView — dial + generated builds (M5)', () => {
+  beforeEach(() => clearSimCache())
+
+  const held0 = makeWand({ slot: 0, spells: ['BUBBLESHOT'] })
+  const genPool = ['NUKE', 'DAMAGE', 'LIGHT_BULLET', 'ADD_TRIGGER'] // offensive only
+  const genResult = () => generate({ pool: genPool, chassis: makeWand({ spells: [] }), perks: [], constraints: {} })
+  const entriesOf = (v: TierListView) => v.columns.flatMap((c) => c.bands.flatMap((b) => b.entries))
+
+  it('merges generated builds into the bands at Suggest, marked source=generated', () => {
+    const v = tierListView([held0], [], pool, { generated: genResult(), rung: 'suggest' })
+    const damage = v.columns[0].bands.flatMap((b) => b.entries)
+    expect(damage.some((e) => e.source === 'generated')).toBe(true)
+    expect(damage.some((e) => e.source === 'held')).toBe(true)
+  })
+
+  it('Mirror hides generated builds and shows metrics but no advice', () => {
+    const v = tierListView([held0], [], pool, { generated: genResult(), rung: 'mirror' })
+    const entries = entriesOf(v)
+    expect(entries.every((e) => e.source === 'held')).toBe(true)
+    expect(entries[0].reveal.metrics).toBe(true)
+    expect(entries[0].reveal.reasons).toBe(false)
+    expect(entries[0].reveal.generated).toBe(false)
+    expect(v.columns.every((c) => c.suggestions.length === 0)).toBe(true) // no advice at Mirror
+  })
+
+  it('Teach reveals the mechanic "why" on a generated build', () => {
+    const v = tierListView([held0], [], pool, { generated: genResult(), rung: 'teach' })
+    const gen = entriesOf(v).find((e) => e.source === 'generated')
+    expect(gen?.reveal.teach).toBe(true)
+    expect(gen?.teach).toBeTruthy()
+  })
+
+  it('Prescribe reveals per-slot provenance and stays terse', () => {
+    const v = tierListView([held0], [], pool, { generated: genResult(), rung: 'prescribe' })
+    const e = entriesOf(v)[0]
+    expect(e.reveal.provenance).toBe(true)
+    expect(e.reveal.metrics).toBe(false) // terse — no metric prose
+  })
+
+  it('a drilled card is shaped to Prescribe while others follow the global rung', () => {
+    const g = genResult()
+    const probe = tierListView([held0], [], pool, { generated: g, rung: 'suggest' })
+    const targetKey = probe.columns[0].bands.flatMap((b) => b.entries)[0].key
+
+    const v = tierListView([held0], [], pool, {
+      generated: g,
+      rung: 'suggest',
+      drilled: new Set([targetKey]),
+    })
+    const entries = v.columns[0].bands.flatMap((b) => b.entries)
+    const drilledEntry = entries.find((e) => e.key === targetKey)
+    expect(drilledEntry?.drilled).toBe(true)
+    expect(drilledEntry?.reveal.provenance).toBe(true) // forced to Prescribe
+    const other = entries.find((e) => e.key !== targetKey)
+    if (other) expect(other.reveal.provenance).toBe(false) // still Suggest
+  })
+
+  it('stamps "go grab X" provenance onto held-wand tiles', () => {
+    const provenance: ReadonlyMap<string, ProvenanceEntry> = new Map([
+      ['BUBBLESHOT', { origin: 'owned', origins: ['owned'], fresh: true, firstSeen: 0, lastSeen: 0 }],
+    ])
+    const v = tierListView([held0], [], pool, { provenance, rung: 'prescribe' })
+    const e = entriesOf(v).find((x) => x.source === 'held')
+    expect(e?.provenance?.[0]).toEqual({ text: 'your bag', kind: 'owned' })
+  })
+
+  it('surfaces a generation note for an archetype it cannot build', () => {
+    const v = tierListView([held0], [], pool, { generated: genResult(), rung: 'suggest' })
+    const defensive = v.columns.find((c) => c.archetype === 'DEFENSIVE')
+    expect(defensive?.note).toBeTruthy() // no defensive spells in the gen pool
+    expect(defensive?.bands.every((b) => b.entries.every((e) => e.source !== 'generated'))).toBe(true)
+  })
+
+  it('with no opts, behaves exactly as the M4 held-wand view (Suggest default)', () => {
+    const v = tierListView([held0], [], pool)
+    expect(v.rung).toBe('suggest')
+    expect(entriesOf(v).every((e) => e.source === 'held')).toBe(true)
+    expect(v.columns[0].suggestions).toBeDefined()
   })
 })

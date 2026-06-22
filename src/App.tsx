@@ -36,6 +36,7 @@ function App() {
   const bag = useRunStore((s) => s.spellInventory)
   const perks = useRunStore((s) => s.perks)
   const pool = useRunStore((s) => s.ledger.spells)
+  const provenance = useRunStore((s) => s.ledger.provenance)
 
   return (
     <div className="app">
@@ -72,7 +73,7 @@ function App() {
             </div>
           )}
           <h2 className="section-title">Best Builds</h2>
-          <TierListPanel wands={wands} perks={perks} pool={pool} />
+          <TierListPanel wands={wands} perks={perks} pool={pool} provenance={provenance} />
         </main>
 
         <aside className="run-side">
