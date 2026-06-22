@@ -1,0 +1,83 @@
+name: release
+
+# Cut a release by pushing a version tag:  git tag v0.1.0 && git push origin v0.1.0
+# Builds native installers on each OS via tauri-action and drafts a GitHub Release with
+# them attached, then uploads the capture-mod zip to the same draft. Review + publish the
+# draft by hand. (Private repo: only the default GITHUB_TOKEN is needed — no signing.)
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04   # -> .deb + .AppImage
+          - platform: windows-latest # -> NSIS .exe + .msi
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build + draft release (tauri-action)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Wand Grimoire ${{ github.ref_name }}
+          releaseBody: |
+            Native installers for Linux + Windows. Download the one for your OS below.
+            For live in-game analysis, also grab `wand-capture-mod.zip` and install it
+            into Noita's mods folder (see the README).
+          releaseDraft: true
+          prerelease: false
+
+  # Attach the capture-mod zip to the same draft release (tauri-action only uploads its
+  # own bundles). Runs after both build legs so the draft already exists.
+  upload-mod:
+    needs: publish-tauri
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - name: Build mod zip
+        run: npm run package:mod
+      - name: Upload mod zip to the release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.ref_name }}" wand-capture-mod.zip --clobber
