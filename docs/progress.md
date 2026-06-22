@@ -12,8 +12,8 @@
 | M1 — Extraction mod + bridge | ⬜ not started | Evolve the M0 capture seed into the real emit-on-change mod + live bridge. |
 | M2 — Ingestion + store + mirror UI | ⬜ not started | First **visible** milestone (wand mirror in the browser). M1 & M2 can run in parallel. |
 | M3 — Simulator integration | ⬜ | Fork `salinecitrine` `calc/`; adapt to our runtime spell-DB dump. |
-| M4 — Analysis engine | ⬜ | Archetype scoring + self-danger (perk-aware) + local search. |
-| M5 — Generation engine | ⬜ | Template-seeded build generation. |
+| M4 — Analysis engine | ⬜ | Archetype scoring + self-danger (perk-aware) + local search → **tier list per type** for held wands. |
+| M5 — Generation engine | ⬜ | Template-seeded generation → **tier list of buildable options** per type, from owned+seen pool. |
 | M6 — In-game overlay | ⬜ | Tauri v2 overlay. |
 
 ## M0 — what landed (all committed)
@@ -42,6 +42,11 @@
 3. **Perk capture + stack counts unconfirmed** — no perks picked yet. `PERK_PICKED_<id>_PICKUP_COUNT` may not exist on this build (sources disagreed); the mod reads it with a default of `1`.
 4. **Diagnostics don't log** — Noita's *release* build doesn't route Lua `print()` to `logger.txt`. Use `GamePrint` or write a diagnostics file for any future in-game probes.
 5. **Modded vs vanilla** — fixtures reflect the maintainer's real modded co-op env (quant.ew etc.). Fine by the DB-from-game design; a clean vanilla capture may still help M3 engine validation + the bundled fallback.
+
+## Product decisions (2026-06-21 — full text in spec Decisions Log v0.2.1)
+- **Output = tier list (S/A/B/C) per archetype** (Damage / Spam / AoE / Utility-mobility / Defensive), ranking **both held wands and generated builds** — never a single "best wand."
+- **Pool = owned + seen-in-world** (read-only; current shop/pedestal/Holy-Mountain only; never the unexplored map). Stricter owned-only available as a setting.
+- **Performance is a hard requirement** — fast/responsive sim so the tier list re-ranks at interactive speed (bounded search, heavy work off the UI thread, cached sims). Shapes the M3 engine choice + M4/M5 search.
 
 ## What's next
 - **Recommended:** one richer capture (mid-run: ~5 varied wands, loose spells in bag, a perk or two) to give M2–M5 real coverage and close flags #2/#3. Output lands in the Noita install dir; can be read straight off disk.

@@ -13,6 +13,7 @@ A tool that watches a live Noita run and helps the player build better wands on 
 - **Accurate simulation** of any wand (cast sequence, projectiles, DPS, mana behavior) reusing an existing open-source engine.
 - **Analysis** of the player's current wands ("this wand stalls on mana," "reorder these two for +40% DPS").
 - **Generation** of strong builds from available spells, targeted at player-chosen archetypes.
+- **Fast & responsive** — live updates feel instant and analysis/generation return at interactive speed; the tool re-ranks continuously as the run changes, never as a slow batch job.
 - Built primarily by automated Claude Code, with the human acting only as the in-game test loop.
 
 ### Non-goals (for v1)
@@ -186,6 +187,8 @@ The reused engine is the source of truth. Captured here so we can validate it an
 ### 6.2 Archetypes (confirmed — all of these matter)
 Max single-target DPS · Mana-efficient spammer · Crowd/horde clear (AoE) · **Utility/mobility** (digging **and** movement: teleport/blink/levitation) · Defensive/utility · "Just rank my current wands as-is." The scorer is **archetype-parameterized** and reports rich per-archetype metrics — never one collapsed score.
 
+**Output = a tier list (S/A/B/C) _per archetype_** (confirmed 2026-06-21), **not** a single "best wand." Each archetype's list ranks **both** the player's currently-held wands **and** builds the generator proposes from the pool, with every tiered entry carrying its key metrics + a self-danger flag. (UI is M4/M5.)
+
 ### 6.3 Inputs to generation
 - **Pool** (confirmed): **owned + seen-in-world by default** — what the player owns (incl. spells held earlier this run) plus spells/wands/perks visible in shops, pedestals, and Holy-Mountain offerings, yielding actionable *"go grab X"* advice. **Full-DB theorycraft is a toggle** on top.
 - **Perks** (confirmed): acquired perks are an input to scoring/safety; offered perks are candidates the generator can recommend taking ("pick Projectile Repulsion to make this build safe").
@@ -196,6 +199,8 @@ Max single-target DPS · Mana-efficient spammer · Crowd/horde clear (AoE) · **
 1. **Rank** existing wands (pure simulation + scoring) — cheap, ship first.
 2. **Local search** for incremental fixes: single swaps, reorders, removals, evaluated via the simulator (beam/hill-climb). Powers the "suggestions" feed.
 3. **Template-seeded generation**: detect key spells in the pool (a nuke, a trigger, a multicast) and instantiate known-good patterns (trigger→payload, multicast stack, spammer, single-nuke), then local-search to polish. This is the "build me a wand" feature and the last/hardest module.
+
+**Performance is a requirement, not an afterthought** (confirmed 2026-06-21): simulation + scoring must be fast enough that the tier list re-ranks at interactive speed as the run changes. Keep search within a bounded/interactive budget (heuristics + templates + local search, never brute force); push heavy search off the UI thread (e.g. a web worker) and reuse cached sim results so live updates stay responsive.
 
 ---
 
@@ -249,3 +254,4 @@ Designed so each milestone is independently testable, and so app development nee
 ## Decisions Log
 - v0.1: Path A (Lua mod) chosen; mod flagging accepted; app-first with deferred overlay; full ambition (mirror/simulate/analyze/generate); reuse simulator engine; file-watch bridge as default.
 - v0.2 (2026-06-21, interview): **Cross-platform** (Linux/Proton maintainer + Windows co-player, independent local instances) — reinforces file-watch as default bridge, websocket stays Windows-only optional, paths auto-detected per OS. **Pool** = owned + seen-in-world default, theorycraft toggle; world-scan is an additive post-core mod slice. **Archetypes** = all (incl. utility/mobility = dig + movement); archetype-parameterized scoring; **self-danger a first-class veto evaluated relative to perks**. **Spoilers** = full info. **Mods** = vanilla now, mod-safe; M0 fixtures vanilla; **explicit compat target = Advanced Spell Inventory mod (3267869519)**. **Perks (new scope)** = mirror acquired+offered, feed acquired into scoring/safety, advise on offered picks; perk DB dumped from `perk_list.lua`. **Tooling directive** = use Context7 for all library/framework docs throughout; keep to the latest stable, best-in-class TS stack (validated at scaffold time).
+- v0.2.1 (2026-06-21, vision refinements): **Output = tier list per archetype** (S/A/B/C), ranking **both held wands and generated builds** — not a single "best." **Pool confirmed = owned + seen-in-world** (read-only; never scans the unexplored map; a stricter owned-only mode is available as a setting). **Performance = explicit requirement**: fast/responsive sim so the tier list re-ranks at interactive speed (bounded search, heavy work off the UI thread, cached sims). Context: M0 complete — fixtures + schemas validated against real captures.
