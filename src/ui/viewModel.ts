@@ -92,6 +92,13 @@ export function spellTile(id: string | null, opts: SpellTileOpts = {}): SpellTil
   }
 }
 
+/** The held/active wand: the one flagged `active`, else (older snapshots with no
+ *  flag) the slot-0 wand, else the first. Single source of truth for "held" so the
+ *  panel title, tier-list primary, and generation chassis all agree. */
+export function activeWand(wands: readonly Wand[]): Wand | undefined {
+  return wands.find((w) => w.active) ?? wands.find((w) => w.slot === 0) ?? wands[0]
+}
+
 export interface StatRow {
   key: string
   label: string

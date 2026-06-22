@@ -3,16 +3,17 @@ import { wandStatRows, spellTile } from './viewModel'
 import { SpellTile } from './SpellTile'
 
 /** One wand as a carved stone-tablet panel: title, stat grid, optional
- *  always-cast row, and the ordered deck of spell runes (empties included). */
-export function WandPanel({ wand }: { wand: Wand }) {
+ *  always-cast row, and the ordered deck of spell runes (empties included).
+ *  `active` marks the currently-held wand among several carried wands. */
+export function WandPanel({ wand, active = false }: { wand: Wand; active?: boolean }) {
   const rows = wandStatRows(wand)
-  const title = wand.slot === 0 ? 'Wand I · held' : `Wand · slot ${wand.slot}`
 
   return (
-    <section className="wand-panel">
+    <section className={`wand-panel${active ? ' active' : ''}`}>
       <header className="wand-header">
         <span className="sigil" aria-hidden="true">❖</span>
-        <h2>{title}</h2>
+        <h2>Wand · slot {wand.slot}</h2>
+        {active && <span className="held-badge" title="currently held">● held</span>}
       </header>
 
       <div className="wand-stats">

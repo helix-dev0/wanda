@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { spellTile, wandStatRows, SPELL_TYPE_CLASS, resolveSpriteSrc } from './viewModel'
+import { spellTile, wandStatRows, SPELL_TYPE_CLASS, resolveSpriteSrc, activeWand } from './viewModel'
 import type { Wand } from '../schema/snapshot'
 import type { SpellDbEntry } from '../schema/spell-db'
 
@@ -78,6 +78,26 @@ describe('spellTile', () => {
 
   it('falls back to null spriteSrc for an unknown/modded spell', () => {
     expect(spellTile('TOTALLY_FAKE_SPELL').spriteSrc).toBeNull()
+  })
+})
+
+describe('activeWand — which carried wand is held', () => {
+  const w = (slot: number, active?: boolean): Wand => ({ ...snapshot01Wand, slot, active })
+
+  it('picks the active-flagged wand regardless of slot order', () => {
+    expect(activeWand([w(0), w(1, true), w(2)])?.slot).toBe(1)
+  })
+
+  it('falls back to slot 0 when nothing is flagged (older snapshots)', () => {
+    expect(activeWand([w(2), w(0), w(1)])?.slot).toBe(0)
+  })
+
+  it('falls back to the first wand when neither flagged nor slot 0', () => {
+    expect(activeWand([w(3), w(5)])?.slot).toBe(3)
+  })
+
+  it('is undefined when there are no wands', () => {
+    expect(activeWand([])).toBeUndefined()
   })
 })
 

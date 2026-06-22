@@ -3,6 +3,7 @@ import { uiStore } from '../store/uiStore'
 import { useRunStore } from './useRunStore'
 import { useUiStore } from './useUiStore'
 import { requestGenerate } from '../generation/workerClient'
+import { activeWand } from './viewModel'
 import { spellDb } from '../data/spellDb'
 import type { Wand } from '../schema/snapshot'
 
@@ -41,7 +42,7 @@ export function useGeneration(): void {
   const constraints = useUiStore((s) => s.constraints)
 
   useEffect(() => {
-    const held = wands.find((w) => w.slot === 0) ?? wands[0]
+    const held = activeWand(wands)
     const chassis = theorycraft ? IDEAL_CHASSIS : (held ?? IDEAL_CHASSIS)
     const poolIds = theorycraft ? [...spellDb.keys()] : [...pool]
     if (poolIds.length === 0) {

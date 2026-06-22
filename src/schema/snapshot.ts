@@ -52,7 +52,12 @@ export type WandStats = v.InferOutput<typeof WandStatsSchema>
 
 /** A single wand: its slot, stats, always-cast spells, and ordered deck. */
 export const WandSchema = v.object({
-  slot: v.number(), // inventory position; 0 = active/held
+  slot: v.number(), // STABLE quick-inventory position (0..3), not the held marker
+  /** True for the currently-held/active wand. Optional: when absent on every wand
+   *  (older fixtures), the app falls back to treating slot 0 as held. Kept out of
+   *  the wand signature (wandKey) since it's volatile — switching wands must not
+   *  change a wand's cache identity. */
+  active: v.optional(v.boolean()),
   stats: WandStatsSchema,
   always_cast: v.array(v.string()), // action_ids that fire with every shot
   spells: v.array(v.nullable(v.string())), // ordered deck; null = empty slot

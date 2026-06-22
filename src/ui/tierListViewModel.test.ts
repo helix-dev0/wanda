@@ -164,3 +164,18 @@ describe('tierListView — dial + generated builds (M5)', () => {
     expect(v.columns[0].suggestions).toBeDefined()
   })
 })
+
+describe('tierListView — multiple carried wands + active flag (M1-T2)', () => {
+  beforeEach(() => clearSimCache())
+
+  it('titles the active-flagged wand "Held wand" even when it is not slot 0', () => {
+    const w0 = makeWand({ slot: 0, spells: ['BUBBLESHOT'] })
+    const w1 = makeWand({ slot: 1, active: true, spells: ['BUBBLESHOT'] })
+    const v = tierListView([w0, w1], [], pool)
+    const entries = v.columns.flatMap((c) => c.bands.flatMap((b) => b.entries))
+    const held = entries.filter((e) => e.title === 'Held wand') // one per archetype column
+    expect(held.length).toBeGreaterThan(0)
+    expect(held.every((e) => e.slot === 1)).toBe(true) // the active wand, not slot 0
+    expect(entries.some((e) => e.title === 'Wand · slot 0')).toBe(true)
+  })
+})

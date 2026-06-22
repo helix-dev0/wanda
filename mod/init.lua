@@ -145,24 +145,51 @@ local function read_spell_bag(player)
 end
 
 -- --- capture ----------------------------------------------------------------
--- Build the schema-shaped snapshot (held wand + spell bag + perks), or nil if no
+-- All carried wands (M1-T2). EZWand has no enumeration helper, so walk the player's
+-- quick-inventory and keep the wands. `slot` is the STABLE child order (0..3) so the
+-- app's panels don't reorder when you switch wands; `active` marks the currently-held
+-- wand (Inventory2Component.mActiveItem, via EZWand.GetHeldWand). NOTE: a wand's spell
+-- positions can be unreliable until its inventory has been opened in-game once.
+local function read_all_wands(player)
+  local out = json.array({})
+  local inv = nil
+  for _, c in ipairs(EntityGetAllChildren(player) or {}) do
+    if EntityGetName(c) == "inventory_quick" then
+      inv = c
+      break
+    end
+  end
+  if not inv then return out end
+
+  local held = EZWand.GetHeldWand() -- nil/false if not holding a wand
+  local held_id = held and held.entity_id or nil
+
+  local slot = 0
+  for _, child in ipairs(EntityGetAllChildren(inv) or {}) do
+    if EZWand.IsWand(child) then
+      local w = read_wand(EZWand(child), slot)
+      w.active = (held_id ~= nil and child == held_id)
+      out[#out + 1] = w
+      slot = slot + 1
+    end
+  end
+  return out
+end
+
+-- Build the schema-shaped snapshot (all wands + spell bag + perks), or nil if no
 -- player yet. NO timestamp here: it is stamped at write time, so a changing frame
--- number doesn't defeat the emit-on-change check. (All carried wands = M1-T2;
--- nearby shop/pedestal/Holy-Mountain = M1-T6 — additive next slices.)
+-- number doesn't defeat the emit-on-change check. (Nearby shop/pedestal/Holy-Mountain
+-- = M1-T6 — the next additive slice.)
 local function build_snapshot()
   if not player_entity then player_entity = EntityGetWithTag("player_unit")[1] end
   local player = player_entity
   if not player then return nil end
 
-  local wands = json.array({})
-  local held = EZWand.GetHeldWand() -- nil/false if not holding a wand
-  if held then wands[1] = read_wand(held, 0) end -- held wand = slot 0
-
   return {
     schema = 1,
     run_id = run_id,
     player = { perks = read_perks() },
-    wands = wands,
+    wands = read_all_wands(player),
     spell_inventory = read_spell_bag(player),
   }
 end

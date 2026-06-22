@@ -15,7 +15,7 @@ import type { Rung } from '../store/uiStore'
 import type { AppliedEdit, GenerateResult, PerkAdvice, TemplateId } from '../generation/types'
 import { buildProvenance, type ProvenanceLabel } from '../generation/provenance'
 import { templateWhy } from '../generation/copy'
-import { spellTile, type SpellTileModel } from './viewModel'
+import { spellTile, activeWand, type SpellTileModel } from './viewModel'
 import { analyzeWands, ARCHETYPES, type Archetype, type Tier } from '../analysis'
 import { suggestEdits, type Suggestion } from '../analysis/suggestions'
 import type { Hazard } from '../analysis/selfDanger'
@@ -176,7 +176,7 @@ export function tierListView(
     return {
       key: a.key,
       slot: wand.slot,
-      title: wand.slot === 0 ? 'Held wand' : `Wand · slot ${wand.slot}`,
+      title: wand === primary ? 'Held wand' : `Wand · slot ${wand.slot}`,
       tier: s.tier,
       score: s.score,
       topMetrics: s.topMetrics,
@@ -220,8 +220,8 @@ export function tierListView(
     }
   }
 
-  const primary = wands.find((w) => w.slot === 0) ?? wands[0]
-  const showSuggestions = (rung === 'teach' || rung === 'suggest') && wands.length > 0
+  const primary = activeWand(wands)
+  const showSuggestions = (rung === 'teach' || rung === 'suggest') && primary != null
 
   const columns: ArchetypeColumnView[] = ARCHETYPES.map((archetype) => {
     const held = wands.map((w, i) => heldEntry(w, i, archetype))
@@ -244,9 +244,10 @@ export function tierListView(
       archetype,
       label: ARCHETYPE_LABEL[archetype],
       bands,
-      suggestions: showSuggestions
-        ? suggestEdits(primary, archetype, pool, perks).map(suggestionView)
-        : [],
+      suggestions:
+        showSuggestions && primary
+          ? suggestEdits(primary, archetype, pool, perks).map(suggestionView)
+          : [],
       note: colReveal.generated ? generated?.[archetype].note : undefined,
     }
   })

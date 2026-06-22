@@ -3,6 +3,7 @@ import { runStore } from './store/runStore'
 import { useRunStore } from './ui/useRunStore'
 import { demoRun } from './data/demoRun'
 import { WandPanel } from './ui/WandPanel'
+import { activeWand } from './ui/viewModel'
 import { RunSidebar } from './ui/RunSidebar'
 import { CastSimPanel } from './ui/CastSimPanel'
 import { TierListPanel } from './ui/TierListPanel'
@@ -43,6 +44,7 @@ function App() {
   const perks = useRunStore((s) => s.perks)
   const pool = useRunStore((s) => s.ledger.spells)
   const provenance = useRunStore((s) => s.ledger.provenance)
+  const heldWand = activeWand(wands)
 
   return (
     <div className="app">
@@ -69,7 +71,7 @@ function App() {
           ) : (
             <div className="wands">
               {wands.map((wand) => (
-                <WandPanel key={wand.slot} wand={wand} />
+                <WandPanel key={wand.slot} wand={wand} active={wand === heldWand} />
               ))}
             </div>
           )}
