@@ -15,9 +15,16 @@ const files = import.meta.glob('./fixtures/snapshot_*.json', {
   import: 'default',
 }) as Record<string, unknown>
 
-export const demoRun: Snapshot[] = Object.keys(files)
+const all: Snapshot[] = Object.keys(files)
   .sort()
   .flatMap((key) => {
     const result = ingestSnapshot(files[key])
     return result.ok ? [result.snapshot] : []
   })
+
+// demoRun is ONE replayable run. Other-run scenario fixtures share this folder (e.g.
+// the quantity-fix snapshot_05, run-50) but must NOT be appended — applying a second
+// run_id would reset the ledger mid-demo and bury the curated run-10 view. Keep only
+// the first run's snapshots; reach a scenario fixture via its own test, not the demo.
+const firstRunId = all[0]?.run_id
+export const demoRun: Snapshot[] = all.filter((s) => s.run_id === firstRunId)
