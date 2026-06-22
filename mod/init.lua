@@ -22,6 +22,7 @@ local NULL = json.NULL
 local player_entity = nil
 local run_id = "run-unknown"
 local snapshot_count = 0
+local last_emit = nil -- last snapshot.json contents (emit-on-change, sans timestamp)
 
 -- --- file output ------------------------------------------------------------
 -- Relative path -> the game's working directory. Per research this is most
@@ -115,9 +116,9 @@ local function read_spell_bag(player)
   local bag = nil
   if children then
     for _, c in ipairs(children) do
-      local name = EntityGetName(c)
-      print("[wand_capture] player child: '" .. tostring(name) .. "' id=" .. tostring(c))
-      if name == "inventory_full" then bag = c end
+      -- (the M0 per-child name probe is removed: it would flood logger.txt now
+      --  that the snapshot is built ~2x/sec by the auto emit-on-change loop.)
+      if EntityGetName(c) == "inventory_full" then bag = c end
     end
   end
   if not bag then
@@ -144,43 +145,54 @@ local function read_spell_bag(player)
 end
 
 -- --- capture ----------------------------------------------------------------
-local function capture_snapshot()
+-- Build the schema-shaped snapshot (held wand + spell bag + perks), or nil if no
+-- player yet. NO timestamp here: it is stamped at write time, so a changing frame
+-- number doesn't defeat the emit-on-change check. (All carried wands = M1-T2;
+-- nearby shop/pedestal/Holy-Mountain = M1-T6 — additive next slices.)
+local function build_snapshot()
   if not player_entity then player_entity = EntityGetWithTag("player_unit")[1] end
   local player = player_entity
-  if not player then
-    GamePrint("[wand_capture] no player entity yet - spawn into a run first")
-    return
-  end
+  if not player then return nil end
 
   local wands = json.array({})
   local held = EZWand.GetHeldWand() -- nil/false if not holding a wand
-  if held then
-    wands[1] = read_wand(held, 0) -- held wand = slot 0
-  else
-    print("[wand_capture] NOTE: not holding a wand (GetHeldWand returned nil/false)")
-  end
+  if held then wands[1] = read_wand(held, 0) end -- held wand = slot 0
 
-  local snap = {
+  return {
     schema = 1,
     run_id = run_id,
-    timestamp = GameGetFrameNum(),
     player = { perks = read_perks() },
     wands = wands,
     spell_inventory = read_spell_bag(player),
   }
+end
 
-  snapshot_count = snapshot_count + 1
-  local path = "wand_capture_snapshot_" .. snapshot_count .. ".json"
-  local ok = write_file(path, json.encode(snap))
+-- Stamp + encode + write. Always (over)writes snapshot.json (the file the live
+-- bridge watches); also writes a numbered archival copy when `numbered` is true.
+local function write_snapshot(snap, numbered)
+  snap.timestamp = GameGetFrameNum()
+  local encoded = json.encode(snap)
+  if numbered then
+    snapshot_count = snapshot_count + 1
+    write_file("wand_capture_snapshot_" .. snapshot_count .. ".json", encoded)
+  end
+  return write_file("snapshot.json", encoded)
+end
+
+-- F8 force-capture: a numbered fixture + snapshot.json, with an on-screen confirm.
+local function capture_snapshot()
+  local snap = build_snapshot()
+  if not snap then
+    GamePrint("[wand_capture] no player entity yet - spawn into a run first")
+    return
+  end
+  local ok = write_snapshot(snap, true)
   if ok then
-    GamePrint("[wand_capture] wrote " .. path .. "  (wands=" .. #wands ..
+    GamePrint("[wand_capture] captured -> snapshot.json (wands=" .. #snap.wands ..
       ", perks=" .. #snap.player.perks .. ", bag=" .. #snap.spell_inventory .. ")")
-    print("[wand_capture] WROTE " .. path ..
-      " - locate it in the game working dir (install dir and/or Nolla_Games_Noita save dir) and report the full path")
   else
-    GamePrint("[wand_capture] WRITE FAILED for " .. path .. " - io.open returned nil")
-    print("[wand_capture] WRITE FAILED for " .. path ..
-      " - confirm unsafe mods enabled + request_no_api_restrictions; the working dir may be read-only")
+    GamePrint("[wand_capture] WRITE FAILED - need unsafe mods + request_no_api_restrictions")
+    print("[wand_capture] WRITE FAILED for snapshot.json - working dir may be read-only")
   end
 end
 
@@ -250,12 +262,27 @@ function OnWorldInitialized() end
 
 function OnPlayerSpawned(player)
   player_entity = player
-  run_id = "run-" .. tostring(GameGetFrameNum()) -- placeholder; real seed at M1
-  GamePrint("[wand_capture] ready: F8 = capture snapshot, F7 = dump spell/perk DBs")
+  run_id = "run-" .. tostring(GameGetFrameNum()) -- placeholder; real seed at M1-T3
+  last_emit = nil -- new run -> force the next emit
+  GamePrint("[wand_capture] live: auto-syncing snapshot.json (F8 = force capture, F7 = dump DBs)")
   print("[wand_capture] OnPlayerSpawned player=" .. tostring(player) .. " run_id=" .. run_id)
 end
 
 function OnWorldPostUpdate()
-  if InputIsKeyJustDown(65) then capture_snapshot() end -- F8
-  if InputIsKeyJustDown(64) then dump_databases() end -- F7
+  if InputIsKeyJustDown(65) then capture_snapshot() end -- F8 force-capture (+ fixture)
+  if InputIsKeyJustDown(64) then dump_databases() end -- F7 dump spell/perk DBs
+
+  -- Auto emit-on-change for the live bridge: ~2x/sec, (over)write snapshot.json
+  -- ONLY when the state actually changed (timestamp excluded from the compare),
+  -- so the bridge + app update on their own with no keypress.
+  if player_entity and GameGetFrameNum() % 30 == 0 then
+    local snap = build_snapshot()
+    if snap then
+      local key = json.encode(snap) -- no timestamp yet -> stable across idle frames
+      if key ~= last_emit then
+        last_emit = key
+        write_snapshot(snap, false) -- snapshot.json only (no numbered spam)
+      end
+    end
+  end
 end
