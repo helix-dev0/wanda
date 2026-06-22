@@ -76,17 +76,31 @@ export function applyEdit(wand: Wand, edit: Edit): Wand {
   return { ...wand, spells: deck }
 }
 
-/** All depth-1 edits, each paired with the wand it produces. */
-function neighborhood(wand: Wand, pool: ReadonlySet<string>): { edit: Edit; wand: Wand }[] {
+/** All depth-1 edits, each paired with the wand it produces. When `caps` is given, a
+ *  swap that would push its target spell past how many the player owns is dropped
+ *  (you can't socket a card you don't have); removal and reorder never add a copy, so
+ *  they're always allowed. `caps` absent ⇒ unlimited (the pre-cap behavior). */
+function neighborhood(
+  wand: Wand,
+  pool: ReadonlySet<string>,
+  caps?: ReadonlyMap<string, number>,
+): { edit: Edit; wand: Wand }[] {
   const out: { edit: Edit; wand: Wand }[] = []
   const deck = wand.spells
   const push = (edit: Edit) => out.push({ edit, wand: applyEdit(wand, edit) })
 
+  // Occurrences already in the deck; a swap to `to` (slot holds some other id) adds
+  // one more, so it's allowed only while that running total stays within the cap.
+  const deckCounts = new Map<string, number>()
+  if (caps) for (const s of deck) if (s !== null) deckCounts.set(s, (deckCounts.get(s) ?? 0) + 1)
+  const canAdd = (to: string) => !caps || (deckCounts.get(to) ?? 0) < (caps.get(to) ?? 0)
+
   deck.forEach((cur, i) => {
     if (cur !== null) {
-      // swap this slot for each distinct pool spell
+      // swap this slot for each distinct pool spell the player can still spare
       for (const to of pool) {
         if (to === cur) continue
+        if (!canAdd(to)) continue // a copy of `to` beyond what's owned — unavailable
         push({ kind: 'swap', slot: i, from: cur, to })
       }
       // removal
@@ -114,17 +128,20 @@ function labelFor(edit: Edit): string {
 
 /**
  * Ranked depth-1 edits that improve `target` (or remove a lethal hazard), drawn
- * from the owned+seen `pool`. Edits that introduce a new danger are discarded.
+ * from the `pool`. Edits that introduce a new danger are discarded. When `caps` is
+ * supplied (per-spell owned copy counts), a swap that would use a spell more times
+ * than the player owns is never suggested; omit `caps` for unlimited (theorycraft).
  */
 export function suggestEdits(
   wand: Wand,
   target: Archetype,
   pool: ReadonlySet<string>,
   perks: readonly PerkRef[],
+  caps?: ReadonlyMap<string, number>,
 ): Suggestion[] {
   const base = evalCandidate(wand, target, perks)
 
-  const scored = neighborhood(wand, pool).flatMap(({ edit, wand: cand }) => {
+  const scored = neighborhood(wand, pool, caps).flatMap(({ edit, wand: cand }) => {
     const c = evalCandidate(cand, target, perks)
     // Veto: never suggest making a previously-safe wand unsafe.
     if (c.unsafe && !base.unsafe) return []

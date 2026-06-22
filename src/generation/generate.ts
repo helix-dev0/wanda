@@ -76,12 +76,13 @@ function polish(
   pool: ReadonlySet<string>,
   perks: readonly PerkRef[],
   budgetFrom: number,
+  caps: ReadonlyMap<string, number> | undefined,
 ): { wand: Wand; edits: AppliedEdit[] } {
   let current = seed
   const edits: AppliedEdit[] = []
   for (let round = 0; round < MAX_ROUNDS; round++) {
     if (simCacheSize() - budgetFrom >= MAX_CANDIDATES) break
-    const best = suggestEdits(current, archetype, pool, perks)[0]
+    const best = suggestEdits(current, archetype, pool, perks, caps)[0]
     if (!best) break
     if (best.deltaScore < IMPROVE_EPS && best.fixesHazard == null) break
     current = applyEdit(current, best.edit)
@@ -155,7 +156,7 @@ function generateForArchetype(
   const byKey = new Map<string, GeneratedBuild>()
   for (const { template, deck } of seeds) {
     if (simCacheSize() - budgetFrom >= MAX_CANDIDATES) break
-    const { wand, edits } = polish(seedWand(chassis, deck), archetype, trimmed, perks, budgetFrom)
+    const { wand, edits } = polish(seedWand(chassis, deck), archetype, trimmed, perks, budgetFrom, caps)
     const analysis = analyzeWand(wand, perks)
     const build: GeneratedBuild = { wand, archetype, template, analysis, edits, perkAdvice: advisePerk(analysis) }
     const prev = byKey.get(analysis.key)

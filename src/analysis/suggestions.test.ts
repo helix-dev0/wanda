@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type { Wand, PerkRef } from '../schema/snapshot'
 import { clearSimCache } from './simCache'
-import { suggestEdits } from './suggestions'
+import { applyEdit, suggestEdits } from './suggestions'
 
 const makeWand = (over: Partial<Wand> = {}): Wand => ({
   slot: 0,
@@ -97,5 +97,46 @@ describe('suggestEdits — guards', () => {
     expect(suggestEdits(makeWand({ spells: [null, null] }), 'DAMAGE', new Set(['BOMB']), [])).toEqual(
       [],
     )
+  })
+})
+
+describe('suggestEdits — respects owned-copy caps', () => {
+  beforeEach(() => clearSimCache())
+
+  it('never suggests a swap that would exceed an owned cap', () => {
+    // Own exactly ONE NUKE, already in slot 0. For a DAMAGE target the scorer would
+    // love a second NUKE in slot 1 — but the player has none, so it must not appear.
+    const wand = makeWand({ spells: ['NUKE', 'LIGHT_BULLET'] })
+    const pool = new Set(['NUKE', 'LIGHT_BULLET', 'GRENADE'])
+    const caps = new Map([
+      ['NUKE', 1],
+      ['LIGHT_BULLET', 5],
+      ['GRENADE', 1],
+    ])
+    const out = suggestEdits(wand, 'DAMAGE', pool, [], caps)
+    for (const s of out) {
+      const nukes = applyEdit(wand, s.edit).spells.filter((x) => x === 'NUKE').length
+      expect(nukes, `suggestion '${s.label}' produced NUKE x${nukes}`).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('never suggests swapping in a spell the player does not own (absent cap => 0)', () => {
+    // BUBBLESHOT is a strong spam pick (see the improvement test) and sits in the
+    // SEEN pool, but is owned 0 — so a swap to it is unavailable in owned-only mode.
+    const wand = makeWand({ spells: ['GRENADE'] })
+    const pool = new Set(['GRENADE', 'BUBBLESHOT', 'RUBBER_BALL'])
+    const caps = new Map([
+      ['GRENADE', 1],
+      ['RUBBER_BALL', 1],
+    ]) // BUBBLESHOT deliberately absent
+    const out = suggestEdits(wand, 'SPAM', pool, [], caps)
+    expect(out.some((s) => s.edit.kind === 'swap' && s.edit.to === 'BUBBLESHOT')).toBe(false)
+  })
+
+  it('omitting caps preserves the unlimited behavior (a raising swap still ranks first)', () => {
+    const wand = makeWand({ spells: ['GRENADE'] })
+    const pool = new Set(['GRENADE', 'BUBBLESHOT', 'RUBBER_BALL'])
+    const out = suggestEdits(wand, 'SPAM', pool, []) // no caps => unlimited
+    expect(out[0]?.edit.kind).toBe('swap')
   })
 })
