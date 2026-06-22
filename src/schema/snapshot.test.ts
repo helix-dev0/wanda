@@ -96,6 +96,17 @@ describe('SnapshotSchema', () => {
     expect(v.safeParse(SnapshotSchema, input).success).toBe(true)
   })
 
+  it('normalizes a negative uses_remaining to null (Noita emits -1 for unlimited)', () => {
+    const input = makeValidSnapshot()
+    input.spell_inventory.push({ action_id: 'CHAINSAW', uses_remaining: -1 })
+    const snap = parseSnapshot(input)
+    // -1 (Noita's "unlimited" sentinel, e.g. CHAINSAW) collapses to null so the UI
+    // renders it as unlimited, never "×-1".
+    expect(snap.spell_inventory.find((e) => e.action_id === 'CHAINSAW')?.uses_remaining).toBeNull()
+    // a real positive count is preserved as-is.
+    expect(snap.spell_inventory.find((e) => e.action_id === 'BOMB')?.uses_remaining).toBe(3)
+  })
+
   it('rejects a missing wand stat with a field-level error (manaMax)', () => {
     const input = makeValidSnapshot()
     // @ts-expect-error deliberately constructing an invalid value

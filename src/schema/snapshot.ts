@@ -65,10 +65,15 @@ export const WandSchema = v.object({
 export type Wand = v.InferOutput<typeof WandSchema>
 
 /** A loose spell card in the player's bag. `uses_remaining` null OR absent =
- *  unlimited (nullish, so the mod may emit null or omit it for infinite spells). */
+ *  unlimited (nullish, so the mod may emit null or omit it for infinite spells).
+ *  Noita also emits the sentinel `-1` for unlimited (e.g. CHAINSAW); the transform
+ *  folds any negative into null so the whole pipeline (and the bag UI) sees one
+ *  "unlimited" representation and never renders "×-1". The transform sits INSIDE
+ *  nullish, on the number branch only, so null/undefined/absent short-circuit
+ *  untouched (verified against valibot 1.4.1). */
 export const SpellInventoryEntrySchema = v.object({
   action_id: v.string(),
-  uses_remaining: v.nullish(v.number()),
+  uses_remaining: v.nullish(v.pipe(v.number(), v.transform((n) => (n < 0 ? null : n)))),
 })
 export type SpellInventoryEntry = v.InferOutput<typeof SpellInventoryEntrySchema>
 
