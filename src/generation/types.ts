@@ -42,6 +42,11 @@ export interface PerkAdvice {
 /** A generated candidate wand, scored. Plain data → safe to postMessage. */
 export interface GeneratedBuild {
   wand: Wand
+  /** Which owned wand this build is meant to be assembled on, so the UI can say
+   *  "rebuild your slot-2 wand". Attribution rides HERE, not on `wand.slot` (the
+   *  view-model overwrites that with its is-generated sentinel). `ideal` flags the
+   *  theorycraft IDEAL_CHASSIS rather than a real owned wand. */
+  chassis: { slot: number; capacity: number; shuffle: boolean; ideal: boolean }
   /** The archetype this build was generated to maximize. */
   archetype: Archetype
   template: TemplateId
@@ -65,13 +70,19 @@ export type GenerateResult = Record<Archetype, ArchetypeBuilds>
 /** generate() input. `pool` is an array (not a Set) so it survives postMessage. */
 export interface GenerateRequest {
   pool: string[]
-  chassis: Wand
+  /** Candidate wand chassis to build on. Owned mode sends EVERY carried wand so the
+   *  best (wand, deck) per archetype wins the tier list; theorycraft sends one
+   *  idealized chassis. A build inherits the stats of whichever chassis it lands on. */
+  chassis: Wand[]
   perks: PerkRef[]
   constraints: Constraints
   /** Per-spell OWNED copy caps as [id, count] pairs (array, not a Map, so it survives
    *  postMessage): a generated deck uses each id at most `count` times. Omitted ⇒
    *  unlimited (theorycraft mode), where builds aren't constrained by ownership. */
   counts?: [string, number][]
+  /** True in theorycraft mode (idealized chassis + full-DB pool, no owned caps). Sets
+   *  the `ideal` attribution flag on every build so the UI shows "ideal chassis". */
+  theorycraft?: boolean
   /** Defaults to all archetypes. */
   archetypes?: Archetype[]
 }

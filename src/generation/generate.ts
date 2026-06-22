@@ -76,12 +76,13 @@ function polish(
   pool: ReadonlySet<string>,
   perks: readonly PerkRef[],
   budgetFrom: number,
+  budgetCap: number,
   caps: ReadonlyMap<string, number> | undefined,
 ): { wand: Wand; edits: AppliedEdit[] } {
   let current = seed
   const edits: AppliedEdit[] = []
   for (let round = 0; round < MAX_ROUNDS; round++) {
-    if (simCacheSize() - budgetFrom >= MAX_CANDIDATES) break
+    if (simCacheSize() - budgetFrom >= budgetCap) break
     const best = suggestEdits(current, archetype, pool, perks, caps)[0]
     if (!best) break
     if (best.deltaScore < IMPROVE_EPS && best.fixesHazard == null) break
@@ -138,30 +139,60 @@ function noteFor(
 
 function generateForArchetype(
   ix: PoolIndex,
-  chassis: Wand,
+  chasses: readonly Wand[],
   archetype: Archetype,
   constraints: Constraints,
   perks: readonly PerkRef[],
   caps: ReadonlyMap<string, number> | undefined,
+  ideal: boolean,
 ): ArchetypeBuilds {
-  const ctx = { index: ix, capacity: chassis.stats.capacity, shuffle: chassis.stats.shuffle, archetype, caps }
-  const templates = TEMPLATES.filter(
-    (t) => t.archetypes.includes(archetype) && !(chassis.stats.shuffle && t.orderDependent),
-  )
-  const seeds = templates.flatMap((t) => t.instantiate(ctx).map((deck) => ({ template: t.id, deck })))
-  if (seeds.length === 0) return { builds: [], note: noteFor(ix, archetype, constraints, false) }
-
   const trimmed = trimPool(ix, archetype, POLISH_POOL_MAX)
-  const budgetFrom = simCacheSize() // per-archetype candidate budget (cache-size delta)
+  // Each candidate chassis gets a FAIR share of the per-archetype budget, measured
+  // from its OWN start offset — so chassis #1 can't starve #2..N. Different-capacity
+  // chassis are distinct sim-cache entries (wandKey includes stats), so the delta
+  // genuinely accrues across them. N=1 (theorycraft) ⇒ subCap = MAX_CANDIDATES,
+  // byte-identical to the single-chassis behavior.
+  const subCap = Math.ceil(MAX_CANDIDATES / Math.max(1, chasses.length))
   const byKey = new Map<string, GeneratedBuild>()
-  for (const { template, deck } of seeds) {
-    if (simCacheSize() - budgetFrom >= MAX_CANDIDATES) break
-    const { wand, edits } = polish(seedWand(chassis, deck), archetype, trimmed, perks, budgetFrom, caps)
-    const analysis = analyzeWand(wand, perks)
-    const build: GeneratedBuild = { wand, archetype, template, analysis, edits, perkAdvice: advisePerk(analysis) }
-    const prev = byKey.get(analysis.key)
-    if (!prev || rankKey(build) > rankKey(prev)) byKey.set(analysis.key, build)
+  let totalSeeds = 0
+
+  for (const chassis of chasses) {
+    const ctx = { index: ix, capacity: chassis.stats.capacity, shuffle: chassis.stats.shuffle, archetype, caps }
+    const templates = TEMPLATES.filter(
+      (t) => t.archetypes.includes(archetype) && !(chassis.stats.shuffle && t.orderDependent),
+    )
+    const seeds = templates.flatMap((t) => t.instantiate(ctx).map((deck) => ({ template: t.id, deck })))
+    totalSeeds += seeds.length
+    if (seeds.length === 0) continue
+
+    // Built ONCE per chassis (same for every build on it): which owned wand to rebuild.
+    const attribution = {
+      slot: chassis.slot,
+      capacity: chassis.stats.capacity,
+      shuffle: chassis.stats.shuffle,
+      ideal,
+    }
+    const budgetFrom = simCacheSize() // per-CHASSIS candidate budget (cache-size delta)
+    for (const { template, deck } of seeds) {
+      if (simCacheSize() - budgetFrom >= subCap) break
+      const { wand, edits } = polish(seedWand(chassis, deck), archetype, trimmed, perks, budgetFrom, subCap, caps)
+      const analysis = analyzeWand(wand, perks)
+      const build: GeneratedBuild = {
+        wand,
+        chassis: attribution,
+        archetype,
+        template,
+        analysis,
+        edits,
+        perkAdvice: advisePerk(analysis),
+      }
+      const prev = byKey.get(analysis.key)
+      if (!prev || rankKey(build) > rankKey(prev)) byKey.set(analysis.key, build)
+    }
   }
+
+  // "No build" ONLY when no chassis could even seed (the union across chassis is empty).
+  if (totalSeeds === 0) return { builds: [], note: noteFor(ix, archetype, constraints, false) }
 
   let builds = [...byKey.values()]
   const hadCandidates = builds.length > 0
@@ -187,9 +218,14 @@ export function generate(req: GenerateRequest): GenerateResult {
   // Owned-copy caps (M5 quantity fix): a Map for O(1) lookups in templates + polish.
   // Absent ⇒ unlimited (theorycraft); never constrains a build to fewer copies.
   const caps = req.counts ? new Map(req.counts) : undefined
+  const ideal = req.theorycraft === true
   const archetypes = req.archetypes ?? ARCHETYPES
   const result = {} as GenerateResult
   for (const a of ARCHETYPES) result[a] = { builds: [] }
-  for (const a of archetypes) result[a] = generateForArchetype(ix, req.chassis, a, req.constraints, req.perks, caps)
+  // An empty chassis list builds nothing; generateForArchetype handles it gracefully
+  // (no seeds → a pool-appropriate note), so no special-case guard is needed here.
+  for (const a of archetypes) {
+    result[a] = generateForArchetype(ix, req.chassis, a, req.constraints, req.perks, caps, ideal)
+  }
   return result
 }

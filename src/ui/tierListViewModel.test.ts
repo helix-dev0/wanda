@@ -89,7 +89,7 @@ describe('tierListView — dial + generated builds (M5)', () => {
 
   const held0 = makeWand({ slot: 0, spells: ['BUBBLESHOT'] })
   const genPool = ['NUKE', 'DAMAGE', 'LIGHT_BULLET', 'ADD_TRIGGER'] // offensive only
-  const genResult = () => generate({ pool: genPool, chassis: makeWand({ spells: [] }), perks: [], constraints: {} })
+  const genResult = () => generate({ pool: genPool, chassis: [makeWand({ spells: [] })], perks: [], constraints: {} })
   const entriesOf = (v: TierListView) => v.columns.flatMap((c) => c.bands.flatMap((b) => b.entries))
 
   it('merges generated builds into the bands at Suggest, marked source=generated', () => {
@@ -162,6 +162,22 @@ describe('tierListView — dial + generated builds (M5)', () => {
     expect(v.rung).toBe('suggest')
     expect(entriesOf(v).every((e) => e.source === 'held')).toBe(true)
     expect(v.columns[0].suggestions).toBeDefined()
+  })
+
+  it('labels a generated build with the owned wand to rebuild, icon-ready (null sprite today)', () => {
+    const v = tierListView([held0], [], pool, { generated: genResult(), rung: 'suggest' })
+    const gen = entriesOf(v).find((e) => e.source === 'generated')
+    expect(gen?.chassisLabel).toMatch(/^rebuild your slot-\d+ wand · cap \d+$/)
+    expect(gen?.wandSpriteSrc).toBeNull() // wand sprites are a mod follow-on; resolver returns null
+    // held wands are not attributed a "rebuild" chassis label (they're shown as-is)
+    expect(entriesOf(v).find((e) => e.source === 'held')?.chassisLabel).toBeUndefined()
+  })
+
+  it('labels a theorycraft build "ideal chassis"', () => {
+    const theory = generate({ pool: genPool, chassis: [makeWand({ spells: [] })], perks: [], constraints: {}, theorycraft: true })
+    const v = tierListView([held0], [], pool, { generated: theory, rung: 'suggest' })
+    const gen = entriesOf(v).find((e) => e.source === 'generated')
+    expect(gen?.chassisLabel).toBe('ideal chassis')
   })
 })
 

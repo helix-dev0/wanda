@@ -15,7 +15,7 @@ import type { Rung } from '../store/uiStore'
 import type { AppliedEdit, GenerateResult, PerkAdvice, TemplateId } from '../generation/types'
 import { buildProvenance, type ProvenanceLabel } from '../generation/provenance'
 import { templateWhy } from '../generation/copy'
-import { spellTile, activeWand, type SpellTileModel } from './viewModel'
+import { spellTile, activeWand, resolveWandSpriteSrc, type SpellTileModel } from './viewModel'
 import { analyzeWands, ARCHETYPES, type Archetype, type Tier } from '../analysis'
 import { suggestEdits, type Suggestion } from '../analysis/suggestions'
 import type { Hazard } from '../analysis/selfDanger'
@@ -80,6 +80,12 @@ export interface TierEntryView {
   /** Perks that would clear the entry's lethal hazards (when unsafe). */
   fixableByPerk: string[]
   source: 'held' | 'generated'
+  /** For a generated build: which owned wand to rebuild ("rebuild your slot-2 wand ·
+   *  cap 19", or "ideal chassis" in theorycraft). Undefined for held-wand entries. */
+  chassisLabel?: string
+  /** The source wand's real game icon, when available (icon-ready seam; null until
+   *  the mod emits per-wand sprites — see resolveWandSpriteSrc). */
+  wandSpriteSrc?: string | null
   template?: TemplateId
   /** Mechanic "why" for a generated build (Teach rung). */
   teach?: string
@@ -213,6 +219,10 @@ export function tierListView(
       unsafe: build.analysis.selfDanger.unsafe,
       fixableByPerk: build.analysis.selfDanger.fixableByPerk,
       source: 'generated',
+      chassisLabel: build.chassis.ideal
+        ? 'ideal chassis'
+        : `rebuild your slot-${build.chassis.slot} wand · cap ${build.chassis.capacity}`,
+      wandSpriteSrc: resolveWandSpriteSrc(build.wand),
       template: build.template,
       teach: templateWhy(build.template),
       edits: build.edits,

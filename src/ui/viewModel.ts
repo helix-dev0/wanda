@@ -41,6 +41,20 @@ export function resolveSpriteSrc(entry: SpellDbEntry | undefined): string | null
   return typeof b64 === 'string' && b64.length > 0 ? `data:image/png;base64,${b64}` : null
 }
 
+/**
+ * Resolve a renderable image source for a WAND's real game icon, or null to fall
+ * back to the text label. Mirrors {@link resolveSpriteSrc}: the bytes ride a base64
+ * `sprite_base64` field on the wand. Unlike spells, wand sprites are procedurally
+ * composed from parts (not a single packed PNG), so they are NOT extracted offline —
+ * the field is populated later by the extraction mod (human-in-the-loop), at which
+ * point this resolver lights up with no UI change. Until then it returns null and the
+ * chassis is identified by its text label ("rebuild your slot-2 wand · cap 19").
+ */
+export function resolveWandSpriteSrc(wand: Wand): string | null {
+  const b64 = (wand as Record<string, unknown>).sprite_base64
+  return typeof b64 === 'string' && b64.length > 0 ? `data:image/png;base64,${b64}` : null
+}
+
 export interface SpellTileModel {
   empty: boolean
   id: string | null

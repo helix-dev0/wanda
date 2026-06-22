@@ -75,6 +75,15 @@ function TierEntry({ entry, onDrill }: { entry: TierEntryView; onDrill: (key: st
         )}
       </div>
 
+      {entry.chassisLabel && (
+        <div className="tier-entry-chassis" title="which wand to rebuild this on">
+          {entry.wandSpriteSrc && (
+            <img className="chassis-icon" src={entry.wandSpriteSrc} alt="" width={16} height={16} />
+          )}
+          <span>{entry.chassisLabel}</span>
+        </div>
+      )}
+
       {r.metrics && (
         <div className="tier-entry-metrics">
           {entry.topMetrics.map((m) => (

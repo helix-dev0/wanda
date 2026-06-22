@@ -98,11 +98,17 @@ blast (radius>0, damage 0) no longer scores like a nuke.
 ### Tier 2+ — completeness + generation (specced)
 
 - **Status/DoT** as a %-max-HP damage channel (poison/toxic/fire), surfaced for a future boss/tank lens.
-- **Generation chassis-selection** — build on the player's *best owned* wand (and/or an ideal chassis
-  over the owned pool), not just the held one (spec §6.3 wants this; it's why "best wand from my spells"
-  feels absent). A **multiplicative-stack template** (Add-Trigger wrap + multicast modifier-broadcast +
-  payload) and a spam template that pairs cheap shots with the right modifier. Deeper-than-depth-1
-  search to *discover* trigger chains.
+- **✅ Generation chassis-selection (DONE 2026-06-22).** Generation now builds on **ALL** the player's
+  owned wands (≤4), not just the held one — the trustworthy scorer + the existing per-archetype
+  tier-list merge rank the best (wand, deck) per archetype, each build attributed to its source wand
+  ("rebuild your slot-2 wand · cap 19", icon-ready). `GenerateRequest.chassis` is a `Wand[]`;
+  `generateForArchetype` loops chassis into one candidate pool with a **fair per-chassis sub-budget**
+  (`ceil(MAX_CANDIDATES/N)`, so chassis #1 can't starve the rest); **N=1 (theorycraft) is byte-identical**
+  to the old path; owned caps stay per-build. (`generate.ts`, `useGeneration.ts` `ownedChassis`,
+  `tierListViewModel` `chassisLabel`.) **Still Tier 2:** a **multiplicative-stack template** (Add-Trigger
+  wrap + multicast modifier-broadcast + payload) and a cheap-shot×modifier spam template, plus
+  **deeper-than-depth-1 search** to *discover* trigger chains (polish still can't fill empty slots, so
+  build quality is bounded by template shape + depth-1).
 - **REF-constant calibration** — once damage is payload-aware the magnitudes shift; tune
   `REF`/`MANA_PENALTY` against REAL captured wands (`captures/`) so tiers match player intuition.
 

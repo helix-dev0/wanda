@@ -185,6 +185,40 @@ range/lifetime usability, status/DoT, effective-DPS mana model, generation **cha
 on your *best* wand — the "best wand from my spells" gap) + multiplicative-stack templates + deeper
 search, and REF-constant **calibration against real captures** (`npm run record`).
 
+## ✅ Generation chassis-selection — build on ALL owned wands (2026-06-22)
+
+The maintainer's "it won't build the best wand from my spells" gap: generation built decks ONLY on the
+HELD wand's chassis, ignoring the player's other (often roomier) wands. **Fixed** ([APP], spec
+[`scoring-grounding-spec.md`](./scoring-grounding-spec.md) Tier 2): generation now builds on **every
+owned wand** (≤4). `GenerateRequest.chassis` became a `Wand[]`; `generateForArchetype` loops the chassis
+into one candidate pool and the now-trustworthy scorer + the existing per-archetype tier-list merge
+surface the best (wand, deck) per archetype. Each build is attributed to its source wand —
+**"rebuild your slot-2 wand · cap 19"** — built **icon-ready** (a null `resolveWandSpriteSrc` seam
+mirroring the spell-sprite one; lights up when the mod emits per-wand sprites). A **fair per-chassis
+sub-budget** (`ceil(MAX_CANDIDATES/N)`) stops chassis #1 starving the rest; **N=1 (theorycraft) is
+byte-identical** to the old single-chassis path; owned caps stay per-build (each build is an independent
+"rearrange one wand" proposal). Files: `src/generation/{types,generate,worker}.ts`,
+`src/ui/{useGeneration,tierListViewModel,viewModel,ArchetypeBoard}`, `src/index.css`. **Verified:** 330
+tests (13 new: roomier-chassis-wins via a multicast pool, caps-across-chassis, global-top-N, N=1
+byte-identity guard, determinism, no-starvation); typecheck/build clean; **fresh-context review
+APPROVE**; app loads live with **zero console errors**. **Remaining (Tier 2):** multiplicative-stack
+templates + deeper-than-depth-1 search; **wand ICONS** for the per-wand label are a follow-on (wand
+sprites are procedurally composed, not single PNGs → needs the mod to emit `sprite_base64` per wand,
+human-in-the-loop — the app is already icon-ready).
+
+### 🔴 MOD bug found during live validation — stale `player_entity` (M1, human-in-the-loop)
+Driving the live app on a real 4-wand run (CHAIN_BOLT cap8 / X_RAY cap2 / BOMB cap1 / MINE cap3), the
+capture mod **stopped emitting wands** mid-run — `snapshot.json` froze with `wands: []` after reading
+the 4 fine, while the game kept running. Root cause: `mod/init.lua:184` caches the player
+(`if not player_entity then player_entity = EntityGetWithTag("player_unit")[1] end`) and **never
+refreshes it**, so after a **death/respawn** (the maintainer's quant.ew co-op has respawn) the cached
+entity is dead → `read_all_wands` finds no `inventory_quick` → emits `[]` forever (F8 won't help; same
+cached entity). **Fix (1-liner, [MOD] human-in-the-loop):** refresh when the cached entity is dead, e.g.
+`if not player_entity or not EntityGetIsAlive(player_entity) then player_entity = EntityGetWithTag("player_unit")[1] end`
+— implement → STOP → maintainer reloads + confirms in-game. This is **separate from the [APP]
+chassis-selection change** (which is fully fixture/unit-verified); it only blocked the live multi-wand
+*browser* confirmation.
+
 ## Tooling — recording real runs (2026-06-22)
 `npm run record` (`bridge/record.mjs`) persists every distinct live snapshot to `captures/` (gitignored),
 keyed by frame, surviving death/restart (the mod overwrites `snapshot.json` in place). Promote good

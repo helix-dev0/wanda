@@ -28,14 +28,27 @@ const IDEAL_CHASSIS: Wand = {
   },
 }
 
+/** All candidate chassis for owned-mode generation: EVERY carried wand, the held/
+ *  active one FIRST (it gets first share of the per-archetype search budget and is
+ *  the most likely "rebuild what I'm holding" answer), then the rest in slot order.
+ *  Empty → the idealized chassis so generation still has a base. This is the chassis-
+ *  selection fix: builds are no longer confined to the held wand, so a roomier owned
+ *  wand can win an archetype ("build the best wand from MY spells"). */
+function ownedChassis(wands: readonly Wand[]): Wand[] {
+  if (wands.length === 0) return [IDEAL_CHASSIS]
+  const held = activeWand(wands)
+  const rest = wands.filter((w) => w !== held).sort((a, b) => a.slot - b.slot)
+  return held ? [held, ...rest] : [...rest]
+}
+
 /**
  * Debounced generation driver (M5-T3). Watches the held wands / bag / perks / dial
  * inputs and, off the UI thread via the worker, refreshes `uiStore.gen`. Mounted
- * once at the app root. Theorycraft swaps the pool to the whole spell DB on an
- * idealized chassis with NO caps (unlimited); otherwise it improves the held wand
- * from the player's OWNED multiset — pool + per-spell caps both derive from
- * `ownedCounts` so a build never uses more copies than are held. Stale results are
- * dropped by reqId in the worker client + the store.
+ * once at the app root. Theorycraft swaps the pool to the whole spell DB on a single
+ * idealized chassis with NO caps (unlimited); otherwise it builds on ALL the player's
+ * OWNED wands (every carried chassis) from the OWNED multiset — pool + per-spell caps
+ * both derive from `ownedCounts` so a build never uses more copies than are held.
+ * Stale results are dropped by reqId in the worker client + the store.
  */
 export function useGeneration(): void {
   const wands = useRunStore((s) => s.wands)
@@ -45,8 +58,8 @@ export function useGeneration(): void {
   const constraints = useUiStore((s) => s.constraints)
 
   useEffect(() => {
-    const held = activeWand(wands)
-    const chassis = theorycraft ? IDEAL_CHASSIS : (held ?? IDEAL_CHASSIS)
+    // Owned mode builds on every carried wand; theorycraft builds on one ideal chassis.
+    const chassis = theorycraft ? [IDEAL_CHASSIS] : ownedChassis(wands)
     // Owned mode: the pool IS the owned multiset (distinct ids + their caps). The
     // cumulative seen-this-run ledger is intentionally NOT the pool here — you can
     // only build with what you currently hold (owned-only v1; shop/pedestal = Phase 2).
@@ -59,7 +72,7 @@ export function useGeneration(): void {
     // Debounce bursts of snapshot/constraint changes (~250ms file-watch cadence).
     const handle = setTimeout(() => {
       const reqId = requestGenerate(
-        { pool: poolIds, counts: counts ? [...counts] : undefined, chassis, perks: [...perks], constraints },
+        { pool: poolIds, counts: counts ? [...counts] : undefined, chassis, perks: [...perks], constraints, theorycraft },
         (result) => uiStore.getState().genReady(reqId, result),
         (message) => uiStore.getState().genError(reqId, message),
       )

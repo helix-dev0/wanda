@@ -25,10 +25,11 @@ ctx.onmessage = (e) => {
     clearSimCache() // fresh per request: bounds memory + the per-archetype budget
     const result = generate({
       pool: msg.pool,
-      chassis: msg.chassis,
+      chassis: msg.chassis, // now an array of candidate chassis (all owned wands)
       perks: msg.perks,
       constraints: msg.constraints,
       counts: msg.counts, // forward owned caps — the worker lists each field, no spread
+      theorycraft: msg.theorycraft,
       archetypes: msg.archetypes,
     })
     ctx.postMessage({ type: 'result', reqId: msg.reqId, result })

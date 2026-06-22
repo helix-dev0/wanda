@@ -675,6 +675,22 @@ h1 .rune {
   color: var(--gold);
 }
 
+/* "rebuild your slot-2 wand · cap 19" — which owned wand a generated build targets. */
+.tier-entry-chassis {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ink-dim);
+  margin-top: 1px;
+}
+
+.chassis-icon {
+  image-rendering: pixelated;
+  vertical-align: middle;
+}
+
 .danger-chip {
   font-size: 11px;
   letter-spacing: 0.3px;

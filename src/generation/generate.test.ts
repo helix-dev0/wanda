@@ -51,7 +51,7 @@ const chassis = (over: Partial<WandStats> = {}): Wand => ({
 const POOL = ['LIGHT_BULLET', 'ADD_TRIGGER', 'BOMB', 'DAMAGE', 'NUKE', 'CHAINSAW', 'LUMINOUS_DRILL']
 const req = (over: Partial<GenerateRequest> = {}): GenerateRequest => ({
   pool: POOL,
-  chassis: chassis(),
+  chassis: [chassis()],
   perks: [],
   constraints: {},
   ...over,
@@ -111,7 +111,7 @@ describe('generate — shuffle gating', () => {
   it('seeds order-dependent trigger→payload only on a non-shuffle chassis', () => {
     const nonShuffle = generate(req())
     clearSimCache()
-    const shuffle = generate(req({ chassis: chassis({ shuffle: true }) }))
+    const shuffle = generate(req({ chassis: [chassis({ shuffle: true })] }))
     expect(hasTemplate(nonShuffle, 'trigger-payload')).toBe(true)
     expect(hasTemplate(shuffle, 'trigger-payload')).toBe(false)
   })
@@ -169,7 +169,7 @@ describe('generate — respects owned-copy counts (M5 quantity fix, snapshot_05)
   const ownedReq = (counts: Map<string, number>, chassis: Wand, withCaps: boolean): GenerateRequest => ({
     pool: [...counts.keys()],
     counts: withCaps ? [...counts] : undefined,
-    chassis,
+    chassis: [chassis],
     perks: [],
     constraints: {},
   })
@@ -211,5 +211,102 @@ describe('generate — respects owned-copy counts (M5 quantity fix, snapshot_05)
     const builds = allBuilds(generate(ownedReq(counts, snap.wands[0], false)))
     const maxDigger = Math.max(0, ...builds.map((b) => deckTally(b.wand).get('DIGGER') ?? 0))
     expect(maxDigger).toBeGreaterThan(1)
+  })
+})
+
+describe('generate — multi-chassis owned (build on ALL your wands, not just the held one)', () => {
+  const held = chassis({ capacity: 4 }) // slot 0 (the held wand)
+  const bigger = { ...chassis({ capacity: 12 }), slot: 2 } // a roomier NON-held wand
+
+  it('builds on a non-held owned wand, attributing each build to its source chassis', () => {
+    const builds = allBuilds(generate(req({ chassis: [held, bigger] })))
+    expect(builds.length).toBeGreaterThan(0)
+    // the core fix: the bigger NON-held wand is used as a base (pre-change: impossible)
+    expect(builds.some((b) => b.chassis.slot === 2 && b.chassis.capacity === 12)).toBe(true)
+    // the held wand is still a candidate base too
+    expect(builds.some((b) => b.chassis.slot === 0 && b.chassis.capacity === 4)).toBe(true)
+    // owned builds are never flagged as the theorycraft ideal chassis
+    for (const b of builds) expect(b.chassis.ideal).toBe(false)
+  })
+
+  it('flags ideal=true only for a theorycraft request', () => {
+    const theory = allBuilds(generate(req({ chassis: [held], theorycraft: true })))
+    expect(theory.length).toBeGreaterThan(0)
+    for (const b of theory) expect(b.chassis.ideal).toBe(true)
+  })
+
+  it('a roomier chassis builds a STRONGER wand from the same spells (the complaint fix)', () => {
+    // Where capacity matters — a multicast scales with slots (more shots drawn per
+    // cast) — the held cap-4 wand can barely multicast, while the roomy cap-12 wand
+    // turns the SAME spells into a far stronger DAMAGE build. (A single-nuke pool
+    // saturates on any chassis, so it's the wrong lens; capacity wins on throughput.)
+    const r = generate(req({ chassis: [held, bigger], pool: ['LIGHT_BULLET', 'BURST_3', 'DAMAGE'] }))
+    const dmg = r.DAMAGE.builds
+    expect(dmg.length).toBeGreaterThan(0)
+    const scoresFor = (cap: number) =>
+      dmg.filter((b) => b.chassis.capacity === cap).map((b) => b.analysis.scores.DAMAGE.score)
+    expect(Math.max(0, ...scoresFor(12))).toBeGreaterThan(Math.max(0, ...scoresFor(4)))
+    expect(dmg[0].chassis.capacity).toBe(12) // the top DAMAGE build sits on the roomy wand
+  })
+
+  it('keeps the GLOBAL top-N per archetype (not N per chassis) across 4 chassis', () => {
+    const four = [
+      held,
+      bigger,
+      { ...chassis({ capacity: 6 }), slot: 1 },
+      { ...chassis({ capacity: 8 }), slot: 3 },
+    ]
+    for (const a of Object.values(generate(req({ chassis: four })))) {
+      expect(a.builds.length).toBeLessThanOrEqual(BUILDS_PER_ARCHETYPE)
+    }
+  })
+
+  it('is deterministic with multiple chassis', () => {
+    const a = generate(req({ chassis: [held, bigger] }))
+    clearSimCache()
+    const b = generate(req({ chassis: [held, bigger] }))
+    expect(b).toEqual(a)
+  })
+
+  it('single chassis (N=1) collapses to the full budget — byte-identity guard', () => {
+    // N=1 ⇒ subCap = ceil(MAX_CANDIDATES/1) = MAX_CANDIDATES, so the per-chassis budget
+    // window equals the old per-archetype budget and single-chassis behavior is unchanged.
+    // Pin it on the FULL DB (the most budget-stressing pool) so a future sub-budget
+    // refactor that breaks the N=1 path fails HERE.
+    const pool = [...spellDb.keys()]
+    const a = generate(req({ chassis: [chassis()], pool }))
+    clearSimCache()
+    const b = generate(req({ chassis: [chassis()], pool }))
+    expect(b).toEqual(a) // deterministic
+    for (const arch of ARCHETYPES) expect(a[arch].builds.length).toBeGreaterThan(0) // full budget still builds all
+  })
+
+  it('gives every chassis a fair budget share — the 2nd chassis is not starved under a large pool', () => {
+    const pool = [...spellDb.keys()]
+    const builds = allBuilds(generate(req({ chassis: [held, bigger], pool })))
+    expect(builds.some((b) => b.chassis.slot === 2)).toBe(true) // the 2nd chassis still got built on
+  })
+
+  it('respects owned-copy caps across ALL chassis (a roomier wand cannot over-use a spell)', () => {
+    const snap = loadSnap('snapshot_05.json')
+    const counts = ownedCounts(snap.wands, snap.spell_inventory)
+    // a much roomier 2nd chassis alongside the real held wand — caps must still hold
+    const roomy: Wand = { ...snap.wands[0], slot: 3, stats: { ...snap.wands[0].stats, capacity: 20 } }
+    const builds = allBuilds(
+      generate({
+        pool: [...counts.keys()],
+        counts: [...counts],
+        chassis: [snap.wands[0], roomy],
+        perks: [],
+        constraints: {},
+      }),
+    )
+    expect(builds.length).toBeGreaterThan(0)
+    for (const b of builds) {
+      for (const [id, n] of deckTally(b.wand)) {
+        const own = counts.get(id) ?? 0
+        expect(n, `${b.archetype}/${b.template} used ${id} x${n} but own ${own}`).toBeLessThanOrEqual(own)
+      }
+    }
   })
 })
