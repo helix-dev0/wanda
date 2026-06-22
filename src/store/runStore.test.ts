@@ -208,3 +208,67 @@ describe('createRunStore — vanilla store integration', () => {
     expect(store.getState().wands).toEqual([])
   })
 })
+
+describe('ledger provenance — per-spell origin + freshness (spec §6.5, Option A)', () => {
+  it('tags origin and applies owned > shop precedence', () => {
+    const snap = structuredClone(load('snapshot_01.json')) // RUBBER_BALL owned
+    snap.world_seen = {
+      shop_spells: ['RUBBER_BALL', 'CHAINSAW'], // RUBBER_BALL is owned AND on sale
+      pedestal_wands: [],
+      perk_offerings: [],
+    }
+    const prov = apply(snap).ledger.provenance
+    expect(prov.get('RUBBER_BALL')?.origin).toBe('owned') // precedence picks the actionable one
+    expect([...(prov.get('RUBBER_BALL')?.origins ?? [])].sort()).toEqual(['owned', 'shop'])
+    expect(prov.get('CHAINSAW')?.origin).toBe('shop')
+  })
+
+  it('tags pedestal-wand spells as pedestal origin', () => {
+    const snap = structuredClone(load('snapshot_01.json'))
+    snap.world_seen = {
+      shop_spells: [],
+      pedestal_wands: [
+        { slot: 99, stats: { ...snap.wands[0].stats }, always_cast: [], spells: ['LUMINOUS_DRILL'] },
+      ],
+      perk_offerings: [],
+    }
+    expect(apply(snap).ledger.provenance.get('LUMINOUS_DRILL')?.origin).toBe('pedestal')
+  })
+
+  it('marks only spells in the latest snapshot as fresh ("on screen now")', () => {
+    let s = apply(load('snapshot_01.json')) // RUBBER_BALL
+    s = apply(load('snapshot_02.json'), s) // GRENADE wand + NUKE bag, no RUBBER_BALL
+    expect(s.ledger.provenance.get('GRENADE')?.fresh).toBe(true)
+    expect(s.ledger.provenance.get('RUBBER_BALL')?.fresh).toBe(false) // seen earlier this run
+    expect(s.ledger.provenance.get('RUBBER_BALL')?.origin).toBe('owned') // origin retained
+  })
+
+  it('records firstSeen/lastSeen timestamps across the run', () => {
+    const a = load('snapshot_01.json') // ts 656
+    const b = structuredClone(a)
+    b.timestamp = 999 // same run, RUBBER_BALL still held
+    let s = apply(a)
+    s = apply(b, s)
+    const e = s.ledger.provenance.get('RUBBER_BALL')
+    expect(e?.firstSeen).toBe(656)
+    expect(e?.lastSeen).toBe(999)
+  })
+
+  it('resets provenance on run change, alongside the spell pool', () => {
+    const first = load('snapshot_01.json')
+    const second = structuredClone(load('snapshot_03.json'))
+    second.run_id = 'run-99'
+    let s = apply(first)
+    s = apply(second, s)
+    expect(s.ledger.provenance.has('RUBBER_BALL')).toBe(false)
+    expect(s.ledger.provenance.has('BUBBLESHOT')).toBe(true)
+  })
+
+  it('does not mutate the prior ledger (pure transition)', () => {
+    const s1 = apply(load('snapshot_01.json'))
+    expect(s1.ledger.provenance.get('RUBBER_BALL')?.fresh).toBe(true)
+    apply(load('snapshot_02.json'), s1) // RUBBER_BALL leaves the live view
+    // s1 got its own Map; folding a later snapshot onto it must not flip its entry
+    expect(s1.ledger.provenance.get('RUBBER_BALL')?.fresh).toBe(true)
+  })
+})

@@ -1,0 +1,54 @@
+{
+  "_synthetic": "M5 demo fixture — HAND-AUTHORED, not a real capture. The extraction mod's world-scan (shop/pedestal/Holy-Mountain) is deferred to M1-T6, so no recorded fixture has a populated world_seen. This continues run-10 with a synthetic world_seen so the provenance + Prescribe 'go grab X' path renders in the browser. See docs/progress.md.",
+  "run_id": "run-10",
+  "schema": 1,
+  "timestamp": 30000,
+  "player": { "perks": [] },
+  "spell_inventory": [
+    { "action_id": "ADD_TRIGGER", "uses_remaining": null },
+    { "action_id": "BOMB", "uses_remaining": 3 },
+    { "action_id": "DAMAGE", "uses_remaining": null }
+  ],
+  "wands": [
+    {
+      "slot": 0,
+      "always_cast": [],
+      "spells": ["LIGHT_BULLET", null, null, null, null, null],
+      "stats": {
+        "shuffle": false,
+        "spellsPerCast": 1,
+        "castDelay": 10,
+        "rechargeTime": 30,
+        "manaMax": 500,
+        "mana": 500,
+        "manaChargeSpeed": 200,
+        "capacity": 6,
+        "spread": 0,
+        "speedMultiplier": 1.0
+      }
+    }
+  ],
+  "world_seen": {
+    "shop_spells": ["NUKE", "CHAINSAW"],
+    "pedestal_wands": [
+      {
+        "slot": 99,
+        "always_cast": [],
+        "spells": ["LUMINOUS_DRILL"],
+        "stats": {
+          "shuffle": false,
+          "spellsPerCast": 1,
+          "castDelay": 12,
+          "rechargeTime": 35,
+          "manaMax": 400,
+          "mana": 400,
+          "manaChargeSpeed": 150,
+          "capacity": 4,
+          "spread": 0,
+          "speedMultiplier": 1.0
+        }
+      }
+    ],
+    "perk_offerings": ["PROTECTION_FIRE", "PROJECTILE_REPULSION"]
+  }
+}
