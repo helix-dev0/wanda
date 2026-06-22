@@ -20,7 +20,8 @@ function App() {
   useEffect(() => {
     const cap = new URLSearchParams(window.location.search).get('capture')
     const last = demoRun.length - 1
-    const upto = cap ? Math.min(Math.max(parseInt(cap, 10) - 1, 0), last) : last
+    const n = parseInt(cap ?? '', 10) // 1-based; absent/non-numeric → full run
+    const upto = Number.isNaN(n) ? last : Math.min(Math.max(n - 1, 0), last)
     runStore.getState().reset()
     for (let i = 0; i <= upto; i++) runStore.getState().applySnapshot(demoRun[i])
   }, [])

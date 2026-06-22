@@ -61,10 +61,10 @@ export interface SpellTileOpts {
   usesRemaining?: number | null
 }
 
-/** Build the view-model for one spell slot/card. `id === null` is an empty slot. */
+/** Build the view-model for one spell slot/card. A null or empty id is an empty slot. */
 export function spellTile(id: string | null, opts: SpellTileOpts = {}): SpellTileModel {
   const alwaysCast = opts.alwaysCast ?? false
-  if (id === null) {
+  if (!id) {
     return {
       empty: true,
       id: null,

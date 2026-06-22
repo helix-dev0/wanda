@@ -42,6 +42,10 @@ describe('formatFrames', () => {
   it('formats a whole second cleanly', () => {
     expect(formatFrames(60)).toBe('1.00s')
   })
+
+  it('collapses a value that ROUNDS to negative zero (no stray "-0.00s")', () => {
+    expect(formatFrames(-0.1)).toBe('0.00s')
+  })
 })
 
 describe('formatSpread', () => {
@@ -59,6 +63,10 @@ describe('formatSpread', () => {
 
   it('keeps one decimal of precision', () => {
     expect(formatSpread(-13.24)).toBe('-13.2°')
+  })
+
+  it('collapses a value that ROUNDS to negative zero (no stray "-0.0")', () => {
+    expect(formatSpread(-0.04)).toBe('0.0°')
   })
 })
 

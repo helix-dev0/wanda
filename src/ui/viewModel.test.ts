@@ -36,12 +36,14 @@ describe('spellTile', () => {
     expect(t.alwaysCast).toBe(false)
   })
 
-  it('models an empty deck slot', () => {
-    const t = spellTile(null)
-    expect(t.empty).toBe(true)
-    expect(t.name).toBe('')
-    expect(t.typeName).toBeNull()
-    expect(t.typeClass).toBe('empty')
+  it('models an empty deck slot (null or empty-string id)', () => {
+    for (const id of [null, '']) {
+      const t = spellTile(id)
+      expect(t.empty).toBe(true)
+      expect(t.name).toBe('')
+      expect(t.typeName).toBeNull()
+      expect(t.typeClass).toBe('empty')
+    }
   })
 
   it('flags an always-cast spell', () => {
@@ -90,11 +92,14 @@ describe('wandStatRows', () => {
     const rows = wandStatRows(snapshot01Wand)
     const byKey = Object.fromEntries(rows.map((r) => [r.key, r.value]))
     expect(byKey.shuffle).toBe('No')
+    expect(byKey.spellsPerCast).toBe('1')
     expect(byKey.castDelay).toBe('0.22s') // 13 frames @ 60fps
     expect(byKey.rechargeTime).toBe('0.47s') // 28 frames
     expect(byKey.mana).toBe('83/83')
+    expect(byKey.manaChargeSpeed).toBe('25/s')
     expect(byKey.capacity).toBe('2')
     expect(byKey.spread).toBe('0.0°')
+    expect(byKey.speedMultiplier).toBe('×1.00')
     // every row carries a human label
     expect(rows.every((r) => r.label.length > 0)).toBe(true)
   })
