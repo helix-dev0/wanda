@@ -13,7 +13,15 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
-    "noEmit": true,
+
+    /* Composite: emit .d.ts only (no JS — Vite bundles the source) so the app
+       consumes the engine across a declaration boundary instead of pulling
+       vendored source into its stricter program. allowImportingTsExtensions
+       stays valid under emitDeclarationOnly. */
+    "composite": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./node_modules/.tmp/engine-types",
 
     /* Linting */
     "noUnusedLocals": false,
