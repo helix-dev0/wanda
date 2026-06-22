@@ -1,0 +1,25 @@
+{
+  "//": "Vendored simulator engine (src/engine, forked from salinecitrine/noita-wand-simulator). Mirrors tsconfig.app.json EXCEPT noUnusedLocals/noUnusedParameters are relaxed: the byte-faithful port of Noita's gun.lua and the build-time-generated gun_actions table contain many intentionally write-only state mirrors and unused action-lambda params. All other strictness (verbatimModuleSyntax, erasableSyntaxOnly, null/implicit-any checks) is kept ON, so engine logic is still genuinely type-checked. See src/engine/README.md.",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.engine.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "esnext",
+    "types": [],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/engine"]
+}
