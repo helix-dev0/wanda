@@ -9,7 +9,7 @@
 | Milestone | Status | Notes |
 |---|---|---|
 | **M0 — Fixtures & schema** | ✅ **COMPLETE** (T1–T5) | App is now buildable against fixtures with zero further game access through M5. |
-| M1 — Extraction mod + bridge | ⬜ not started | Evolve the M0 capture seed into the real emit-on-change mod + live bridge. |
+| **M1 — Extraction mod + bridge** | 🔶 **in progress** | **Live-validated in-game (2026-06-22):** auto emit-on-change (T1), all carried wands + active flag (T2), chokidar→WS bridge (T5). Pending: real `run_id`=seed (T3), ASI compat (T4), world-scan (T6). |
 | **M2 — Ingestion + store + mirror UI** | ✅ **COMPLETE** (T1–T4) | First **visible** milestone — single-page wand-mirror dashboard, fixture-driven + browser-verified. |
 | **M3 — Simulator integration** | ✅ **COMPLETE** (T1–T4) | Vendored `salinecitrine` `calc/`; sim layer + projectile-damage table + metrics + cast-tree UI. Fixture-driven + browser-verified. |
 | **M4 — Analysis engine** | ✅ **COMPLETE** (T1–T4) | Archetype scoring + self-danger (perk-aware veto, separate **Unsafe** band) + depth-1 local search → **tier list per archetype** for held wands. Fixture-driven + browser-verified. |
@@ -103,6 +103,34 @@ Quality/UX work layered on the finished engine — all [APP], fixture-driven, br
 
 New dep: `@floating-ui/react` 0.27 (0 vulns, React 19 OK). Bundle: ~340 kB sprites (main + worker) + ~150 kB translations (main only) → main ≈ 343 kB gzip; fine for a local app, splittable later. 271 tests pass; one narrow, documented `react-hooks/refs` eslint-disable in the two tooltip files (Floating UI callback-ref false positive).
 
+## First live run — mod pipe VALIDATED + a generation bug (2026-06-22)
+
+First real end-to-end run (mod → bridge → app, no fixtures). **Validated in-game:**
+- **M1-T1 auto emit-on-change · M1-T5 bridge · M1-T2 all carried wands.** The mod wrote
+  `snapshot.json` ~2×/sec; the app showed all **4** carried wands with the held one flagged
+  `active` (slot 3), updating live as the player changed wands. The wand-switch "glitch" (panel
+  flashing empty) is gone now that all wands are always present.
+- **Perks read** (`REVENGE_BULLET` captured) — the M0 "perks empty" issue did NOT recur in this
+  (solo) run. `run_id` is the spawn frame number (`run-65220`) — unique within a session, still not
+  the world seed (collides across launches → M1-T3).
+
+**🔴 CONFIRMED generation bug — TOP PRIORITY: no per-spell QUANTITY.**
+- The run-state pool is a `Set<string>` (`src/store/runStore.ts` → `RunLedger.spells`), so it loses
+  HOW MANY of each spell you own. Generation then treats every pooled spell as **unlimited**: the
+  `multicast-stack` / `spammer` templates (`src/generation/templates.ts`) fill the deck with the
+  cheapest projectile repeated, and `suggestEdits` swaps freely. **Seen in-game:** a "Multicast
+  build" with ~15 `DIGGER` when the player owns **one** (it's mana-0 → "cheapest" → spammed). Builds
+  aren't actually buildable.
+- The snapshot DOES preserve counts (duplicate bag entries + per-deck copies) — live data had
+  `CHAINSAW ×~9`, `BURST_2 ×2`, 1 each of SPITTER/MINE/BOMB/DIGGER. The `Set` pool discards them.
+- **Fix:** track per-spell OWNED count (copies across all wand decks + bag, from the *current*
+  snapshot) and make generation + suggestions respect available copies (owned, later + seen-in-world
+  with provenance). Quantity is a CURRENT-state thing (decks+bag now), distinct from the cumulative
+  "Seen This Run" ledger. See "What's next".
+
+**Also found:** `uses_remaining: -1` (Noita's "unlimited" sentinel) isn't normalized → unlimited
+spells render "×-1". Normalize `< 0` → null at ingestion (and/or emit `null` from the mod).
+
 ## Current fixtures
 - `snapshot_01.json` — starting wand `RUBBER_BALL ×2`, cap 2; **empty bag, no perks** (fresh game). `snapshot_02/03.json` — captured 2026-06-21 (modded co-op).
 - `snapshot_04.json` — **HAND-AUTHORED synthetic** (M5): continues run-10 with a populated `world_seen` (shop/pedestal/perk offerings) so the provenance + Prescribe "go grab X" path renders in the browser. Not a real capture (mod world-scan is M1-T6).
@@ -131,23 +159,27 @@ New dep: `@floating-ui/react` 0.27 (0 vulns, React 19 OK). Bundle: ~340 kB sprit
 - **Pool = owned + seen-in-world** (read-only; current shop/pedestal/Holy-Mountain only; never the unexplored map). Stricter owned-only available as a setting.
 - **Performance is a hard requirement** — fast/responsive sim so the tier list re-ranks at interactive speed (bounded search, heavy work off the UI thread, cached sims). Shapes the M3 engine choice + M4/M5 search.
 
-## What's next — M1 (make it LIVE), then M6
+## What's next — fix the quantity bug, then finish M1, then M6
 
-Everything doable against fixtures is done: the app is feature-complete (mirror → simulate →
-analyze → generate → dial) and polished (real sprites, hover tooltips, 1440p layout). The remaining
-value is **live data** — connecting to the running game.
+The live pipe works (mod → bridge → app, validated in-game): auto emit-on-change (M1-T1), the bridge
+(M1-T5), and all carried wands (M1-T2) are in. The headline gap is now **build correctness**, not
+plumbing.
 
-- **M1 — extraction mod + live bridge** is the next milestone, and the ONLY work needing the running
-  game. It unblocks the standing caveats: **real perks** (retro-validates self-danger + perk-pick
-  advice end-to-end), the **world-scan slice M1-T6** (real shop/pedestal/Holy-Mountain → live
-  provenance + "go grab X"), real `run_id`, all-wand enumeration, and Advanced Spell Inventory
-  compat. (Sprites are already handled offline.)
-  - **M1-T5 (live bridge sidecar) is [APP]-testable** — a small chokidar→WebSocket sidecar behind
-    `VITE_LIVE=1`; buildable + unit-tested solo and provable with a fake snapshot file before the mod
-    is ready. Good first slice, no game needed.
-  - **M1-T1..T4 + T6 are [MOD]** = human-in-the-loop: implement thin Lua → STOP → hand a copy-paste
-    in-game test script → user verifies/pastes. Carries the 12-point in-game checklist. Keep the mod
-    thin (every line added can't be auto-tested).
+**1. 🔴 Per-spell quantity — TOP PRIORITY ([APP], fixture-testable).** Generated builds use more
+copies of a spell than you own (see "First live run" — a build with ~15 DIGGER vs 1 owned). Track
+OWNED counts (`Map<id, count>` from the *current* snapshot's decks + bag) and thread them into
+`suggestEdits` (cap swaps at available copies) + the templates (don't repeat a spell beyond its
+count) so decks are actually buildable. Add a synthetic multi-copy fixture (e.g. CHAINSAW×8,
+DIGGER×1) + unit-test that no generated deck exceeds owned counts. Also normalize
+`uses_remaining < 0 → null` (Noita's "unlimited" sentinel) at ingestion.
+
+**2. Finish M1** (the rest, mostly [MOD] human-in-the-loop — implement thin Lua → STOP → hand a
+copy-paste in-game test → user verifies): real `run_id` = world seed (M1-T3), Advanced Spell
+Inventory compat (M1-T4), and the additive **world-scan** — shop/pedestal/Holy-Mountain (M1-T6) →
+makes provenance + "go grab X" live. ✅ M1-T1/T2/T5 done.
+
+**3. M6 — Tauri v2 overlay** once the above settles. Calibration (M4 REF constants, generation
+bounds) is now unblocked too — real wands can be captured live.
 - **M6 — Tauri v2 overlay** — defer until live data flows (the overlay shows the live assistant
   in-game; pointless before M1).
 - **Calibration** (M4 REF constants, generation bounds) needs real wands → after M1 captures land.
