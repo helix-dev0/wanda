@@ -145,7 +145,11 @@ function shotDamage(shot: WandShot, onMissing: () => void, depth = 0): number {
   for (const p of shot.projectiles) {
     const st = getProjectileStats(p.entity)
     if (st) {
-      hp += Math.max(0, st.damage + projAdd) * DAMAGE_UNIT_HP * critMul
+      // Total direct HP = untyped `damage` + every damage_by_type entry (slice, electricity,
+      // melee, fire-on-hit, ice, …) except non-damage types (healing heals the enemy). Without
+      // the typed sum, CHAINSAW (slice 0.51) and every typed-only carrier read 0 HP. (B1;
+      // grounded noita.wiki.gg/wiki/Damage_types — typed damage is real enemy HP, additive.)
+      hp += Math.max(0, st.damage + typedDmg(st) + projAdd) * DAMAGE_UNIT_HP * critMul
       if (st.explosionDamage > 0 || explAdd > 0) {
         hp += Math.max(0, st.explosionDamage + explAdd) * DAMAGE_UNIT_HP
       }

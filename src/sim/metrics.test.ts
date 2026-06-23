@@ -26,6 +26,16 @@ const metricsFor = (suffix: string): WandMetrics => {
   return computeMetrics(sim.shots, sim.reloadTime, wand.stats, sim.hitIterationLimit)
 }
 
+/** Build + simulate a wand from a bare spell list on a neutral roomy chassis. */
+const metricsForDeck = (spells: string[], stats: Partial<WandStats> = {}): WandMetrics => {
+  const wand: Wand = {
+    slot: 0, active: true, always_cast: [], spells,
+    stats: { manaChargeSpeed: 50, mana: 1000, manaMax: 1000, castDelay: 10, capacity: Math.max(1, spells.length), spellsPerCast: 1, spread: 0, rechargeTime: 20, speedMultiplier: 1, shuffle: false, ...stats },
+  }
+  const sim = simulateWand(wand)
+  return computeMetrics(sim.shots, sim.reloadTime, wand.stats, sim.hitIterationLimit)
+}
+
 // Characterization goldens — the actual simulated values for the captured wands.
 // (Damage is in HP: rubber_ball 0.12×25 = 3; grenade 1.3×25 + 1.9×25 = 80;
 // bubbleshot 0.2×25 = 5.) A change here is a real behavior change, not noise.
@@ -56,9 +66,9 @@ describe('computeMetrics — fixture goldens', () => {
     expect(m.shotsUntilReload).toBe(1)
     expect(m.cycleFrames).toBe(41) // max(41 castDelay, 28 recharge) — single shot, recharge fully overlaps
     expect(m.projectilesPerCycle).toBe(1)
-    expect(m.damagePerCast).toBe(80) // 1.3×25 direct + 1.9×25 explosion
-    expect(m.sustainedDps).toBeCloseTo(117.0732) // now == burstDps (recharge ≤ castDelay, fully overlapped)
-    expect(m.burstDps).toBeCloseTo(117.0732)
+    expect(m.damagePerCast).toBe(92.5) // 1.3×25 direct + 0.5×25 fire-on-hit (B1) + 1.9×25 explosion
+    expect(m.sustainedDps).toBeCloseTo(135.3659) // == burstDps (recharge ≤ castDelay, fully overlapped); +fire vs the pre-B1 117
+    expect(m.burstDps).toBeCloseTo(135.3659)
     expect(m.manaPerCycle).toBe(50)
     expect(m.manaSustainable).toBe(false)
     expect(m.secondsUntilStall).toBeCloseTo(2.1876)
@@ -92,6 +102,15 @@ describe('computeMetrics — fixture goldens', () => {
   })
 })
 
+describe('shotDamage — typed damage_by_type counts as HP (B1)', () => {
+  it('CHAINSAW (slice 0.51) reads ~12.75 HP/cast — was 0 (typed damage ignored)', () => {
+    expect(metricsForDeck(['CHAINSAW']).damagePerCast).toBeCloseTo(12.75, 1)
+  })
+  it('a typed-only carrier contributes to sustained DPS (was scored as 0-damage)', () => {
+    expect(metricsForDeck(['CHAINSAW']).sustainedDps).toBeGreaterThan(0)
+  })
+})
+
 describe('computeMetrics — range + mana-honest fields (B3/B4)', () => {
   it('reachWeightedPx: damage-weighted projectile reach (px) per fixture', () => {
     expect(metricsFor('snapshot_01.json').reachWeightedPx).toBeCloseTo(9375) // rubber_ball, very long
@@ -107,7 +126,7 @@ describe('computeMetrics — range + mana-honest fields (B3/B4)', () => {
   it('effectiveSustainedDps throttles an out-draining wand (grenade 117→43, ×regen/drain)', () => {
     const m = metricsFor('snapshot_02.json')
     expect(m.manaSustainable).toBe(false)
-    expect(m.effectiveSustainedDps).toBeCloseTo(43.2, 1)
+    expect(m.effectiveSustainedDps).toBeCloseTo(49.95, 1) // 135.37 raw × manaRatio 0.369
     expect(m.effectiveSustainedDps).toBeLessThan(m.sustainedDps)
   })
 })
@@ -177,16 +196,16 @@ describe('computeMetrics — edge cases', () => {
       projectiles: [{ entity: RUBBER, trigger: shotWith({ projectiles: [{ entity: GRENADE }] }) }],
     })
     const m = computeMetrics([shot], 20, stats, false)
-    expect(m.damagePerCast).toBeCloseTo(83) // 3 carrier + 80 payload (was 3 before the fix)
+    expect(m.damagePerCast).toBeCloseTo(95.5) // 3 carrier + 92.5 grenade payload (B1: +fire on the payload)
   })
 
   it('recurses nested trigger chains and is bounded (no blow-up)', () => {
-    // carrier -> trigger -> trigger (grenade): 3 + 3 + 80
+    // carrier -> trigger -> trigger (grenade): 3 + 3 + 92.5 (B1: grenade payload now counts fire)
     const inner = shotWith({ projectiles: [{ entity: GRENADE }] })
     const mid = shotWith({ projectiles: [{ entity: RUBBER, trigger: inner }] })
     const shot = shotWith({ projectiles: [{ entity: RUBBER, trigger: mid }] })
     const m = computeMetrics([shot], 20, stats, false)
-    expect(m.damagePerCast).toBeCloseTo(86)
+    expect(m.damagePerCast).toBeCloseTo(98.5)
   })
 
   it('maxExplosionDamage: 0 for a digging blast, >0 for a damaging blast', () => {
