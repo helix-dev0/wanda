@@ -41,6 +41,15 @@ fork). See the memory `noita-meta-sources`.
 
 ## 2. Where our engine diverges (the holes)
 
+> **Found + fixed 2026-06-23 (driving a real fast wand):** ① **fast wands scored 0 DPS** —
+> `metrics.ts` divided by a `cycleFrames=0` (cast delay ≤0 + zeroed recharge), so the BEST wands
+> read 0 and suggestions went unstable. Fixed by flooring per-shot frames at 1 (Noita's 60-casts/s
+> cap; wiki: "a negative cast delay is treated as 1 frame"). Goldens unchanged, engine untouched.
+> ② **self-danger missed wide-blast lobbed explosives** (Dynamite) — fixed via a `LARGE_BLAST_RADIUS`
+> rule. **Still open:** ③ **reload should OVERLAP cast-delay, not ADD** (Noita runs them
+> simultaneously; our additive cycle understates DPS on high-recharge wands — needs re-baselining
+> the 3 metrics goldens) and ④ **velocity/`speed_multiplier` damage** (×up-to-200, deferred).
+
 - **`sim/metrics.ts` `shotDamage`** sums only top-level `shot.projectiles` → **payload damage
   invisible** (Principle 1). Our forked engine already holds the payload at `Projectile.trigger?:
   WandShot` (recursive, built in `engine/eval/clickWand.ts:158-173`) — we just never walk it.

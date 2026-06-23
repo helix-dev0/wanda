@@ -219,6 +219,46 @@ cached entity). **Fix (1-liner, [MOD] human-in-the-loop):** refresh when the cac
 chassis-selection change** (which is fully fixture/unit-verified); it only blocked the live multi-wand
 *browser* confirmation.
 
+## ✅ Engine fidelity — fast-wand DPS, lobbed-explosive danger, mana/shuffle (2026-06-23)
+
+Driving the live app on a real *"super fast, lots of damage, no mana drain"* wand
+(`MANA_REDUCE×2, CRITICAL_HIT, BURST_2, LASER, LUMINOUS_DRILL`) exposed a headline scoring bug
+and confirmed two fidelity points. All [APP], unit + real-capture + live-browser validated; two
+fresh-context agents grounded the fixes against the reused engine + the noita.wiki.gg.
+
+- **🔴→✅ Fast wands scored 0 DPS (`sim/metrics.ts`, commit `b38b9c0`).** A maxed-fast wand (cast
+  delay driven ≤0 by Luminous Drill, recharge zeroed) gave `cycleFrames=0` → `cycleSeconds=0` →
+  `projectilesPerSecond`/`sustainedDps`/`burstDps` all hit the `cycleSeconds>0 ? x : 0` guard and
+  returned **0** — the *better* the wand, the more its DPS collapsed to zero. Also corrupted
+  `manaSustainable` (regen = chargeSpeed×0). **Root cause of the unstable/garbage suggestions +
+  "the build vanishes when I rearrange to match it"** (scores flipped across the zero boundary as
+  spells nudged `fire_rate_wait`). **Fix:** floor per-shot frames at 1 (`perShotFrames =
+  max(1,…)`) — Noita fires ≤1×/frame (60 casts/s) and *"treats a negative Cast Delay as 1 frame"*
+  (noita.wiki.gg/Wands). All 3 metrics goldens UNCHANGED (≥6 frames/shot). The real wand now reads
+  **sustainedDps 2226 HP/s, DAMAGE/SPAM S-tier** (live, 0 console errors). **Engine untouched
+  (`src/engine/` 0 files)** — the fix is in our DPS interpretation layer, where the reused
+  salinecitrine sim deliberately leaves DPS uncomputed.
+- **✅ Wide-blast lobbed explosives flagged self-danger (`analysis/selfDanger.ts`, commit
+  `00c79f1`).** The straight-line `reachOf` heuristic missed Dynamite (62.5 HP, 28px radius, flies
+  far nominally), so generation suggested spamming it unflagged. A damaging blast with radius ≥
+  `LARGE_BLAST_RADIUS` (24px, provisional) now flags as danger → generation's self-danger veto
+  stops suggesting it. Surgical: spares Grenade (7px, a deliberate ranged warn) + bouncing-but-tiny
+  Laser (3px).
+- **✅ "Add Mana" + No More Shuffle verified handled (no fix needed).** Engine applies
+  `MANA_REDUCE`'s −30 cost: the deck reads `manaPerCycle −15` (net mana GAIN) with it vs `+45`
+  without. `NO_MORE_SHUFFLE` → the mod already reports each wand's *effective* `shuffle=false`, so
+  generation already allows ordered/trigger builds. Trust the snapshot's shuffle flag; no override.
+- **✅ "You have this" highlight (`ui`, commit `b587611`).** A generated build whose deck equals the
+  held wand (same `wandKey`) gets a gold border + chip — so matching a shown build reads as "already
+  built" instead of vanishing.
+
+**Remaining engine gaps (agent-found, NOT yet fixed):** (1) **reload should OVERLAP recharge, not
+ADD** — cast delay + recharge run simultaneously in Noita; our additive `fireFrames + reloadTime`
+understates DPS on high-recharge/low-castdelay wands (needs re-baselining the 3 goldens → its own
+slice). (2) **velocity/`speed_multiplier` damage unmodeled** (×up-to-200 — the biggest remaining
+damage-magnitude gap; deferred in the spec, needs impact-speed modeling). (3) **REF tier constants
+want recalibration** now that fast wands saturate to S.
+
 ## Tooling — recording real runs (2026-06-22)
 `npm run record` (`bridge/record.mjs`) persists every distinct live snapshot to `captures/` (gitignored),
 keyed by frame, surviving death/restart (the mod overwrites `snapshot.json` in place). Promote good
