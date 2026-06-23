@@ -7,6 +7,10 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
   globalIgnores(['dist']),
+  // `.claude/` holds session scratch + isolated review WORKTREES (full repo copies).
+  // Without this, `npm run lint` descends into a live worktree and reports hundreds of
+  // phantom errors against the duplicated source. Never our code to lint.
+  globalIgnores(['.claude']),
   // Tauri build artifacts (Rust target dir) — generated bundled JS/assets, not
   // app source. Present only after `npm run tauri build`; ignored so a local
   // native build doesn't make `npm run lint` fail on minified codegen output.

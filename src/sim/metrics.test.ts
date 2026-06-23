@@ -125,10 +125,10 @@ describe('shotDamage / AoE — crit scales explosion + blast (B2)', () => {
 })
 
 describe('computeMetrics — range + mana-honest fields (B3/B4)', () => {
-  it('reachWeightedPx: damage-weighted projectile reach (px) per fixture', () => {
-    expect(metricsFor('snapshot_01.json').reachWeightedPx).toBeCloseTo(9375) // rubber_ball, very long
-    expect(metricsFor('snapshot_02.json').reachWeightedPx).toBeCloseTo(2333.33) // grenade
-    expect(metricsFor('snapshot_03.json').reachWeightedPx).toBeCloseTo(500) // bubbleshot
+  it('reachUsability: every ranged fixture is fully usable (1.0) — reach ≥ 250px', () => {
+    expect(metricsFor('snapshot_01.json').reachUsability).toBeCloseTo(1) // rubber_ball ~9375px
+    expect(metricsFor('snapshot_02.json').reachUsability).toBeCloseTo(1) // grenade ~2333px
+    expect(metricsFor('snapshot_03.json').reachUsability).toBeCloseTo(1) // bubbleshot ~500px
   })
   it('effectiveSustainedDps == sustainedDps when mana-sustainable (identity, goldens-safe)', () => {
     const a = metricsFor('snapshot_01.json')

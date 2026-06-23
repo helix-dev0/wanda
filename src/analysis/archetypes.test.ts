@@ -45,7 +45,7 @@ const synthMetrics = (over: Partial<WandMetrics> = {}): WandMetrics => {
     projectilesPerCast: 1, projectilesPerCycle: 1, projectilesPerSecond: 6,
     damagePerCast: 0, damagePerCycle: 0, sustainedDps: 0, effectiveSustainedDps: 0, burstDps: 0,
     manaPerCycle: 0, manaSustainable: true, secondsUntilStall: null,
-    effectiveSpread: 0, reachWeightedPx: 100000, maxExplosionRadius: 0, maxExplosionDamage: 0,
+    effectiveSpread: 0, reachUsability: 1, maxExplosionRadius: 0, maxExplosionDamage: 0,
     appliesDot: { fire: false, poison: false, toxic: false },
     truncated: false, damageApproximate: false,
   }
@@ -70,26 +70,23 @@ describe('tierForScore — absolute band boundaries', () => {
   })
 })
 
-describe('scoreWand — DAMAGE/SPAM are range-aware (close-range ≠ ranged DPS)', () => {
-  // A short-lived close-range beam (luminous drill ~47px, chainsaw ~7px) used as a
-  // "damage" wand must NOT score like a ranged shot of equal DPS — it can't deliver that
-  // DPS at engagement range. Reach at/above REACH_REF (a normal ranged projectile, e.g.
-  // light_bullet ~570px) keeps full credit, so every ranged fixture is unchanged.
-  // Grounded: docs/scoring-rebuild-spec.md §2 + the live reach probe.
-  it('penalizes a close-range deck vs a ranged deck at equal DPS', () => {
-    const ranged = scoreSynth({ sustainedDps: 300, burstDps: 300, projectilesPerSecond: 8, reachWeightedPx: 9375 })
-    const close = scoreSynth({ sustainedDps: 300, burstDps: 300, projectilesPerSecond: 8, reachWeightedPx: 47 })
+describe('scoreWand — DAMAGE/SPAM scale by range usability (close-range ≠ ranged DPS)', () => {
+  // reachUsability ∈ [0,1] is the damage-weighted fraction of damage that reaches a ranged
+  // target (computed in metrics per-projectile). A fully-ranged wand = 1 (no penalty); a
+  // close-range tool used as a "damage" wand is low. Grounded: docs/scoring-rebuild-spec.md §2.
+  it('penalizes a close-range deck vs a fully-ranged deck at equal DPS', () => {
+    const ranged = scoreSynth({ sustainedDps: 300, burstDps: 300, projectilesPerSecond: 8, reachUsability: 1 })
+    const close = scoreSynth({ sustainedDps: 300, burstDps: 300, projectilesPerSecond: 8, reachUsability: 0.19 }) // luminous drill ~47px
     expect(close.DAMAGE.score).toBeLessThan(ranged.DAMAGE.score - 15)
     expect(close.SPAM.score).toBeLessThan(ranged.SPAM.score - 10)
   })
-  it('reach at/above the reference gets full credit (ranged wands unaffected)', () => {
-    const ranged = scoreSynth({ sustainedDps: 200, burstDps: 200, reachWeightedPx: 600 })
-    const unbounded = scoreSynth({ sustainedDps: 200, burstDps: 200, reachWeightedPx: 100000 })
-    expect(ranged.DAMAGE.score).toBe(unbounded.DAMAGE.score)
-    expect(ranged.SPAM.score).toBe(unbounded.SPAM.score)
+  it('scales the score monotonically with usability (full > partial > floor)', () => {
+    const score = (u: number) => scoreSynth({ sustainedDps: 300, burstDps: 300, reachUsability: u }).DAMAGE.score
+    expect(score(1)).toBeGreaterThan(score(0.5))
+    expect(score(0.5)).toBeGreaterThan(score(0.1))
   })
-  it('a 0-damage deck (reachWeightedPx 0) stays 0 DAMAGE (no spurious change)', () => {
-    expect(scoreSynth({ sustainedDps: 0, burstDps: 0, reachWeightedPx: 0 }).DAMAGE.score).toBe(0)
+  it('a 0-damage deck stays 0 DAMAGE regardless of usability (no spurious change)', () => {
+    expect(scoreSynth({ sustainedDps: 0, burstDps: 0, reachUsability: 1 }).DAMAGE.score).toBe(0)
   })
 })
 

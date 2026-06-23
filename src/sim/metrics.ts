@@ -49,11 +49,13 @@ export interface WandMetrics {
 
   /** Wand base spread + the cast's accumulated spread (degrees; may be negative). */
   effectiveSpread: number
-  /** Damage-weighted mean projectile reach (px) across the cycle — how far the wand's
-   *  damage actually travels. Lets the scorer tell a ranged wand (light_bullet ~570px)
-   *  from a close-range tool used as a "damage" wand (luminous drill ~47px, chainsaw
-   *  ~7px). Endless projectiles count as full reach; 0 when the deck deals no damage. */
-  reachWeightedPx: number
+  /** Damage-weighted range usability in [0,1] — what FRACTION of the wand's single-target
+   *  damage actually reaches an engaged enemy. 1 = fully ranged (every ranged fixture);
+   *  low = a close-range tool used as a "damage" wand (luminous drill ~47px, chainsaw ~7px).
+   *  Clamped per-projectile then damage-weighted, so one ultra-range shot can't mask a melee
+   *  deck. The scorer multiplies DAMAGE/SPAM effective DPS by this. 1 when the deck deals no
+   *  damage (range is moot). */
+  reachUsability: number
   /** Largest explosion radius produced in the cycle (px); 0 if none. */
   maxExplosionRadius: number
   /** Largest explosion DAMAGE produced in the cycle (HP); 0 if none. Separates a
@@ -124,12 +126,25 @@ function typedDmg(st: ProjectileStats): number {
 const REACH_ENDLESS = 1e6
 
 /** How far a projectile travels before it dies (px), the usable single-target range.
- *  `lifetime < 0` = endless (full credit); `speedMax <= 0` = stationary (0). Mirrors
- *  selfDanger.reachOf, the one reach heuristic in the codebase. */
+ *  `lifetime < 0` = endless (full credit); `speedMax <= 0` = stationary (0). */
 function reachOfStats(st: ProjectileStats): number {
   if (st.lifetime < 0) return REACH_ENDLESS
   if (st.speedMax <= 0) return 0
   return (st.speedMax * st.lifetime) / 60
+}
+
+/** Reach (px) at/above which a projectile's damage gets FULL single-target credit; below it,
+ *  damage is discounted toward REACH_FLOOR (it can't reliably reach an engaged enemy). Every
+ *  ranged fixture projectile is ≥500px so they're unaffected; close-range tools (luminous drill
+ *  ~47px, chainsaw ~7px) fall below. PROVISIONAL — calibrate vs real wands (rebuild-spec §6 Q2). */
+const REACH_REF = 250
+const REACH_FLOOR = 0.1
+
+/** A SINGLE projectile's range usability in [REACH_FLOOR, 1]. Clamped PER PROJECTILE so one
+ *  ultra-long-range shot (bouncy ~6250px) can't mask a mostly-melee deck when damage-weighted —
+ *  the deck usability is Σ(damage·thisFrac)/Σdamage, not a frac of the inflated mean reach. */
+function reachFracOf(st: ProjectileStats): number {
+  return Math.min(1, Math.max(REACH_FLOOR, reachOfStats(st) / REACH_REF))
 }
 
 // Expected HP of one shot INCLUDING its trigger payloads: every top-level projectile
@@ -240,11 +255,11 @@ export function computeMetrics(
   // digging explosion (same radius, 0 damage).
   let maxExplosionRadius = 0
   let maxExplosionDamage = 0
-  // Damage-weighted reach: Σ(perProjectileDamage × reach) / Σ(perProjectileDamage) over the
-  // whole cycle (recursing payloads). Weighting by damage means a mostly-ranged deck stays
-  // "ranged" even with a little close-range filler, and a deck whose damage is mostly a
-  // short-range beam reads close-range. The weight uses direct + typed + intrinsic explosion
-  // damage (the projectile's full damage potential), independent of the HP scoring path.
+  // Damage-weighted range USABILITY: Σ(perProjectileDamage × perProjectileReachFrac) /
+  // Σ(perProjectileDamage) over the whole cycle (recursing payloads). Each projectile's reach
+  // is clamped to [FLOOR,1] BEFORE weighting, so a deck whose damage is mostly a short-range
+  // beam reads close-range even if it also holds one ultra-long-range shot. The weight uses
+  // direct + typed + intrinsic explosion damage (the projectile's full damage potential).
   let reachNumer = 0
   let reachDenom = 0
   // Status/DoT capability (see WandMetrics.appliesDot). Detected from data we actually
@@ -274,7 +289,7 @@ export function computeMetrics(
         const w = Math.max(0, st.damage + typedDmg(st)) + Math.max(0, st.explosionDamage)
         if (w > 0) {
           reachDenom += w
-          reachNumer += w * reachOfStats(st)
+          reachNumer += w * reachFracOf(st)
         }
       }
       const r = (st?.explosionRadius ?? 0) + radiusAdd
@@ -289,8 +304,8 @@ export function computeMetrics(
     }
   }
   for (const s of shots) scanProjectileTree(s, 0)
-  // No damage anywhere ⇒ 0 (range is irrelevant to a 0-DPS deck; the scorer floors it).
-  const reachWeightedPx = reachDenom > 0 ? reachNumer / reachDenom : 0
+  // No damage anywhere ⇒ 1 (range is moot for a 0-DPS deck; its score is ~0 regardless).
+  const reachUsability = reachDenom > 0 ? reachNumer / reachDenom : 1
 
   return {
     shotsUntilReload: shots.length,
@@ -309,7 +324,7 @@ export function computeMetrics(
     manaSustainable,
     secondsUntilStall,
     effectiveSpread,
-    reachWeightedPx,
+    reachUsability,
     maxExplosionRadius,
     maxExplosionDamage,
     appliesDot,
