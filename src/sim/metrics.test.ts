@@ -33,15 +33,15 @@ describe('computeMetrics — fixture goldens', () => {
   it('snapshot_01 — RUBBER_BALL ×2 (spammy, sustainable, tiny dig-explosion)', () => {
     const m = metricsFor('snapshot_01.json')
     expect(m.shotsUntilReload).toBe(2)
-    expect(m.cycleFrames).toBe(50) // 2×(13−2) fire + 28 reload
-    expect(m.cycleSeconds).toBeCloseTo(0.8333)
+    expect(m.cycleFrames).toBe(39) // 11 (d1) + max(11 d2, 28 recharge) — cast delay overlaps recharge
+    expect(m.cycleSeconds).toBeCloseTo(0.65)
     expect(m.projectilesPerCast).toBe(1)
     expect(m.projectilesPerCycle).toBe(2)
-    expect(m.projectilesPerSecond).toBeCloseTo(2.4)
+    expect(m.projectilesPerSecond).toBeCloseTo(3.0769)
     expect(m.damagePerCast).toBe(3)
     expect(m.damagePerCycle).toBe(6)
-    expect(m.sustainedDps).toBeCloseTo(7.2)
-    expect(m.burstDps).toBeCloseTo(16.3636)
+    expect(m.sustainedDps).toBeCloseTo(9.2308)
+    expect(m.burstDps).toBeCloseTo(16.3636) // unchanged — fireSeconds (active firing) is unaffected
     expect(m.manaPerCycle).toBe(10)
     expect(m.manaSustainable).toBe(true)
     expect(m.secondsUntilStall).toBeNull()
@@ -54,14 +54,14 @@ describe('computeMetrics — fixture goldens', () => {
   it('snapshot_02 — GRENADE (one big AoE shot, mana-limited)', () => {
     const m = metricsFor('snapshot_02.json')
     expect(m.shotsUntilReload).toBe(1)
-    expect(m.cycleFrames).toBe(69) // (11+30) fire + 28 reload
+    expect(m.cycleFrames).toBe(41) // max(41 castDelay, 28 recharge) — single shot, recharge fully overlaps
     expect(m.projectilesPerCycle).toBe(1)
     expect(m.damagePerCast).toBe(80) // 1.3×25 direct + 1.9×25 explosion
-    expect(m.sustainedDps).toBeCloseTo(69.5652)
+    expect(m.sustainedDps).toBeCloseTo(117.0732) // now == burstDps (recharge ≤ castDelay, fully overlapped)
     expect(m.burstDps).toBeCloseTo(117.0732)
     expect(m.manaPerCycle).toBe(50)
     expect(m.manaSustainable).toBe(false)
-    expect(m.secondsUntilStall).toBeCloseTo(6.1293)
+    expect(m.secondsUntilStall).toBeCloseTo(2.1876)
     expect(m.effectiveSpread).toBe(0)
     expect(m.maxExplosionRadius).toBe(7)
   })
@@ -69,9 +69,9 @@ describe('computeMetrics — fixture goldens', () => {
   it('snapshot_03 — BUBBLESHOT ×3 (fast spam, negative spread)', () => {
     const m = metricsFor('snapshot_03.json')
     expect(m.shotsUntilReload).toBe(3)
-    expect(m.cycleFrames).toBe(58) // 3×(11−5) fire + 40 reload
+    expect(m.cycleFrames).toBe(52) // 2×6 (d1,d2) + max(6 d3, 40 recharge)
     expect(m.projectilesPerCycle).toBe(3)
-    expect(m.projectilesPerSecond).toBeCloseTo(3.1034)
+    expect(m.projectilesPerSecond).toBeCloseTo(3.4615)
     expect(m.damagePerCast).toBe(5)
     expect(m.damagePerCycle).toBe(15)
     expect(m.burstDps).toBeCloseTo(50)
@@ -132,7 +132,7 @@ describe('computeMetrics — edge cases', () => {
     expect(m.damagePerCast).toBe(0)
     expect(m.projectilesPerCast).toBe(1)
     // castState is undefined here → per-shot delay falls back to stats.castDelay
-    expect(m.cycleFrames).toBe(30) // 10 fire + 20 reload
+    expect(m.cycleFrames).toBe(20) // max(10 castDelay, 20 reload) — single shot, recharge overlaps
   })
 
   it('truncated flag passes through from the iteration limit', () => {

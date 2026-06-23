@@ -117,11 +117,23 @@ export function computeMetrics(
   hitIterationLimit: boolean,
 ): WandMetrics {
   // --- timing ---
+  // fireFrames = total active-firing frames in one cycle (Σ per-shot cast delay).
   const fireFrames = shots.reduce((sum, s) => sum + perShotFrames(s, stats), 0)
-  // Floor the cycle at one frame per shot too: a NEGATIVE reload (recharge-reduction
-  // enablers) must not drag the cycle back to ≤0 and re-zero every rate. With
-  // perShotFrames ≥ 1 this is a no-op unless reload is sharply negative.
-  const cycleFrames = Math.max(fireFrames + (reloadTime ?? 0), shots.length)
+  // Cast delay and recharge run SIMULTANEOUSLY in Noita, and recharge only starts
+  // once the deck EMPTIES — so it overlaps ONLY the final shot's cast delay, not the
+  // whole sequence: "Cast Delay occurs simultaneously with Recharge Time… they don't
+  // add to each other", and recharge "is only triggered after all spells in the wand
+  // have been cast" (noita.wiki.gg/wiki/Wands). So the steady-state cycle for S shots
+  // with per-shot delays d_1..d_S and recharge R is (d_1+…+d_{S-1}) + max(d_S, R),
+  // NOT the old additive ΣD + R — which double-counted the final-delay/recharge
+  // overlap and understated DPS on high-recharge / low-cast-delay wands. R has its
+  // OWN floor at 0 (wiki: "a negative Recharge Time value is treated as zero"),
+  // separate from the per-shot 1-frame floor inside perShotFrames.
+  const n = shots.length
+  const lastShotFrames = n > 0 ? perShotFrames(shots[n - 1], stats) : 0
+  const recharge = Math.max(0, reloadTime ?? 0)
+  const cycleFrames =
+    n === 0 ? 0 : Math.max(1, fireFrames - lastShotFrames + Math.max(lastShotFrames, recharge))
   const cycleSeconds = framesToSeconds(cycleFrames)
   const fireSeconds = framesToSeconds(fireFrames)
 

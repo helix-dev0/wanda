@@ -252,12 +252,26 @@ fresh-context agents grounded the fixes against the reused engine + the noita.wi
   held wand (same `wandKey`) gets a gold border + chip — so matching a shown build reads as "already
   built" instead of vanishing.
 
-**Remaining engine gaps (agent-found, NOT yet fixed):** (1) **reload should OVERLAP recharge, not
-ADD** — cast delay + recharge run simultaneously in Noita; our additive `fireFrames + reloadTime`
-understates DPS on high-recharge/low-castdelay wands (needs re-baselining the 3 goldens → its own
-slice). (2) **velocity/`speed_multiplier` damage unmodeled** (×up-to-200 — the biggest remaining
-damage-magnitude gap; deferred in the spec, needs impact-speed modeling). (3) **REF tier constants
-want recalibration** now that fast wands saturate to S.
+**Remaining engine gaps:** (1) ✅ **reload now OVERLAPs recharge** — FIXED 2026-06-22, see next section.
+(2) **velocity/`speed_multiplier` damage** — DEFERRED with rationale (it's an *anti-proxy* for
+impact-speed damage; a static model would be sign-inverted). (3) **REF tier constants** want
+re-grounding now that the overlap fix raises fast-wand DPS further.
+
+## ✅ Engine fidelity — reload OVERLAPs recharge (2026-06-22)
+
+`sim/metrics.ts` modeled the fire→reload cycle **additively** (`fireFrames + reloadTime`), but in
+Noita **cast delay and recharge run simultaneously** and recharge starts only at deck-empty, so it
+overlaps **only the final shot's cast delay** ("Cast Delay occurs simultaneously with Recharge Time…
+they don't add to each other"; recharge "is only triggered after all spells… have been cast" —
+noita.wiki.gg/wiki/Wands). The cycle is now `Σd_{1..S-1} + max(d_S, max(0,R))`. This **understated
+DPS** on high-recharge / low-cast-delay wands; the additive model could even yield a cycle *shorter*
+than the firing time on a negative recharge (latent bug, fixed by flooring R at 0). 4 metrics goldens
+re-derived (snap_01 50→39, snap_02 69→41 with sustainedDps now == burstDps, snap_03 58→52, edge
+30→20); **`burstDps`/`fireSeconds` are invariant** (active firing unchanged) and asserted so.
+**Validated on the real BOUNCY_ORB×3 capture: sustained DPS 8.7→11.5 (+32%), cycle formula
+byte-exact.** 334 tests green · typecheck/lint clean · fresh-context adversarial review independently
+re-derived every number (incl. `secondsUntilStall 6.13→2.19`) → **SHIP**. [APP] `sim/metrics.ts`,
+engine untouched (the fix is in our DPS-interpretation layer).
 
 ## Tooling — recording real runs (2026-06-22)
 `npm run record` (`bridge/record.mjs`) persists every distinct live snapshot to `captures/` (gitignored),

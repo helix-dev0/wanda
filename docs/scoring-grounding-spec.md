@@ -46,9 +46,16 @@ fork). See the memory `noita-meta-sources`.
 > read 0 and suggestions went unstable. Fixed by flooring per-shot frames at 1 (Noita's 60-casts/s
 > cap; wiki: "a negative cast delay is treated as 1 frame"). Goldens unchanged, engine untouched.
 > ② **self-danger missed wide-blast lobbed explosives** (Dynamite) — fixed via a `LARGE_BLAST_RADIUS`
-> rule. **Still open:** ③ **reload should OVERLAP cast-delay, not ADD** (Noita runs them
-> simultaneously; our additive cycle understates DPS on high-recharge wands — needs re-baselining
-> the 3 metrics goldens) and ④ **velocity/`speed_multiplier` damage** (×up-to-200, deferred).
+> rule. ③ **reload now OVERLAPs cast-delay (FIXED 2026-06-22)** — Noita runs cast delay + recharge
+> simultaneously and recharge starts only at deck-empty, so it overlaps ONLY the final cast delay;
+> cycle is now `Σd_{1..S-1} + max(d_S, max(0,R))` (was additive `Σd + R`). 4 goldens re-derived
+> (50→39, 69→41, 58→52, edge 30→20), `burstDps` invariant, validated on a real BOUNCY_ORB×3 capture
+> (+32% sustained DPS), fresh-context-reviewed. **Still open:** ④ **velocity/`speed_multiplier`
+> damage** — DEFERRED with rationale: `speed_multiplier` (default 1.0, clamped [0,20]) is an
+> *anti-proxy* for the real impact-speed bonus (the best velocity builds — Heavy/Accelerating Shot —
+> LOWER it), which needs flight physics (drag/gravity/mass/distance) we don't extract and applies to
+> only 5 vanilla projectiles. A static `×speed_multiplier` model would be sign-inverted → worse than
+> none. (noita.wiki.gg/wiki/Spells_With_Damage_Scaled_By_Speed.)
 
 - **`sim/metrics.ts` `shotDamage`** sums only top-level `shot.projectiles` → **payload damage
   invisible** (Principle 1). Our forked engine already holds the payload at `Projectile.trigger?:
