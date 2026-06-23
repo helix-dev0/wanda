@@ -16,8 +16,17 @@ reach-calibration probe. Sources: noita.wiki.gg + the vendored salinecitrine eng
   So a high DAMAGE score for it is a SCORING BUG, not a build the generator failed to find. The generator
   was CORRECT to keep drills out of damage decks; the bug is the held-wand scorer being range-blind.
 - Luminous Drill *can* be a damage tool as an advanced Spells-to-Power timer payload (wiki), but the tool
-  can't distinguish that from raw drill-spam, and the maintainer plays it as digging → treat raw
-  drill/chainsaw as close-range; do not surface them as damage builds.
+  can't distinguish that from raw drill-spam, and the maintainer plays it as digging → an enabler-ONLY deck
+  (drill×3) is digging, scored low by range.
+- **🔑 ENABLERS belong IN damage wands (maintainer, 2026-06-22).** Chainsaw (`fire_rate_wait = 0`, the "time
+  manipulation") and Luminous Drill (−35 cast delay) are used in damage wands **to increase casts/second**.
+  Paired with a real ranged payload they roughly HALVE the cycle → ~2.5× DPS (validated: `BURST_3 + Chainsaw
+  + 2 Bouncy` cycle 48→20, DAMAGE 11/D→21/C; with Drill 47/B). The sim already models this; the honest scorer
+  (damage-weighted reach keeps it "ranged" because the payload carries the damage) already REWARDS it. So:
+  **the generator must NOT exclude enablers from damage builds** — the old `isUtilitySpell` blanket exclusion
+  was a band-aid for the broken scorer and blocks the meta's core rapid-fire pattern. The exhaustive search
+  enumerates the full pool (enablers included) and lets the honest scorer rank: enabler+payload → high,
+  enabler-only → low (range). No exclusion needed once the scorer is trustworthy.
 
 ## 1. The single transparent number (what every archetype reads)
 
