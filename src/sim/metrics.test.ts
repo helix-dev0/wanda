@@ -111,6 +111,19 @@ describe('shotDamage — typed damage_by_type counts as HP (B1)', () => {
   })
 })
 
+describe('shotDamage / AoE — crit scales explosion + blast (B2)', () => {
+  it('crit scales the explosion in damagePerCast AND the AoE blast, by the same factor', () => {
+    const plain = metricsForDeck(['GRENADE'])
+    const crit = metricsForDeck(['CRITICAL_HIT', 'GRENADE'])
+    // B2a: the explosion (not just the projectile) scales with crit → the whole cast ×factor.
+    const factor = crit.damagePerCast / plain.damagePerCast
+    expect(factor).toBeGreaterThan(1) // CRITICAL_HIT raised it
+    // B2b: the AoE metric scales by the SAME crit factor (was unscaled before).
+    expect(crit.maxExplosionDamage).toBeGreaterThan(plain.maxExplosionDamage)
+    expect(crit.maxExplosionDamage).toBeCloseTo(plain.maxExplosionDamage * factor, 1)
+  })
+})
+
 describe('computeMetrics — range + mana-honest fields (B3/B4)', () => {
   it('reachWeightedPx: damage-weighted projectile reach (px) per fixture', () => {
     expect(metricsFor('snapshot_01.json').reachWeightedPx).toBeCloseTo(9375) // rubber_ball, very long

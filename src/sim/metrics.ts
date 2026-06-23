@@ -3,8 +3,11 @@
 // Everything here is computed from clickWand's output (WandShot[] + reloadTime)
 // joined with the wand's snapshot stats and the projectile base-stats table.
 // Damage is honestly APPROXIMATE: raw HP, neutral resistances, single-hit
-// (triggers/pierce/bounce not multiplied), crit excluded (the engine's
-// GunActionState carries no real crit multiplier — default is 0.0). See plan.
+// (pierce/bounce not multiplied). It now models: typed damage_by_type (B1),
+// crit on ALL channels — projectile + explosion + AoE blast (B2), trigger
+// payloads (recursive), mana-limited effective DPS (B4), and damage-weighted
+// reach (B3). Velocity/speed damage remains DEFERRED (anti-proxy). See docs/
+// scoring-rebuild-spec.md.
 
 import type { WandShot } from '../engine/eval/types'
 import type { WandStats } from '../schema/snapshot'
@@ -151,7 +154,9 @@ function shotDamage(shot: WandShot, onMissing: () => void, depth = 0): number {
       // grounded noita.wiki.gg/wiki/Damage_types — typed damage is real enemy HP, additive.)
       hp += Math.max(0, st.damage + typedDmg(st) + projAdd) * DAMAGE_UNIT_HP * critMul
       if (st.explosionDamage > 0 || explAdd > 0) {
-        hp += Math.max(0, st.explosionDamage + explAdd) * DAMAGE_UNIT_HP
+        // Crit applies to ALL damage types, not just projectile damage — including the
+        // explosion (B2a; noita.wiki.gg/wiki/Critical_hit). ×1 when no crit (goldens safe).
+        hp += Math.max(0, st.explosionDamage + explAdd) * DAMAGE_UNIT_HP * critMul
       }
     } else {
       onMissing() // modded base — damage understated, but still descend its payload
@@ -256,6 +261,8 @@ export function computeMetrics(
   const scanProjectileTree = (shot: WandShot, depth: number): void => {
     const radiusAdd = shot.castState?.explosion_radius ?? 0
     const explAdd = shot.castState?.damage_explosion_add ?? 0
+    // Crit scales the blast too (B2b) — a crit nuke's AoE is bigger. ×1 with no crit.
+    const critMul = critMultiplier(shot.castState?.damage_critical_chance ?? 0)
     const material = shot.castState?.material ?? ''
     const trail = shot.castState?.trail_material ?? ''
     if (material === 'fire' || trail.includes('fire')) appliesDot.fire = true
@@ -273,7 +280,7 @@ export function computeMetrics(
       const r = (st?.explosionRadius ?? 0) + radiusAdd
       if (r > maxExplosionRadius) maxExplosionRadius = r
       const baseExpl = st?.explosionDamage ?? 0
-      const dHp = (baseExpl > 0 || explAdd > 0 ? Math.max(0, baseExpl + explAdd) : 0) * DAMAGE_UNIT_HP
+      const dHp = (baseExpl > 0 || explAdd > 0 ? Math.max(0, baseExpl + explAdd) : 0) * DAMAGE_UNIT_HP * critMul
       if (dHp > maxExplosionDamage) maxExplosionDamage = dHp
       if ((st?.damageByType?.fire ?? 0) > 0) appliesDot.fire = true
       if (p.entity.includes('poison')) appliesDot.poison = true
