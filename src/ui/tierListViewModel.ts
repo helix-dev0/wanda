@@ -80,6 +80,10 @@ export interface TierEntryView {
   /** Perks that would clear the entry's lethal hazards (when unsafe). */
   fixableByPerk: string[]
   source: 'held' | 'generated'
+  /** A generated build whose deck already equals the player's HELD wand — i.e. "you've
+   *  already built this." Lets the UI highlight it instead of looking like a separate
+   *  suggestion. Always false for held entries. */
+  matchesHeld?: boolean
   /** For a generated build: which owned wand to rebuild ("rebuild your slot-2 wand ·
    *  cap 19", or "ideal chassis" in theorycraft). Undefined for held-wand entries. */
   chassisLabel?: string
@@ -219,6 +223,7 @@ export function tierListView(
       unsafe: build.analysis.selfDanger.unsafe,
       fixableByPerk: build.analysis.selfDanger.fixableByPerk,
       source: 'generated',
+      matchesHeld: heldKey != null && build.analysis.key === heldKey,
       chassisLabel: build.chassis.ideal
         ? 'ideal chassis'
         : `rebuild your slot-${build.chassis.slot} wand · cap ${build.chassis.capacity}`,
@@ -234,6 +239,9 @@ export function tierListView(
   }
 
   const primary = activeWand(wands)
+  // The held wand's stable key (excludes slot/mana), to flag a generated build that
+  // already equals it. analyses is parallel to wands, so reuse its computed key.
+  const heldKey = primary ? analyses[wands.indexOf(primary)]?.key : undefined
   const showSuggestions = (rung === 'teach' || rung === 'suggest') && primary != null
 
   const columns: ArchetypeColumnView[] = ARCHETYPES.map((archetype) => {

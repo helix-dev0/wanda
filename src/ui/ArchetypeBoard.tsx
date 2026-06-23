@@ -51,13 +51,18 @@ function TierEntry({ entry, onDrill }: { entry: TierEntryView; onDrill: (key: st
     <div
       className={`tier-entry${entry.unsafe ? ' unsafe' : ''}${
         entry.source === 'generated' ? ' generated' : ''
-      }`}
+      }${entry.matchesHeld ? ' matches-held' : ''}`}
     >
       <div className="tier-entry-head">
         <span className="tier-entry-title">{entry.title}</span>
         <span className="tier-entry-score" title="archetype score (0–100)">
           {entry.score}
         </span>
+        {entry.matchesHeld && (
+          <span className="held-match-chip" title="your held wand already is this build">
+            ✓ you have this
+          </span>
+        )}
         <button
           type="button"
           className="drill-toggle"

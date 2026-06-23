@@ -3,6 +3,8 @@ import type { Wand, PerkRef } from '../schema/snapshot'
 import { clearSimCache } from '../analysis/simCache'
 import { tierListView, type TierListView } from './tierListViewModel'
 import { generate } from '../generation/generate'
+import { analyzeWand } from '../analysis'
+import type { GeneratedBuild, GenerateResult, TemplateId } from '../generation/types'
 import type { ProvenanceEntry } from '../store/runStore'
 
 const makeWand = (over: Partial<Wand> = {}): Wand => ({
@@ -178,6 +180,32 @@ describe('tierListView — dial + generated builds (M5)', () => {
     const v = tierListView([held0], [], pool, { generated: theory, rung: 'suggest' })
     const gen = entriesOf(v).find((e) => e.source === 'generated')
     expect(gen?.chassisLabel).toBe('ideal chassis')
+  })
+
+  it('flags ONLY the generated build that already equals the held wand (matchesHeld)', () => {
+    const held = makeWand({ slot: 0, active: true, spells: ['BUBBLESHOT'] })
+    const nuke = makeWand({ spells: ['NUKE'] })
+    const mk = (wand: Wand, template: TemplateId): GeneratedBuild => ({
+      wand,
+      analysis: analyzeWand(wand, []), // analysis.key === wandKey(wand)
+      archetype: 'SPAM',
+      template,
+      edits: [],
+      chassis: { slot: 0, capacity: 6, shuffle: false, ideal: false },
+    })
+    const empty = { builds: [] }
+    const result: GenerateResult = {
+      DAMAGE: empty, AOE: empty, MOBILITY: empty, DEFENSIVE: empty,
+      SPAM: { builds: [mk(held, 'spammer'), mk(nuke, 'single-nuke')] },
+    }
+    const gens = entriesOf(tierListView([held], [], pool, { generated: result, rung: 'suggest' })).filter(
+      (e) => e.source === 'generated',
+    )
+    expect(gens.filter((e) => e.matchesHeld).length).toBe(1) // the BUBBLESHOT build == held wand
+    expect(gens.some((e) => !e.matchesHeld)).toBe(true) // the NUKE build does not
+    // held-wand entries never claim to "match held"
+    const heldEntries = entriesOf(tierListView([held], [], pool)).filter((e) => e.source === 'held')
+    expect(heldEntries.every((e) => !e.matchesHeld)).toBe(true)
   })
 })
 

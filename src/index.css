@@ -876,6 +876,24 @@ h1 .rune {
   padding-left: 8px;
 }
 
+/* A generated build that already equals the held wand — "you have this". */
+.tier-entry.matches-held {
+  border: 1px solid var(--gold);
+  border-left: 3px solid var(--gold);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--gold) 7%, transparent);
+}
+
+.held-match-chip {
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: var(--gold);
+  border: 1px solid var(--gold-deep);
+  border-radius: 3px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
 .drill-toggle {
   font-family: var(--mono);
   font-size: 11px;
