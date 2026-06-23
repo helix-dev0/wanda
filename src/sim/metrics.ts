@@ -286,10 +286,14 @@ export function computeMetrics(
     for (const p of shot.projectiles) {
       const st = getProjectileStats(p.entity)
       if (st) {
-        const w = Math.max(0, st.damage + typedDmg(st)) + Math.max(0, st.explosionDamage)
-        if (w > 0) {
-          reachDenom += w
-          reachNumer += w * reachFracOf(st)
+        // DIRECT/contact damage is reach-gated (a melee beam can't hit a ranged target); the
+        // EXPLOSION reaches wherever the projectile lands, so it always gets full reach — even a
+        // lobbed explosive with config `speedMax=0` (Bomb/Mine) is thrown by the wand, not melee.
+        const directW = Math.max(0, st.damage + typedDmg(st))
+        const explW = Math.max(0, st.explosionDamage)
+        if (directW + explW > 0) {
+          reachDenom += directW + explW
+          reachNumer += directW * reachFracOf(st) + explW
         }
       }
       const r = (st?.explosionRadius ?? 0) + radiusAdd

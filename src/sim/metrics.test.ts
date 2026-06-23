@@ -130,6 +130,11 @@ describe('computeMetrics — range + mana-honest fields (B3/B4)', () => {
     expect(metricsFor('snapshot_02.json').reachUsability).toBeCloseTo(1) // grenade ~2333px
     expect(metricsFor('snapshot_03.json').reachUsability).toBeCloseTo(1) // bubbleshot ~500px
   })
+  it('a lobbed explosive (BOMB, config speedMax=0) is NOT reach-floored — its blast reaches', () => {
+    const m = metricsForDeck(['BOMB'])
+    expect(m.maxExplosionDamage).toBeGreaterThan(0) // it does explode
+    expect(m.reachUsability).toBeGreaterThan(0.9) // explosion weight gets full reach, not melee 0.1
+  })
   it('effectiveSustainedDps == sustainedDps when mana-sustainable (identity, goldens-safe)', () => {
     const a = metricsFor('snapshot_01.json')
     expect(a.effectiveSustainedDps).toBeCloseTo(a.sustainedDps)
