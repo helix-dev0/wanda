@@ -25,3 +25,12 @@ export const IMPROVE_EPS = 1
  *  the top-K most relevant spells (by feature) for the target archetype before
  *  polishing — keeps theorycraft builds useful instead of cap-truncated. */
 export const POLISH_POOL_MAX = 60
+
+/** Exhaustive-search switch: when the number of distinct cap-limited spell COMBINATIONS on
+ *  the roomiest chassis is ≤ this, generation enumerates EVERY combination (a provably
+ *  complete survey of the player's spells) instead of template-seeding + hill-climbing.
+ *  Above it, the pool is too large to enumerate and we fall back to the bounded template
+ *  path. Measured feasibility: a fresh-run pool is ~200–1.2k combos (well under), mid-game
+ *  blows past it. Doubles as the per-chassis hard deck cap (runaway guard). PROVISIONAL —
+ *  bounds wall-clock; tune against real large pools. (docs/scoring-rebuild-spec.md §6.) */
+export const EXHAUSTIVE_COMBO_BUDGET = 3000

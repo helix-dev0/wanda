@@ -17,6 +17,8 @@ export type TemplateId =
   | 'cheap-shot-spam'
   | 'spammer'
   | 'feature-fill'
+  /** Not a template — a build found by the exhaustive combination search (spec §6). */
+  | 'exhaustive'
 
 /** Optional generation constraints the player can impose (spec §6.3). */
 export interface Constraints {

@@ -58,8 +58,6 @@ const req = (over: Partial<GenerateRequest> = {}): GenerateRequest => ({
 })
 
 const allBuilds = (r: ReturnType<typeof generate>) => Object.values(r).flatMap((a) => a.builds)
-const hasTemplate = (r: ReturnType<typeof generate>, t: string) =>
-  allBuilds(r).some((b) => b.template === t)
 const deckHasDig = (w: Wand) => deckFeatureCounts(w).DIG > 0
 
 beforeEach(() => clearSimCache())
@@ -100,23 +98,28 @@ describe('generate — template-seeded + polished builds', () => {
     expect(r.DAMAGE.note).toMatch(/no spells/i)
   })
 
-  it('modifiers in the pool unlock a much stronger multicast build (modifier-broadcast)', () => {
-    // The multiplier engine: damage modifiers BEFORE a multicast broadcast to every spell
-    // it draws (validated ~6×). With the same multicast + cheap shot but NO modifiers, the
-    // best build is the bare multicast — so the modifiers' presence must lift the top score.
+  it('modifiers in the pool lift the top DAMAGE build (modifier-broadcast found by the survey)', () => {
+    // The multiplier engine: damage modifiers BEFORE a multicast broadcast to every spell it
+    // draws. The exhaustive search finds that arrangement on its own, so the modifiers'
+    // presence lifts the top DAMAGE score AND the winning deck actually USES a modifier.
     const withMods = generate(req({ pool: ['BURST_3', 'DAMAGE', 'CRITICAL_HIT', 'LIGHT_BULLET'], archetypes: ['DAMAGE'] }))
     clearSimCache()
     const withoutMods = generate(req({ pool: ['BURST_3', 'LIGHT_BULLET'], archetypes: ['DAMAGE'] }))
     const top = (r: ReturnType<typeof generate>) => r.DAMAGE.builds[0]?.analysis.scores.DAMAGE.score ?? 0
-    expect(hasTemplate(withMods, 'multiplicative-stack')).toBe(true)
     expect(top(withMods)).toBeGreaterThan(top(withoutMods) + 10) // a real lift, not noise
+    const topDeck = withMods.DAMAGE.builds[0].wand.spells.filter(Boolean)
+    expect(topDeck.some((s) => s === 'DAMAGE' || s === 'CRITICAL_HIT')).toBe(true)
   })
 
-  it('cheap-shot-spam surfaces when there is a modifier but no multicast', () => {
-    // No multicast in the pool, so the modifier-broadcast template can't fire — the
-    // [modifier, cheap-shot] pairing build should appear for SPAM instead.
+  it('a modifier pairs with the cheap shot for SPAM (modifier not wasted, no multicast needed)', () => {
+    // No multicast in the pool — the search still pairs the damage modifier with the cheap
+    // shot somewhere in the surveyed builds (the [modifier, shot] value unit).
     const r = generate(req({ pool: ['DAMAGE', 'LIGHT_BULLET'], archetypes: ['SPAM'] }))
-    expect(hasTemplate(r, 'cheap-shot-spam')).toBe(true)
+    expect(r.SPAM.builds.length).toBeGreaterThan(0)
+    const usesModifier = r.SPAM.builds.some(
+      (b) => b.wand.spells.includes('DAMAGE') && b.wand.spells.includes('LIGHT_BULLET'),
+    )
+    expect(usesModifier).toBe(true)
   })
 
   it('explains an archetype it cannot build (no defensive spells in pool)', () => {
@@ -126,13 +129,18 @@ describe('generate — template-seeded + polished builds', () => {
   })
 })
 
-describe('generate — shuffle gating', () => {
-  it('seeds order-dependent trigger→payload only on a non-shuffle chassis', () => {
+describe('generate — exhaustive survey covers every chassis', () => {
+  it('surveys both shuffle and non-shuffle chassis (judges order by score, no heuristic gating)', () => {
+    // The exhaustive search scores each combination via the sim (which models the shuffle),
+    // so order-dependent shapes are judged on their real score rather than excluded a priori.
+    // Both chassis yield builds; the old template shuffle-gate no longer applies to the survey.
     const nonShuffle = generate(req())
     clearSimCache()
     const shuffle = generate(req({ chassis: [chassis({ shuffle: true })] }))
-    expect(hasTemplate(nonShuffle, 'trigger-payload')).toBe(true)
-    expect(hasTemplate(shuffle, 'trigger-payload')).toBe(false)
+    expect(nonShuffle.DAMAGE.builds.length).toBeGreaterThan(0)
+    expect(shuffle.DAMAGE.builds.length).toBeGreaterThan(0)
+    // every surveyed build is labeled 'exhaustive' (the survey, not a fixed template)
+    expect(allBuilds(nonShuffle).every((b) => b.template === 'exhaustive')).toBe(true)
   })
 })
 

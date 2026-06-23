@@ -15,12 +15,14 @@ import { deckFeatureCounts } from '../analysis/features/spellFeatures'
 import { simCacheSize } from '../analysis/simCache'
 import {
   BUILDS_PER_ARCHETYPE,
+  EXHAUSTIVE_COMBO_BUDGET,
   IMPROVE_EPS,
   MAX_CANDIDATES,
   MAX_ROUNDS,
   POLISH_POOL_MAX,
 } from './budget'
 import { buildPoolIndex, isUtilitySpell, type PoolIndex } from './poolIndex'
+import { countCombinations, enumerateDecks } from './exhaustive'
 import { TEMPLATES, TEMPLATE_ORDER } from './templates'
 import type {
   AppliedEdit,
@@ -215,9 +217,83 @@ function generateForArchetype(
   return builds.length > 0 ? { builds } : { builds: [], note: noteFor(ix, archetype, constraints, hadCandidates) }
 }
 
+/** Non-null spells in a deck (build complexity, used as a tie-break — prefer the simpler). */
+const deckLen = (w: Wand): number => w.spells.reduce((n, s) => (s ? n + 1 : n), 0)
+const deckSig = (w: Wand): string => w.spells.filter((s): s is string => s != null).join(',')
+
+/**
+ * Exhaustive survey: enumerate EVERY cap-limited spell combination on each chassis, score
+ * each once (one analyzeWand yields all archetype scores), and keep the best (highest-ranked)
+ * build per (archetype, structural key). "Run all the options" — for a small owned pool this
+ * is provably complete, so generation can't miss an optimum a human finds. Enablers are NOT
+ * excluded; the honest scorer ranks enabler+payload high and enabler-only low. Pure +
+ * deterministic. The caller gates this on countCombinations ≤ budget.
+ */
+function generateExhaustive(
+  ix: PoolIndex,
+  req: GenerateRequest,
+  caps: ReadonlyMap<string, number> | undefined,
+): GenerateResult {
+  const byArch = {} as Record<Archetype, Map<string, GeneratedBuild>>
+  for (const a of ARCHETYPES) byArch[a] = new Map()
+
+  for (const chassis of req.chassis) {
+    const decks = enumerateDecks(req.pool, caps, chassis.stats.capacity, ix, EXHAUSTIVE_COMBO_BUDGET)
+    const attribution = {
+      slot: chassis.slot,
+      capacity: chassis.stats.capacity,
+      shuffle: chassis.stats.shuffle,
+      ideal: false,
+    }
+    for (const deck of decks) {
+      const wand = seedWand(chassis, deck)
+      const analysis = analyzeWand(wand, req.perks)
+      // One scored deck is a candidate for EVERY archetype — keep the best per archetype.
+      for (const a of ARCHETYPES) {
+        const build: GeneratedBuild = {
+          wand,
+          chassis: attribution,
+          archetype: a,
+          template: 'exhaustive',
+          analysis,
+          edits: [],
+          perkAdvice: advisePerk(analysis),
+        }
+        const prev = byArch[a].get(analysis.key)
+        if (!prev || rankKey(build) > rankKey(prev)) byArch[a].set(analysis.key, build)
+      }
+    }
+  }
+
+  const result = {} as GenerateResult
+  for (const a of ARCHETYPES) {
+    // Drop builds that score ~0 for THIS archetype: the survey scores every deck for every
+    // archetype, so an archetype with no relevant spells (e.g. DEFENSIVE from a pure-damage
+    // pool) must yield a note, not a junk 0-score "build".
+    let builds = [...byArch[a].values()].filter((b) => b.analysis.scores[a].score > 0)
+    const hadCandidates = builds.length > 0
+    if (req.constraints.mustDig) builds = builds.filter((b) => deckFeatureCounts(b.wand).DIG > 0)
+    if (req.constraints.noSelfDamage) builds = builds.filter((b) => !b.analysis.selfDanger.unsafe)
+    builds.sort(
+      (x, y) =>
+        rankKey(y) - rankKey(x) || deckLen(x.wand) - deckLen(y.wand) || deckSig(x.wand).localeCompare(deckSig(y.wand)),
+    )
+    result[a] =
+      builds.length > 0
+        ? { builds: builds.slice(0, BUILDS_PER_ARCHETYPE) }
+        : { builds: [], note: noteFor(ix, a, req.constraints, hadCandidates) }
+  }
+  return result
+}
+
 /**
  * Generate ranked builds for each requested archetype from the pool, under the
  * chassis (capacity + shuffle) and constraints. Pure + deterministic.
+ *
+ * Strategy switch: when the owned pool is small enough to enumerate every spell combination
+ * on the roomiest chassis (≤ EXHAUSTIVE_COMBO_BUDGET), run the EXHAUSTIVE survey — a complete
+ * "run all options". Otherwise (large pool / theorycraft full-DB) fall back to the bounded
+ * template-seed + local-search path. Both rank on the same honest fitness.
  */
 export function generate(req: GenerateRequest): GenerateResult {
   const ix = buildPoolIndex(req.pool)
@@ -228,8 +304,17 @@ export function generate(req: GenerateRequest): GenerateResult {
   const archetypes = req.archetypes ?? ARCHETYPES
   const result = {} as GenerateResult
   for (const a of ARCHETYPES) result[a] = { builds: [] }
-  // An empty chassis list builds nothing; generateForArchetype handles it gracefully
-  // (no seeds → a pool-appropriate note), so no special-case guard is needed here.
+
+  const maxCap = req.chassis.reduce((m, c) => Math.max(m, c.stats.capacity), 0)
+  const combos = ideal || req.pool.length === 0 ? Infinity : countCombinations(req.pool, caps, maxCap)
+  if (combos <= EXHAUSTIVE_COMBO_BUDGET) {
+    const ex = generateExhaustive(ix, req, caps)
+    for (const a of archetypes) result[a] = ex[a]
+    return result
+  }
+
+  // Large pool / theorycraft: bounded template-seed + polish. An empty chassis list builds
+  // nothing; generateForArchetype handles it gracefully (no seeds → a pool-appropriate note).
   for (const a of archetypes) {
     result[a] = generateForArchetype(ix, req.chassis, a, req.constraints, req.perks, caps, ideal)
   }

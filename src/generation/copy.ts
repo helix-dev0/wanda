@@ -21,6 +21,8 @@ export const TEMPLATE_COPY: Record<TemplateId, string> = {
   spammer: 'Cheap, fast projectiles fired continuously — low mana per shot keeps it going.',
   'feature-fill':
     'Built around your utility spells — digging and movement (or shields) matter more than raw damage here.',
+  exhaustive:
+    'The best arrangement of your spells, found by simulating every combination — not a fixed template.',
 }
 
 /** What each spell feature does — used in Teach/Prescribe to explain a build. */

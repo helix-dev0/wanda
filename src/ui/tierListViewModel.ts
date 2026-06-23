@@ -39,6 +39,7 @@ const TEMPLATE_LABEL: Record<TemplateId, string> = {
   'cheap-shot-spam': 'Modifier-spam build',
   spammer: 'Spam build',
   'feature-fill': 'Utility build',
+  exhaustive: 'Best from your spells',
 }
 
 /** What a given rung reveals on an entry — the dial as data, not a code path. */

@@ -277,4 +277,5 @@ export const TEMPLATE_ORDER: Record<TemplateId, number> = {
   'feature-fill': 4,
   'multiplicative-stack': 5,
   'cheap-shot-spam': 6,
+  exhaustive: 7,
 }
