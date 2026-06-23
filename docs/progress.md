@@ -287,6 +287,19 @@ by a synthetic gate test). 337 green; fresh-context adversarial review (monotoni
 audit) → **SHIP**. **Still provisional:** `MANA_PENALTY` + a full real-wand-corpus calibration (needs
 richer `captures/` than the current fresh-run starters). [APP] `analysis/archetypes.ts`.
 
+## ✅ Status/DoT capability channel (2026-06-22)
+
+The raw-HP single-hit model was blind to damage-over-time (fire/poison/toxic = ~2% max-HP/s each —
+the answer to tanky/boss targets). Poison/toxic is a material-STAIN status (no `poison` in any
+`damage_by_type`), so it's unquantifiable from our data — the honest model is a **capability flag**:
+`WandMetrics.appliesDot {fire,poison,toxic}`, detected in the recursive metrics walk from data we
+have (projectile `damageByType.fire`, `castState.material`/`trail_material`, poison/acid entity paths),
+default all-false (goldens-safe), recursing trigger payloads, surfaced as a DAMAGE reason for the
+boss/tank lens **without changing the score** (no fabricated number). 8 new tests (detection paths +
+fixture baseline: only GRENADE's `fire:0.5` flags); false-positive scan clean; fresh-context review →
+**SHIP**. Honest gaps documented (no DoT-HP figure; fireblast-style pure-explosion fire missed). 345
+green. [APP] `sim/metrics.ts` + `analysis/archetypes.ts`.
+
 ## Tooling — recording real runs (2026-06-22)
 `npm run record` (`bridge/record.mjs`) persists every distinct live snapshot to `captures/` (gitignored),
 keyed by frame, surviving death/restart (the mod overwrites `snapshot.json` in place). Promote good

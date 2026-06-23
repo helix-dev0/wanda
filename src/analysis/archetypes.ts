@@ -77,6 +77,15 @@ function mk(
 
 const hp = (n: number) => `${n.toFixed(1)} HP/s`
 
+/** "fire+poison" etc. from the DoT capability flags, or '' if none apply. */
+function dotLabel(d: WandMetrics['appliesDot']): string {
+  const parts: string[] = []
+  if (d.fire) parts.push('fire')
+  if (d.poison) parts.push('poison')
+  if (d.toxic) parts.push('toxic')
+  return parts.join('+')
+}
+
 function scoreDamage(m: WandMetrics): ArchetypeScore {
   let score = 0.7 * sat(m.sustainedDps, REF.sustainedDps) + 0.3 * sat(m.burstDps, REF.burstDps)
   const reasons: string[] = []
@@ -84,6 +93,11 @@ function scoreDamage(m: WandMetrics): ArchetypeScore {
     score *= MANA_PENALTY.damage
     reasons.push('mana-limited — damage falls off under sustained fire')
   }
+  // DoT is %-max-HP (~2%/s), so it shines vs tanky / boss targets a raw-HP model can't
+  // see. We can detect the capability but not quantify it (poison/toxic is material stain,
+  // not a damage field) — so surface it as a note, NOT a score change (no fabricated number).
+  const dot = dotLabel(m.appliesDot)
+  if (dot) reasons.push(`applies ${dot} DoT — extra vs tanky / boss targets`)
   return mk(
     'DAMAGE',
     score,

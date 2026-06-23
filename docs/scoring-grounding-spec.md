@@ -125,7 +125,17 @@ blast (radius>0, damage 0) no longer scores like a nuke.
 
 ### Tier 2+ — completeness + generation (specced)
 
-- **Status/DoT** as a %-max-HP damage channel (poison/toxic/fire), surfaced for a future boss/tank lens.
+- **✅ Status/DoT (DONE 2026-06-22) — capability flag, not a damage number.** All three DoTs (fire,
+  poison, toxic) tick ~2% max-HP/s (the boss/tank answer a raw-HP model can't see), but poison/toxic
+  is a material-STAIN status, not a projectile damage field, so it can't be quantified from our data
+  (no `poison` in any `damage_by_type`; ~0 actions set `damage_fire_add`). So `WandMetrics.appliesDot
+  {fire,poison,toxic}` detects the CAPABILITY from data we have — projectile `damageByType.fire`,
+  `castState.material`/`trail_material` (NUKE→fire; TRAIL_FIRE/POISON/TOXIC), and poison/acid-spraying
+  entity paths — defaulting all-false (goldens-safe), recursing trigger payloads, surfaced as a DAMAGE
+  reason for the boss/tank lens WITHOUT changing the score (no fabricated number). Honest gaps: no
+  DoT-HP figure (needs material-emission extraction + a boss-HP ref), and a few pure-explosion fire
+  emitters (fireblast) are missed (path-matching 'fire' would trip `friendly_fire`). Grounded:
+  noita.wiki.gg Fire / Toxic Sludge / Damage_types.
 - **✅ Generation chassis-selection (DONE 2026-06-22).** Generation now builds on **ALL** the player's
   owned wands (≤4), not just the held one — the trustworthy scorer + the existing per-archetype
   tier-list merge rank the best (wand, deck) per archetype, each build attributed to its source wand

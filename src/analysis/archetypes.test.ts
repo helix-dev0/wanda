@@ -45,6 +45,7 @@ const synthMetrics = (over: Partial<WandMetrics> = {}): WandMetrics => ({
   damagePerCast: 0, damagePerCycle: 0, sustainedDps: 0, burstDps: 0,
   manaPerCycle: 0, manaSustainable: true, secondsUntilStall: null,
   effectiveSpread: 0, maxExplosionRadius: 0, maxExplosionDamage: 0,
+  appliesDot: { fire: false, poison: false, toxic: false },
   truncated: false, damageApproximate: false,
   ...over,
 })
@@ -84,6 +85,15 @@ describe('scoreWand — DAMAGE bands track the Noita power curve (calibration)',
     expect(dmg(2000).score).toBeGreaterThan(dmg(300).score)
     expect(dmg(300).tier).not.toBe('S')
     expect(dmg(2000).tier).toBe('S')
+  })
+
+  it('DAMAGE surfaces a DoT capability note (boss/tank lens) without changing the score', () => {
+    const plain = scoreSynth({ sustainedDps: 300, burstDps: 480 }).DAMAGE
+    const withDot = scoreSynth({ sustainedDps: 300, burstDps: 480, appliesDot: { fire: true, poison: true, toxic: false } }).DAMAGE
+    expect(withDot.score).toBe(plain.score) // capability is informational, never a fabricated number
+    expect(withDot.reasons.join(' ')).toMatch(/fire\+poison/)
+    expect(withDot.reasons.join(' ')).toMatch(/boss/i)
+    expect(plain.reasons.join(' ')).not.toMatch(/DoT/)
   })
 })
 

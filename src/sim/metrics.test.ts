@@ -224,4 +224,45 @@ describe('computeMetrics — edge cases', () => {
     expect(m.damagePerCast).toBeCloseTo(8)
     expect(m.damageApproximate).toBe(false)
   })
+
+  // --- status / DoT capability (appliesDot) — a grounded, goldens-safe capability flag ---
+  const POISON = `${P}deck/poison_blast.xml` // sprays poison on impact (path match; no damage field)
+  const ACID = `${P}acidshot.xml` // sprays acid (path match)
+  const dotOf = (shot: WandShot) => computeMetrics([shot], 20, stats, false).appliesDot
+
+  it('appliesDot defaults all-false (plain projectile / empty cast)', () => {
+    expect(dotOf(shotWith({ projectiles: [{ entity: RUBBER }] }))).toEqual({ fire: false, poison: false, toxic: false })
+    expect(computeMetrics([], undefined, stats, false).appliesDot).toEqual({ fire: false, poison: false, toxic: false })
+  })
+
+  it('appliesDot.fire from a projectile carrying typed fire damage (grenade)', () => {
+    expect(dotOf(shotWith({ projectiles: [{ entity: GRENADE }] })).fire).toBe(true)
+  })
+
+  it('appliesDot.fire from a shot material (NUKE → material "fire")', () => {
+    const shot = shotWith({ projectiles: [{ entity: RUBBER }], castState: castState({ material: 'fire' }) })
+    expect(dotOf(shot).fire).toBe(true)
+  })
+
+  it('appliesDot from trail_material: fire / poison / acid→toxic', () => {
+    expect(dotOf(shotWith({ projectiles: [{ entity: RUBBER }], castState: castState({ trail_material: 'fire,' }) })).fire).toBe(true)
+    expect(dotOf(shotWith({ projectiles: [{ entity: RUBBER }], castState: castState({ trail_material: 'poison,' }) })).poison).toBe(true)
+    expect(dotOf(shotWith({ projectiles: [{ entity: RUBBER }], castState: castState({ trail_material: 'acid,' }) })).toxic).toBe(true)
+  })
+
+  it('appliesDot.poison / .toxic from a material-spraying projectile (entity path)', () => {
+    expect(dotOf(shotWith({ projectiles: [{ entity: POISON }] })).poison).toBe(true)
+    expect(dotOf(shotWith({ projectiles: [{ entity: ACID }] })).toxic).toBe(true)
+  })
+
+  it('appliesDot recurses into a trigger payload', () => {
+    const shot = shotWith({ projectiles: [{ entity: RUBBER, trigger: shotWith({ projectiles: [{ entity: GRENADE }] }) }] })
+    expect(dotOf(shot).fire).toBe(true)
+  })
+
+  it('appliesDot on fixtures is goldens-safe: only the GRENADE applies fire', () => {
+    expect(metricsFor('snapshot_02.json').appliesDot).toEqual({ fire: true, poison: false, toxic: false })
+    expect(metricsFor('snapshot_01.json').appliesDot).toEqual({ fire: false, poison: false, toxic: false })
+    expect(metricsFor('snapshot_03.json').appliesDot).toEqual({ fire: false, poison: false, toxic: false })
+  })
 })

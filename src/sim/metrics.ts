@@ -47,6 +47,15 @@ export interface WandMetrics {
    *  lethal blast from a harmless digging explosion (same radius, no damage). */
   maxExplosionDamage: number
 
+  /** Status / damage-over-time the wand APPLIES — a capability flag, not a damage
+   *  number. Poison/toxic are material-stain status (not a projectile damage field), so
+   *  we can detect *that* a wand applies them but not quantify it from projectile data;
+   *  all three DoTs tick ~2% max-HP/s in-game, which is the answer to tanky/boss targets
+   *  a raw-HP single-hit model is blind to. Default all-false; surfaced for a boss/tank
+   *  lens. (Grounded: noita.wiki.gg Fire / Toxic Sludge / Damage_types — see
+   *  docs/scoring-grounding-spec.md Principle 8.) */
+  appliesDot: { fire: boolean; poison: boolean; toxic: boolean }
+
   /** Engine hit its 10-iteration cap — cycle figures are a truncated lower bound. */
   truncated: boolean
   /** A fired projectile was absent from the stats table (modded) — damage understated. */
@@ -173,9 +182,25 @@ export function computeMetrics(
   // digging explosion (same radius, 0 damage).
   let maxExplosionRadius = 0
   let maxExplosionDamage = 0
-  const scanExplosions = (shot: WandShot, depth: number): void => {
+  // Status/DoT capability (see WandMetrics.appliesDot). Detected from data we actually
+  // have: per-projectile typed FIRE damage; a shot-level material the whole shot deposits
+  // (NUKE → material 'fire'; TRAIL_FIRE/POISON/TOXIC accumulate into trail_material as
+  // 'fire,'/'poison,'/'acid,'); and poison/acid-spraying projectiles, whose stain isn't a
+  // damage field (so we match the entity path — poison_blast, bullet_poison, acidshot,
+  // cloud_acid, …). Honest LIMITS: poison/toxic puddle uptime/size isn't in our data, so
+  // this is a capability flag, never a DoT-HP number; and a few pure-explosion fire
+  // emitters that ignite without a `damage_by_type.fire` (e.g. fireblast) are missed —
+  // path-matching 'fire' is NOT clean (it would trip `..._friendly_fire`), so we accept
+  // the minor false-negative over a brittle curated allowlist.
+  const appliesDot = { fire: false, poison: false, toxic: false }
+  const scanProjectileTree = (shot: WandShot, depth: number): void => {
     const radiusAdd = shot.castState?.explosion_radius ?? 0
     const explAdd = shot.castState?.damage_explosion_add ?? 0
+    const material = shot.castState?.material ?? ''
+    const trail = shot.castState?.trail_material ?? ''
+    if (material === 'fire' || trail.includes('fire')) appliesDot.fire = true
+    if (trail.includes('poison')) appliesDot.poison = true
+    if (trail.includes('acid')) appliesDot.toxic = true
     for (const p of shot.projectiles) {
       const st = getProjectileStats(p.entity)
       const r = (st?.explosionRadius ?? 0) + radiusAdd
@@ -183,10 +208,13 @@ export function computeMetrics(
       const baseExpl = st?.explosionDamage ?? 0
       const dHp = (baseExpl > 0 || explAdd > 0 ? Math.max(0, baseExpl + explAdd) : 0) * DAMAGE_UNIT_HP
       if (dHp > maxExplosionDamage) maxExplosionDamage = dHp
-      if (p.trigger && depth < TRIGGER_DEPTH_CAP) scanExplosions(p.trigger, depth + 1)
+      if ((st?.damageByType?.fire ?? 0) > 0) appliesDot.fire = true
+      if (p.entity.includes('poison')) appliesDot.poison = true
+      if (p.entity.includes('acid')) appliesDot.toxic = true
+      if (p.trigger && depth < TRIGGER_DEPTH_CAP) scanProjectileTree(p.trigger, depth + 1)
     }
   }
-  for (const s of shots) scanExplosions(s, 0)
+  for (const s of shots) scanProjectileTree(s, 0)
 
   return {
     shotsUntilReload: shots.length,
@@ -206,6 +234,7 @@ export function computeMetrics(
     effectiveSpread,
     maxExplosionRadius,
     maxExplosionDamage,
+    appliesDot,
     truncated: hitIterationLimit,
     damageApproximate,
   }
