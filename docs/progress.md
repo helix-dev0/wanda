@@ -254,8 +254,8 @@ fresh-context agents grounded the fixes against the reused engine + the noita.wi
 
 **Remaining engine gaps:** (1) ✅ **reload now OVERLAPs recharge** — FIXED 2026-06-22, see next section.
 (2) **velocity/`speed_multiplier` damage** — DEFERRED with rationale (it's an *anti-proxy* for
-impact-speed damage; a static model would be sign-inverted). (3) **REF tier constants** want
-re-grounding now that the overlap fix raises fast-wand DPS further.
+impact-speed damage; a static model would be sign-inverted). (3) ✅ **`REF.sustainedDps` re-grounded
+150→300** — FIXED 2026-06-22, see below; `MANA_PENALTY` + a full real-corpus calibration still pending.
 
 ## ✅ Engine fidelity — reload OVERLAPs recharge (2026-06-22)
 
@@ -272,6 +272,20 @@ re-derived (snap_01 50→39, snap_02 69→41 with sustainedDps now == burstDps, 
 byte-exact.** 334 tests green · typecheck/lint clean · fresh-context adversarial review independently
 re-derived every number (incl. `secondsUntilStall 6.13→2.19`) → **SHIP**. [APP] `sim/metrics.ts`,
 engine untouched (the fix is in our DPS-interpretation layer).
+
+## ✅ Tier calibration — REF.sustainedDps re-grounded 150→300 (2026-06-22)
+
+A calibration probe across a DPS spread exposed a **top-end collapse**: at `REF.sustainedDps=150`
+the saturating `sat(dps,ref)` put the **entire 300–2000+ DPS range at S** (300→81/S, 2000→100/S), so
+the DAMAGE/SPAM tiers couldn't tell a solid mid-game wand from an elite one — the gap the maintainer
+flagged ("fast wands saturate to S"). Re-grounded `REF.sustainedDps` to **300**: S now reserved for
+genuinely-elite DPS (blended-DAMAGE crosses 80 at ~450 sustained), so **100→C, 300→A, 700→S, 2000→S**.
+Monotonic (proven: 0 rank inversions over 200k random pairs), so no within-pool ranking changes; only
+absolute bands shift. Pinned the band intent + the calibration-robust SPAM mana-gate as new tests (an
+old `bubble>grenade` fixture ordering — a low-REF artifact between two near-zero wands — was replaced
+by a synthetic gate test). 337 green; fresh-context adversarial review (monotonicity + honest-test
+audit) → **SHIP**. **Still provisional:** `MANA_PENALTY` + a full real-wand-corpus calibration (needs
+richer `captures/` than the current fresh-run starters). [APP] `analysis/archetypes.ts`.
 
 ## Tooling — recording real runs (2026-06-22)
 `npm run record` (`bridge/record.mjs`) persists every distinct live snapshot to `captures/` (gitignored),

@@ -137,8 +137,12 @@ blast (radius>0, damage 0) no longer scores like a nuke.
   wrap + multicast modifier-broadcast + payload) and a cheap-shot×modifier spam template, plus
   **deeper-than-depth-1 search** to *discover* trigger chains (polish still can't fill empty slots, so
   build quality is bounded by template shape + depth-1).
-- **REF-constant calibration** — once damage is payload-aware the magnitudes shift; tune
-  `REF`/`MANA_PENALTY` against REAL captured wands (`captures/`) so tiers match player intuition.
+- **REF-constant calibration** — once damage is payload-aware + the reload-overlap fix raised
+  fast-wand DPS, the magnitudes shifted. **`REF.sustainedDps` re-grounded 150→300 (2026-06-22)** so S
+  is elite DPS (was: the 300–2000+ range all collapsed to S); monotonic, band intent pinned in
+  `archetypes.test.ts`. **Still provisional:** `MANA_PENALTY` + a full corpus calibration of all
+  `REF`s against REAL captured wands (`captures/`) — blocked on richer captures than the current
+  fresh-run starters (the committed fixtures are all ≤117 DPS).
 
 ## 4. Verification
 

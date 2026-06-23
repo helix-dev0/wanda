@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { parseSnapshot, type Wand } from '../schema/snapshot'
-import { evalWand, clearSimCache } from './simCache'
+import { evalWand, clearSimCache, type WandEval } from './simCache'
 import { scoreWand, tierForScore } from './archetypes'
+import type { WandMetrics } from '../sim/metrics'
 
 const fixtures = import.meta.glob('../data/fixtures/snapshot_*.json', {
   eager: true,
@@ -35,6 +36,21 @@ const makeWand = (over: Partial<Wand> = {}): Wand => ({
 
 const scoreOf = (wand: Wand) => scoreWand(wand, evalWand(wand))
 
+/** A WandMetrics with neutral defaults; override only what a test exercises. Lets the
+ *  calibration + mana-gate tests probe scoring at a controlled DPS / mana-sustain —
+ *  robust to REF calibration, unlike the near-zero fixtures. */
+const synthMetrics = (over: Partial<WandMetrics> = {}): WandMetrics => ({
+  shotsUntilReload: 1, cycleFrames: 30, cycleSeconds: 0.5, fireSeconds: 0.3,
+  projectilesPerCast: 1, projectilesPerCycle: 1, projectilesPerSecond: 6,
+  damagePerCast: 0, damagePerCycle: 0, sustainedDps: 0, burstDps: 0,
+  manaPerCycle: 0, manaSustainable: true, secondsUntilStall: null,
+  effectiveSpread: 0, maxExplosionRadius: 0, maxExplosionDamage: 0,
+  truncated: false, damageApproximate: false,
+  ...over,
+})
+const scoreSynth = (over: Partial<WandMetrics>) =>
+  scoreWand(makeWand(), { metrics: synthMetrics(over) } as unknown as WandEval)
+
 describe('tierForScore — absolute band boundaries', () => {
   it('maps scores to S/A/B/C/D at 80/60/40/20', () => {
     expect(tierForScore(80)).toBe('S')
@@ -44,6 +60,30 @@ describe('tierForScore — absolute band boundaries', () => {
     expect(tierForScore(20)).toBe('C')
     expect(tierForScore(19)).toBe('D')
     expect(tierForScore(0)).toBe('D')
+  })
+})
+
+describe('scoreWand — DAMAGE bands track the Noita power curve (calibration)', () => {
+  // The saturation reference (REF.sustainedDps) is a PRODUCT calibration: S is reserved
+  // for ELITE DPS (blended-DAMAGE crosses 80 at ~450 sustained), so a ~300-DPS wand is A,
+  // not S, and
+  // the top end stays discriminable — a 300-DPS wand and a 2000-DPS wand are NOT both S.
+  // Magnitudes are provisional (no labeled real-wand corpus yet); the monotonic ORDERING
+  // is the hard invariant, the bands an explicit intent pinned here so a future re-tune is
+  // a deliberate, reviewed change rather than silent drift.
+  const dmg = (sustainedDps: number) =>
+    scoreSynth({ sustainedDps, burstDps: sustainedDps * 1.6 }).DAMAGE
+
+  it('S is elite: 100 → C, 300 → A (not S), 700 → S', () => {
+    expect(dmg(100).tier).toBe('C')
+    expect(dmg(300).tier).toBe('A')
+    expect(dmg(700).tier).toBe('S')
+  })
+
+  it('top end stays discriminable — a 300-DPS and a 2000-DPS wand are not both S', () => {
+    expect(dmg(2000).score).toBeGreaterThan(dmg(300).score)
+    expect(dmg(300).tier).not.toBe('S')
+    expect(dmg(2000).tier).toBe('S')
   })
 })
 
@@ -58,11 +98,21 @@ describe('scoreWand — fixture orderings (signature-dominant)', () => {
     expect(b).toBeGreaterThan(r)
   })
 
-  it('SPAM ranks the sustainable fast wand top; the mana-limited grenade is gated', () => {
+  it('SPAM mana-gate: at equal DPS+rate the sustainable wand strictly beats the staller', () => {
+    // The calibration-robust property. (The old `bubble.score > grenade.score` fixture
+    // ordering was a low-REF artifact: both fixtures are near-zero DPS, so once REF rose
+    // the 117-DPS gated grenade edged the 17-DPS sustainable bubble — a meaningless
+    // ordering between two terrible spammers.) Isolate the gate: identical sustained
+    // DPS + fire rate, differ ONLY on mana sustain; the gate must drop the staller.
+    const sustainable = scoreSynth({ sustainedDps: 200, burstDps: 320, manaSustainable: true }).SPAM
+    const stalling = scoreSynth({ sustainedDps: 200, burstDps: 320, manaSustainable: false, secondsUntilStall: 3 }).SPAM
+    expect(sustainable.score).toBeGreaterThan(stalling.score)
+    expect(stalling.reasons.join(' ')).toMatch(/mana/i)
+  })
+
+  it('SPAM surfaces the real-fixture mana state (grenade gated, bubble sustainable)', () => {
     const bubble = scoreOf(heldWand('snapshot_03.json')).SPAM
     const grenade = scoreOf(heldWand('snapshot_02.json')).SPAM
-    expect(bubble.score).toBeGreaterThan(grenade.score)
-    // the near-gate is the reason, surfaced for the UI
     expect(grenade.reasons.join(' ')).toMatch(/mana/i)
     expect(bubble.topMetrics.find((t) => t.label === 'Mana')?.value).toBe('sustainable')
   })

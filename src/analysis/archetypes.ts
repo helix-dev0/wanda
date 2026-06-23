@@ -37,9 +37,15 @@ function sat(x: number, ref: number): number {
 }
 
 /** Reference points where a single signal reaches ~63/100. PROVISIONAL — calibrate
- *  against real captured wands (docs/scoring-grounding-spec.md Tier 2). */
+ *  against real captured wands (docs/scoring-grounding-spec.md Tier 2).
+ *  `sustainedDps` re-grounded 150→300 (2026-06-22): at 150 the whole 300–2000+ DPS
+ *  range collapsed to S (no top-end discrimination). At 300 the saturation puts the
+ *  blended-DAMAGE S threshold at ~450 sustained DPS (with proportional burst), so a
+ *  merely-good ~300-DPS wand is A and an elite ~700+ wand is S — matching the Noita
+ *  power curve (verified: 100→C, 300→A, 700→S, 2000→S). Monotonic
+ *  (all rankings preserved); the new band intent is pinned in archetypes.test.ts. */
 const REF = {
-  sustainedDps: 150,
+  sustainedDps: 300,
   burstDps: 400,
   projPerSec: 8,
   aoeRadius: 60,
