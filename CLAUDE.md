@@ -117,10 +117,36 @@ always run without the bridge.**
 | Test (watch) | `npm run test:watch` |
 | Single test by file/name | `npm test -- snapshot` (filename substring) · `npm test -- -t "rejects"` (test name) |
 | Lint | `npm run lint` (`eslint .`) |
+| Native app (dev window) | `npm run tauri dev` |
+| Native installers (this OS) | `npm run tauri build` (Linux `.deb`/`.AppImage`; Windows `.exe`/`.msi`) |
+| Package the capture mod | `npm run package:mod` (→ `wand-capture-mod.zip`) |
 
 Test config: `vitest.config.ts` (Node env, `src/**/*.test.ts`, globals off — import from `vitest`).
-Also installed since: **Zustand 5** (M2 run-state), **@floating-ui/react 0.27** (M5+ hover tooltips).
-**chokidar 5 / Tauri v2 are NOT yet installed** — added at their milestones (M1-T5 / M6).
+Also installed since: **Zustand 5** (M2 run-state), **@floating-ui/react 0.27** (M5+ hover tooltips),
+**chokidar 5 + ws** (M1 live bridge), **Tauri v2** (`@tauri-apps/{api,cli,plugin-fs}` — M6 packaging
+brought forward), **adm-zip** (mod-zip tooling). See **Release pipeline** below.
+
+## Release pipeline (M6 packaging — shipped)
+
+The app ships as **native desktop installers** via **Tauri v2** (`src-tauri/`), wired to the
+existing Vite app (`frontendDist: ../dist`, `beforeBuildCommand: npm run build`). The repo is
+**private** — `git@github.com:helix-dev0/wanda.git` — because the vendored `src/engine` simulator
+is all-rights-reserved; do **not** make it public without relicensing (see `src/engine/README.md`).
+
+- **Cut a release:** bump `version` in `src-tauri/tauri.conf.json` (the source of truth), then
+  `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag triggers `.github/workflows/release.yml`
+  (`tauri-apps/tauri-action`; matrix `ubuntu-22.04` → `.deb`/`.AppImage`, `windows-latest` →
+  `.exe`/`.msi`), which **drafts** a GitHub Release with the installers + attaches
+  `wand-capture-mod.zip`. Review, then publish the draft (`gh release edit vX.Y.Z --draft=false`).
+- **Live data in the packaged app** uses Tauri `plugin-fs` `watch` (`src/bridge/tauriClient.ts`) —
+  no Node sidecar, no `ws://localhost`, no firewall prompt. Browser dev keeps the Node WS bridge
+  (`bridge/watch.mjs`); `startLive()` (`src/bridge/startLive.ts`) switches on `isTauri()`, and both
+  feed the same `handleBridgeMessage` ingestion boundary. Snapshot path = per-OS default +
+  localStorage override (Settings UI; required for Linux/Proton).
+- **Windows is only BUILD-verifiable in CI.** The Linux maintainer cannot certify the Windows
+  runtime — a Windows co-player must confirm the `.exe` actually runs before a release is trusted
+  (same human-in-the-loop rule as the mod).
+- First release: **v0.1.0** (2026-06-22) — both-OS installers + mod, published.
 
 ## Workflow notes
 - Spec → plan → implementation are distinct phases; the `.md` artifact is the handoff.
