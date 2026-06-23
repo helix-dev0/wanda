@@ -7,6 +7,10 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
   globalIgnores(['dist']),
+  // Tauri build artifacts (Rust target dir) — generated bundled JS/assets, not
+  // app source. Present only after `npm run tauri build`; ignored so a local
+  // native build doesn't make `npm run lint` fail on minified codegen output.
+  globalIgnores(['src-tauri/target']),
   // src/engine is a VENDORED fork of salinecitrine/noita-wand-simulator's
   // calc/ engine (+ its build-time-generated tables and ported tests). Third-
   // party code is not held to our house style, so it is exempt from lint.
