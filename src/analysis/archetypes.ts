@@ -50,15 +50,28 @@ const REF = {
   /** Spread (°) at which single-target on-target fraction halves. A tight BURST (~0°)
    *  keeps full single-target DPS; a SCATTER (~10–20°) sprays and loses it. */
   spreadDeg: 20,
+  /** Reach (px) at/above which single-target damage gets FULL range credit. Every ranged
+   *  fixture is ≥500px (bubbleshot 500, light_bullet 567, grenade 2333, rubber_ball 9375)
+   *  so they're unchanged; close-range tools (luminous drill ~47, chainsaw ~7, laser ~75)
+   *  fall below and are discounted. PROVISIONAL — calibrate vs real wands (rebuild-spec §6 Q2). */
+  reachRef: 250,
   projPerSec: 8,
   aoeRadius: 60,
   aoeDamage: 100, // HP of a strong blast (bomb 125, grenade 47.5, nuke 250)
   projPerCycle: 12,
 } as const
 
-/** Multipliers applied when the wand can't sustain fire (the near-gate). A spammer
- *  MUST fire continuously, so its mana gate is harsher than a burst dealer's. */
-const MANA_PENALTY = { damage: 0.6, spam: 0.2 } as const
+/** Floor on the range factor — a close-range weapon still deals SOME single-target damage
+ *  in melee, so reach never zeroes the score (it caps the discount). */
+const REACH_FLOOR = 0.1
+
+/** Fraction of single-target damage that actually reaches an engaged enemy. Full credit at
+ *  reach ≥ REF.reachRef (any normal ranged projectile); discounted toward REACH_FLOOR for a
+ *  short-lived close-range beam/melee used as a "damage" wand (luminous drill, chainsaw).
+ *  No-op for the ranged fixtures (all ≥500px). (docs/scoring-rebuild-spec.md §2.) */
+function reachFraction(reachWeightedPx: number): number {
+  return Math.min(1, Math.max(REACH_FLOOR, reachWeightedPx / REF.reachRef))
+}
 
 export function tierForScore(score: number): Tier {
   if (score >= 80) return 'S'
@@ -97,16 +110,25 @@ function scoreDamage(m: WandMetrics): ArchetypeScore {
   // so low-spread goldens are byte-identical. Crowd/AoE is scored separately and pays
   // nothing here — spread helps there. (noita.wiki.gg: Spread randomizes projectile angle.)
   const onTarget = REF.spreadDeg / (REF.spreadDeg + Math.max(0, m.effectiveSpread))
+  // Single-target DPS only counts if it reaches the target. A close-range tool (luminous
+  // drill, chainsaw) delivers its DPS only in melee, so it is not a ranged damage wand —
+  // discount by how far its damage actually travels. Ranged wands (≥REF.reachRef) pay nothing.
+  const reach = reachFraction(m.reachWeightedPx)
   const reasons: string[] = []
-  let score =
-    0.7 * sat(m.sustainedDps * onTarget, REF.sustainedDps) +
-    0.3 * sat(m.burstDps * onTarget, REF.burstDps)
+  // Sustained term uses the MANA-HONEST effectiveSustainedDps (B4): a wand that out-drains
+  // its regen can't keep that DPS up. Burst stays the raw peak — a mana-starved wand can
+  // still nova, and the 0.3 weight credits that. Both still gated by reach + on-target.
+  const score =
+    0.7 * sat(m.effectiveSustainedDps * onTarget * reach, REF.sustainedDps) +
+    0.3 * sat(m.burstDps * onTarget * reach, REF.burstDps)
+  if (reach < 0.9 && m.sustainedDps > 0) {
+    reasons.push(`short range (~${Math.round(m.reachWeightedPx)}px) — close-range, limited single-target reach`)
+  }
   if (m.effectiveSpread > 8) {
     reasons.push(`wide spread (${m.effectiveSpread.toFixed(0)}°) — sprays off a single target`)
   }
-  if (!m.manaSustainable) {
-    score *= MANA_PENALTY.damage
-    reasons.push('mana-limited — damage falls off under sustained fire')
+  if (m.effectiveSustainedDps < m.sustainedDps - 1) {
+    reasons.push(`mana-limited — sustains ~${m.effectiveSustainedDps.toFixed(0)} of ${m.sustainedDps.toFixed(0)} HP/s under continuous fire`)
   }
   // DoT is %-max-HP (~2%/s), so it shines vs tanky / boss targets a raw-HP model can't
   // see. We can detect the capability but not quantify it (poison/toxic is material stain,
@@ -117,7 +139,7 @@ function scoreDamage(m: WandMetrics): ArchetypeScore {
     'DAMAGE',
     score,
     [
-      { label: 'Sustained DPS', value: hp(m.sustainedDps) },
+      { label: 'Sustained DPS', value: hp(m.effectiveSustainedDps) },
       { label: 'Burst DPS', value: hp(m.burstDps) },
     ],
     reasons,
@@ -132,11 +154,15 @@ function scoreSpam(m: WandMetrics): ArchetypeScore {
   // sustain (a spammer that stalls is a poor spammer). REFs/penalty provisional.
   // rate ∈ [0.6, 1.0] — sat() returns 0–100, so normalize to a fraction.
   const rate = 0.6 + 0.4 * (sat(m.projectilesPerSecond, REF.projPerSec) / 100)
-  let score = sat(m.sustainedDps, REF.sustainedDps) * rate
+  // A spammer also has to REACH what it sprays — a close-range beam isn't a ranged spammer.
+  const reach = reachFraction(m.reachWeightedPx)
+  // effectiveSustainedDps (B4) folds the mana limit in CONTINUOUSLY — a spammer that can't
+  // pay for its fire rate self-throttles, which is exactly the spam failure mode. So the old
+  // hard ×0.2 mana gate is gone: the smooth ratio is the honest equivalent.
+  const score = sat(m.effectiveSustainedDps * reach, REF.sustainedDps) * rate
   const reasons: string[] = []
-  if (!m.manaSustainable) {
-    score *= MANA_PENALTY.spam
-    reasons.push('not mana-sustainable — a spammer must fire continuously')
+  if (m.effectiveSustainedDps < m.sustainedDps - 1) {
+    reasons.push('mana-limited — a spammer must fire continuously; output drops once mana runs dry')
   } else if (m.secondsUntilStall === null) {
     reasons.push('fires indefinitely')
   }
@@ -144,7 +170,7 @@ function scoreSpam(m: WandMetrics): ArchetypeScore {
     'SPAM',
     score,
     [
-      { label: 'Sustained DPS', value: hp(m.sustainedDps) },
+      { label: 'Sustained DPS', value: hp(m.effectiveSustainedDps) },
       { label: 'Projectiles/s', value: m.projectilesPerSecond.toFixed(1) },
       { label: 'Mana', value: m.manaSustainable ? 'sustainable' : 'stalls' },
     ],

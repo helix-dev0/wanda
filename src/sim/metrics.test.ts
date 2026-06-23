@@ -92,6 +92,26 @@ describe('computeMetrics — fixture goldens', () => {
   })
 })
 
+describe('computeMetrics — range + mana-honest fields (B3/B4)', () => {
+  it('reachWeightedPx: damage-weighted projectile reach (px) per fixture', () => {
+    expect(metricsFor('snapshot_01.json').reachWeightedPx).toBeCloseTo(9375) // rubber_ball, very long
+    expect(metricsFor('snapshot_02.json').reachWeightedPx).toBeCloseTo(2333.33) // grenade
+    expect(metricsFor('snapshot_03.json').reachWeightedPx).toBeCloseTo(500) // bubbleshot
+  })
+  it('effectiveSustainedDps == sustainedDps when mana-sustainable (identity, goldens-safe)', () => {
+    const a = metricsFor('snapshot_01.json')
+    expect(a.effectiveSustainedDps).toBeCloseTo(a.sustainedDps)
+    const c = metricsFor('snapshot_03.json')
+    expect(c.effectiveSustainedDps).toBeCloseTo(c.sustainedDps)
+  })
+  it('effectiveSustainedDps throttles an out-draining wand (grenade 117→43, ×regen/drain)', () => {
+    const m = metricsFor('snapshot_02.json')
+    expect(m.manaSustainable).toBe(false)
+    expect(m.effectiveSustainedDps).toBeCloseTo(43.2, 1)
+    expect(m.effectiveSustainedDps).toBeLessThan(m.sustainedDps)
+  })
+})
+
 describe('computeMetrics — edge cases', () => {
   const stats: WandStats = {
     shuffle: false,

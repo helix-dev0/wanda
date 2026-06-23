@@ -9,7 +9,7 @@
 import type { WandShot } from '../engine/eval/types'
 import type { WandStats } from '../schema/snapshot'
 import { framesToSeconds } from '../ui/format'
-import { getProjectileStats, DAMAGE_UNIT_HP } from './data/projectileStats'
+import { getProjectileStats, DAMAGE_UNIT_HP, type ProjectileStats } from './data/projectileStats'
 
 export interface WandMetrics {
   /** Shots fired before the deck reloads (lower bound when `truncated`). */
@@ -29,9 +29,14 @@ export interface WandMetrics {
   damagePerCast: number
   /** Expected HP across one full cycle. */
   damagePerCycle: number
-  /** HP/sec including reload (and, if mana-limited, eventually stalls). */
+  /** HP/sec including reload, at full mana (the raw cycle rate; ignores mana scarcity). */
   sustainedDps: number
-  /** HP/sec while actively firing, excluding reload. */
+  /** HP/sec the wand can SUSTAIN once mana is the bottleneck: `sustainedDps × min(1,
+   *  regen/drain)`. Equals `sustainedDps` for any mana-sustainable wand; lower for one that
+   *  out-drains its regen (it can only fire as often as it can pay for). The honest
+   *  single-target headline the scorer reads. */
+  effectiveSustainedDps: number
+  /** HP/sec while actively firing, excluding reload (the burst/nova peak). */
   burstDps: number
 
   manaPerCycle: number
@@ -41,6 +46,11 @@ export interface WandMetrics {
 
   /** Wand base spread + the cast's accumulated spread (degrees; may be negative). */
   effectiveSpread: number
+  /** Damage-weighted mean projectile reach (px) across the cycle — how far the wand's
+   *  damage actually travels. Lets the scorer tell a ranged wand (light_bullet ~570px)
+   *  from a close-range tool used as a "damage" wand (luminous drill ~47px, chainsaw
+   *  ~7px). Endless projectiles count as full reach; 0 when the deck deals no damage. */
+  reachWeightedPx: number
   /** Largest explosion radius produced in the cycle (px); 0 if none. */
   maxExplosionRadius: number
   /** Largest explosion DAMAGE produced in the cycle (HP); 0 if none. Separates a
@@ -87,6 +97,36 @@ const TRIGGER_DEPTH_CAP = 16
 function critMultiplier(critChancePercent: number): number {
   const c = Math.max(0, critChancePercent) / 100
   return 1 + Math.min(c, 1) * (5 * Math.max(1, c) - 1)
+}
+
+// Damage types in damageByType that DON'T reduce an enemy's HP, so they must be
+// excluded from a damage sum: `healing` is negative (it HEALS the target —
+// regeneration_field carries healing:-0.05). Everything else (slice, electricity,
+// melee, ice, fire, drill, radioactive…) deals real enemy HP. (Audit: Damage_types;
+// noita.wiki.gg/wiki/Damage_types.) Used by the reach weighting now and by the typed-
+// damage sum (B1) — kept here so the two never diverge.
+const NON_DAMAGE_TYPES: ReadonlySet<string> = new Set(['healing'])
+
+/** Sum of a projectile's TYPED damage (damage_by_type), excluding non-damage types
+ *  (healing). 0 when untyped. In the same 1.0 = 25 HP unit as `damage`. */
+function typedDmg(st: ProjectileStats): number {
+  if (!st.damageByType) return 0
+  let sum = 0
+  for (const [t, v] of Object.entries(st.damageByType)) if (!NON_DAMAGE_TYPES.has(t)) sum += v
+  return sum
+}
+
+/** A projectile that never dies has effectively unlimited reach (full credit). A large
+ *  finite sentinel keeps the damage-weighted average finite (Infinity would poison it). */
+const REACH_ENDLESS = 1e6
+
+/** How far a projectile travels before it dies (px), the usable single-target range.
+ *  `lifetime < 0` = endless (full credit); `speedMax <= 0` = stationary (0). Mirrors
+ *  selfDanger.reachOf, the one reach heuristic in the codebase. */
+function reachOfStats(st: ProjectileStats): number {
+  if (st.lifetime < 0) return REACH_ENDLESS
+  if (st.speedMax <= 0) return 0
+  return (st.speedMax * st.lifetime) / 60
 }
 
 // Expected HP of one shot INCLUDING its trigger payloads: every top-level projectile
@@ -165,6 +205,15 @@ export function computeMetrics(
   const manaPerCycle = shots.reduce((m, s) => m + (s.manaDrain ?? 0), 0)
   const regenPerCycle = stats.manaChargeSpeed * cycleSeconds
   const manaSustainable = manaPerCycle <= regenPerCycle
+  // Effective sustained DPS: a mana shortfall DROPS casts (it doesn't slow the clock —
+  // engine gun.ts:333 discards an unaffordable card that round), so over a sustained fight
+  // the wand delivers only the fraction of full output that regen can pay for: × min(1,
+  // regen/drain). IDENTITY when the wand sustains its own fire (ratio 1 ⇒ effective == raw),
+  // so a sustainable wand's headline is unchanged. Only out-draining wands are pulled down,
+  // smoothly (a 10%-over-drain wand loses ~9%, not a cliff). (B4; docs/scoring-rebuild-spec.md
+  // §1; grounded noita.wiki.gg/wiki/Wands mana.) Negative drain (Add Mana) ⇒ ratio 1.
+  const manaRatio = manaPerCycle > 0 ? Math.min(1, regenPerCycle / manaPerCycle) : 1
+  const effectiveSustainedDps = sustainedDps * manaRatio
   let secondsUntilStall: number | null = null
   if (!manaSustainable && cycleSeconds > 0) {
     const netDrainPerSecond = (manaPerCycle - regenPerCycle) / cycleSeconds
@@ -182,6 +231,13 @@ export function computeMetrics(
   // digging explosion (same radius, 0 damage).
   let maxExplosionRadius = 0
   let maxExplosionDamage = 0
+  // Damage-weighted reach: Σ(perProjectileDamage × reach) / Σ(perProjectileDamage) over the
+  // whole cycle (recursing payloads). Weighting by damage means a mostly-ranged deck stays
+  // "ranged" even with a little close-range filler, and a deck whose damage is mostly a
+  // short-range beam reads close-range. The weight uses direct + typed + intrinsic explosion
+  // damage (the projectile's full damage potential), independent of the HP scoring path.
+  let reachNumer = 0
+  let reachDenom = 0
   // Status/DoT capability (see WandMetrics.appliesDot). Detected from data we actually
   // have: per-projectile typed FIRE damage; a shot-level material the whole shot deposits
   // (NUKE → material 'fire'; TRAIL_FIRE/POISON/TOXIC accumulate into trail_material as
@@ -203,6 +259,13 @@ export function computeMetrics(
     if (trail.includes('acid')) appliesDot.toxic = true
     for (const p of shot.projectiles) {
       const st = getProjectileStats(p.entity)
+      if (st) {
+        const w = Math.max(0, st.damage + typedDmg(st)) + Math.max(0, st.explosionDamage)
+        if (w > 0) {
+          reachDenom += w
+          reachNumer += w * reachOfStats(st)
+        }
+      }
       const r = (st?.explosionRadius ?? 0) + radiusAdd
       if (r > maxExplosionRadius) maxExplosionRadius = r
       const baseExpl = st?.explosionDamage ?? 0
@@ -215,6 +278,8 @@ export function computeMetrics(
     }
   }
   for (const s of shots) scanProjectileTree(s, 0)
+  // No damage anywhere ⇒ 0 (range is irrelevant to a 0-DPS deck; the scorer floors it).
+  const reachWeightedPx = reachDenom > 0 ? reachNumer / reachDenom : 0
 
   return {
     shotsUntilReload: shots.length,
@@ -227,11 +292,13 @@ export function computeMetrics(
     damagePerCast,
     damagePerCycle,
     sustainedDps,
+    effectiveSustainedDps,
     burstDps,
     manaPerCycle,
     manaSustainable,
     secondsUntilStall,
     effectiveSpread,
+    reachWeightedPx,
     maxExplosionRadius,
     maxExplosionDamage,
     appliesDot,

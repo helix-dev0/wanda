@@ -39,16 +39,22 @@ const scoreOf = (wand: Wand) => scoreWand(wand, evalWand(wand))
 /** A WandMetrics with neutral defaults; override only what a test exercises. Lets the
  *  calibration + mana-gate tests probe scoring at a controlled DPS / mana-sustain —
  *  robust to REF calibration, unlike the near-zero fixtures. */
-const synthMetrics = (over: Partial<WandMetrics> = {}): WandMetrics => ({
-  shotsUntilReload: 1, cycleFrames: 30, cycleSeconds: 0.5, fireSeconds: 0.3,
-  projectilesPerCast: 1, projectilesPerCycle: 1, projectilesPerSecond: 6,
-  damagePerCast: 0, damagePerCycle: 0, sustainedDps: 0, burstDps: 0,
-  manaPerCycle: 0, manaSustainable: true, secondsUntilStall: null,
-  effectiveSpread: 0, maxExplosionRadius: 0, maxExplosionDamage: 0,
-  appliesDot: { fire: false, poison: false, toxic: false },
-  truncated: false, damageApproximate: false,
-  ...over,
-})
+const synthMetrics = (over: Partial<WandMetrics> = {}): WandMetrics => {
+  const base: WandMetrics = {
+    shotsUntilReload: 1, cycleFrames: 30, cycleSeconds: 0.5, fireSeconds: 0.3,
+    projectilesPerCast: 1, projectilesPerCycle: 1, projectilesPerSecond: 6,
+    damagePerCast: 0, damagePerCycle: 0, sustainedDps: 0, effectiveSustainedDps: 0, burstDps: 0,
+    manaPerCycle: 0, manaSustainable: true, secondsUntilStall: null,
+    effectiveSpread: 0, reachWeightedPx: 100000, maxExplosionRadius: 0, maxExplosionDamage: 0,
+    appliesDot: { fire: false, poison: false, toxic: false },
+    truncated: false, damageApproximate: false,
+  }
+  const merged = { ...base, ...over }
+  // effectiveSustainedDps defaults to the (possibly-overridden) sustainedDps — mirrors
+  // metrics.ts's identity-when-sustainable. Mana tests set it explicitly to throttle.
+  if (over.effectiveSustainedDps === undefined) merged.effectiveSustainedDps = merged.sustainedDps
+  return merged
+}
 const scoreSynth = (over: Partial<WandMetrics>) =>
   scoreWand(makeWand(), { metrics: synthMetrics(over) } as unknown as WandEval)
 
@@ -61,6 +67,29 @@ describe('tierForScore — absolute band boundaries', () => {
     expect(tierForScore(20)).toBe('C')
     expect(tierForScore(19)).toBe('D')
     expect(tierForScore(0)).toBe('D')
+  })
+})
+
+describe('scoreWand — DAMAGE/SPAM are range-aware (close-range ≠ ranged DPS)', () => {
+  // A short-lived close-range beam (luminous drill ~47px, chainsaw ~7px) used as a
+  // "damage" wand must NOT score like a ranged shot of equal DPS — it can't deliver that
+  // DPS at engagement range. Reach at/above REACH_REF (a normal ranged projectile, e.g.
+  // light_bullet ~570px) keeps full credit, so every ranged fixture is unchanged.
+  // Grounded: docs/scoring-rebuild-spec.md §2 + the live reach probe.
+  it('penalizes a close-range deck vs a ranged deck at equal DPS', () => {
+    const ranged = scoreSynth({ sustainedDps: 300, burstDps: 300, projectilesPerSecond: 8, reachWeightedPx: 9375 })
+    const close = scoreSynth({ sustainedDps: 300, burstDps: 300, projectilesPerSecond: 8, reachWeightedPx: 47 })
+    expect(close.DAMAGE.score).toBeLessThan(ranged.DAMAGE.score - 15)
+    expect(close.SPAM.score).toBeLessThan(ranged.SPAM.score - 10)
+  })
+  it('reach at/above the reference gets full credit (ranged wands unaffected)', () => {
+    const ranged = scoreSynth({ sustainedDps: 200, burstDps: 200, reachWeightedPx: 600 })
+    const unbounded = scoreSynth({ sustainedDps: 200, burstDps: 200, reachWeightedPx: 100000 })
+    expect(ranged.DAMAGE.score).toBe(unbounded.DAMAGE.score)
+    expect(ranged.SPAM.score).toBe(unbounded.SPAM.score)
+  })
+  it('a 0-damage deck (reachWeightedPx 0) stays 0 DAMAGE (no spurious change)', () => {
+    expect(scoreSynth({ sustainedDps: 0, burstDps: 0, reachWeightedPx: 0 }).DAMAGE.score).toBe(0)
   })
 })
 
@@ -121,15 +150,13 @@ describe('scoreWand — fixture orderings (signature-dominant)', () => {
     expect(b).toBeGreaterThan(r)
   })
 
-  it('SPAM mana-gate: at equal DPS+rate the sustainable wand strictly beats the staller', () => {
-    // The calibration-robust property. (The old `bubble.score > grenade.score` fixture
-    // ordering broke under this branch: the reload-overlap fix raised grenade's DPS
-    // (69→117 cycle) and REF rose 150→300, so the now-gated 117-DPS grenade (×0.2) edged
-    // the 17-DPS sustainable bubble — both round to ~4/100, a meaningless ordering between
-    // two terrible spammers.) Isolate the gate instead: identical sustained DPS + fire
-    // rate, differ ONLY on mana sustain; the gate must drop the staller.
-    const sustainable = scoreSynth({ sustainedDps: 200, burstDps: 320, manaSustainable: true }).SPAM
-    const stalling = scoreSynth({ sustainedDps: 200, burstDps: 320, manaSustainable: false, secondsUntilStall: 3 }).SPAM
+  it('SPAM mana-throttle: at equal RAW DPS+rate the sustainable wand beats the mana-starved one', () => {
+    // B4: stalling is now modeled CONTINUOUSLY — a wand that out-drains its regen can only
+    // fire as often as regen pays for, captured by a throttled effectiveSustainedDps (NOT a
+    // hard ×0.2 gate). Identical raw sustained DPS + fire rate; the staller's effective DPS
+    // is throttled (200→40 = pays for ~20% of its fire), so it scores strictly lower.
+    const sustainable = scoreSynth({ sustainedDps: 200, effectiveSustainedDps: 200, burstDps: 320 }).SPAM
+    const stalling = scoreSynth({ sustainedDps: 200, effectiveSustainedDps: 40, burstDps: 320, manaSustainable: false, secondsUntilStall: 3 }).SPAM
     expect(sustainable.score).toBeGreaterThan(stalling.score)
     expect(stalling.reasons.join(' ')).toMatch(/mana/i)
   })
