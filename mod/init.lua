@@ -181,7 +181,13 @@ end
 -- number doesn't defeat the emit-on-change check. (Nearby shop/pedestal/Holy-Mountain
 -- = M1-T6 — the next additive slice.)
 local function build_snapshot()
-  if not player_entity then player_entity = EntityGetWithTag("player_unit")[1] end
+  -- Re-fetch when the cached handle is nil OR DEAD. After a death/respawn (e.g. the
+  -- quant.ew co-op respawn) OnPlayerSpawned may not re-fire, leaving a stale dead
+  -- entity that reads no inventory_quick -> 0 wands forever. EntityGetIsAlive(dead)
+  -- is false, so this refreshes to the live player.
+  if not player_entity or not EntityGetIsAlive(player_entity) then
+    player_entity = EntityGetWithTag("player_unit")[1]
+  end
   local player = player_entity
   if not player then return nil end
 
