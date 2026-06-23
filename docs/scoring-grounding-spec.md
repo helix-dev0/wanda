@@ -149,9 +149,14 @@ blast (radius>0, damage 0) no longer scores like a nuke.
   both shuffle-gated + cap-safe. Engine-validated (modifier-broadcast ≈ 6× the bare multicast: sustDps
   43→257) and end-to-end (a mixed pool now tops DAMAGE at 89/S where the bare multicast was 13/D).
   Grounded finding: crit BEFORE a trigger does NOT boost the payload, so the multiplier template uses
-  multicast-broadcast, not pre-trigger mods. **Still Tier 2:** **deeper-than-depth-1 search** to
-  *discover* chains beyond template seeds (polish still can't fill empty slots, so build quality is
-  bounded by template shape + depth-1 — a follow-on).
+  multicast-broadcast, not pre-trigger mods. **Deeper search / fill-empty-slots — DEFERRED (probed
+  low-value 2026-06-22).** Polish can't fill empty deck slots, but a probe showed filling a short
+  trigger seed `[ADD_TRIGGER, LIGHT_BULLET, NUKE]` gives **negligible or negative** score change (DMG
+  37 either way; extra payloads *lower* it) — its DPS is gated by the slow cycle + our single-payload-
+  per-cast model, not deck fullness, and the other templates already fill capacity. So the real limiter
+  is the DPS MODEL (multi-payload / velocity, deferred above), not search depth; an `allowInsert`
+  polish edit (gated to generation, M4 feed stays refine-only per the "empty deck yields nothing"
+  boundary) is wired-ready but not worth it until the model rewards bigger decks.
 - **REF-constant calibration** — once damage is payload-aware + the reload-overlap fix raised
   fast-wand DPS, the magnitudes shifted. **`REF.sustainedDps` re-grounded 150→300 (2026-06-22)** so S
   is elite DPS (was: the 300–2000+ range all collapsed to S); monotonic, band intent pinned in
