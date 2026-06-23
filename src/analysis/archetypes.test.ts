@@ -87,6 +87,19 @@ describe('scoreWand — DAMAGE bands track the Noita power curve (calibration)',
     expect(dmg(2000).tier).toBe('S')
   })
 
+  it('DAMAGE penalizes wide spread — a tight BURST beats a wide SCATTER at equal raw DPS', () => {
+    // The "engine can't tell BURST from SCATTER" bug: identical DPS, but a wide wand
+    // sprays off a single target, so its effective single-target damage is lower.
+    const tight = scoreSynth({ sustainedDps: 300, burstDps: 480, effectiveSpread: 0 }).DAMAGE
+    const wide = scoreSynth({ sustainedDps: 300, burstDps: 480, effectiveSpread: 18 }).DAMAGE
+    expect(tight.score).toBeGreaterThan(wide.score)
+    expect(wide.reasons.join(' ')).toMatch(/spread/i)
+    // A FOCUSED wand (spread ≤ 0) pays no penalty — so low-spread goldens are unchanged.
+    expect(scoreSynth({ sustainedDps: 300, burstDps: 480, effectiveSpread: -3 }).DAMAGE.score).toBe(
+      scoreSynth({ sustainedDps: 300, burstDps: 480, effectiveSpread: 0 }).DAMAGE.score,
+    )
+  })
+
   it('DAMAGE surfaces a DoT capability note (boss/tank lens) without changing the score', () => {
     const plain = scoreSynth({ sustainedDps: 300, burstDps: 480 }).DAMAGE
     const withDot = scoreSynth({ sustainedDps: 300, burstDps: 480, appliesDot: { fire: true, poison: true, toxic: false } }).DAMAGE

@@ -47,6 +47,9 @@ function sat(x: number, ref: number): number {
 const REF = {
   sustainedDps: 300,
   burstDps: 400,
+  /** Spread (°) at which single-target on-target fraction halves. A tight BURST (~0°)
+   *  keeps full single-target DPS; a SCATTER (~10–20°) sprays and loses it. */
+  spreadDeg: 20,
   projPerSec: 8,
   aoeRadius: 60,
   aoeDamage: 100, // HP of a strong blast (bomb 125, grenade 47.5, nuke 250)
@@ -87,8 +90,20 @@ function dotLabel(d: WandMetrics['appliesDot']): string {
 }
 
 function scoreDamage(m: WandMetrics): ArchetypeScore {
-  let score = 0.7 * sat(m.sustainedDps, REF.sustainedDps) + 0.3 * sat(m.burstDps, REF.burstDps)
+  // Single-target DPS only lands if the shots hit ONE point. Spread fans them out, so a
+  // wide wand loses single-target damage while a tight one keeps it — model an effective
+  // "fraction on target" that decays with spread (this is what lets the scorer prefer a
+  // tight BURST over a wide SCATTER at equal raw DPS). No penalty at ≤0° (a focused wand),
+  // so low-spread goldens are byte-identical. Crowd/AoE is scored separately and pays
+  // nothing here — spread helps there. (noita.wiki.gg: Spread randomizes projectile angle.)
+  const onTarget = REF.spreadDeg / (REF.spreadDeg + Math.max(0, m.effectiveSpread))
   const reasons: string[] = []
+  let score =
+    0.7 * sat(m.sustainedDps * onTarget, REF.sustainedDps) +
+    0.3 * sat(m.burstDps * onTarget, REF.burstDps)
+  if (m.effectiveSpread > 8) {
+    reasons.push(`wide spread (${m.effectiveSpread.toFixed(0)}°) — sprays off a single target`)
+  }
   if (!m.manaSustainable) {
     score *= MANA_PENALTY.damage
     reasons.push('mana-limited — damage falls off under sustained fire')
