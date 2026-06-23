@@ -20,7 +20,7 @@ import {
   MAX_ROUNDS,
   POLISH_POOL_MAX,
 } from './budget'
-import { buildPoolIndex, type PoolIndex } from './poolIndex'
+import { buildPoolIndex, isUtilitySpell, type PoolIndex } from './poolIndex'
 import { TEMPLATES, TEMPLATE_ORDER } from './templates'
 import type {
   AppliedEdit,
@@ -146,7 +146,13 @@ function generateForArchetype(
   caps: ReadonlyMap<string, number> | undefined,
   ideal: boolean,
 ): ArchetypeBuilds {
-  const trimmed = trimPool(ix, archetype, POLISH_POOL_MAX)
+  // For damage archetypes, drop UTILITY (digging / teleport) spells from the polish
+  // pool too: the scorer counts their tiny base damage (crit/multicast-inflated), so an
+  // unfiltered polish keeps re-adding diggers to a "damage" build even after the template
+  // seeds clean shots. Digging/teleport live in the MOBILITY (utility) tab.
+  const isDamageArchetype = archetype === 'DAMAGE' || archetype === 'SPAM' || archetype === 'AOE'
+  const pool0 = trimPool(ix, archetype, POLISH_POOL_MAX)
+  const trimmed = isDamageArchetype ? new Set([...pool0].filter((id) => !isUtilitySpell(id))) : pool0
   // Each candidate chassis gets a FAIR share of the per-archetype budget, measured
   // from its OWN start offset — so chassis #1 can't starve #2..N. Different-capacity
   // chassis are distinct sim-cache entries (wandKey includes stats), so the delta

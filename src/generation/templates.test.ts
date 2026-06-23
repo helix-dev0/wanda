@@ -39,11 +39,19 @@ describe('templates — instantiate seed decks from the pool', () => {
     expect(seeds[0].length).toBeGreaterThanOrEqual(2)
   })
 
-  it('spammer fills capacity with the cheapest projectile', () => {
-    // CHAINSAW(1) < BOMB(25)
-    expect(tpl('spammer').instantiate(ctx(['BOMB', 'CHAINSAW'], { capacity: 3, archetype: 'SPAM' }))).toEqual([
-      ['CHAINSAW', 'CHAINSAW', 'CHAINSAW'],
+  it('spammer fills capacity with the cheapest DAMAGE projectile', () => {
+    // LIGHT_BULLET(5) < BOMB(25). (CHAINSAW would be cheaper but it's a DIG-tagged
+    // utility enabler — diggers/teleports never seed a damage build, see isUtilitySpell.)
+    expect(tpl('spammer').instantiate(ctx(['BOMB', 'LIGHT_BULLET'], { capacity: 3, archetype: 'SPAM' }))).toEqual([
+      ['LIGHT_BULLET', 'LIGHT_BULLET', 'LIGHT_BULLET'],
     ])
+  })
+
+  it('spammer excludes utility (digging) projectiles even when cheapest', () => {
+    // Pool of ONLY a digger + a real projectile: the digger (DIG) is never the spam
+    // payload; the deck fills with the damage projectile.
+    const seeds = tpl('spammer').instantiate(ctx(['DIGGER', 'BOMB'], { capacity: 2, archetype: 'SPAM' }))
+    expect(seeds[0]?.every((id) => id === 'BOMB')).toBe(true)
   })
 
   it('multicast-stack leads with the multicast spell', () => {
@@ -104,21 +112,21 @@ describe('templates — instantiate seed decks from the pool', () => {
 
 describe('templates — respect owned-copy caps (no over-placement)', () => {
   it('spammer never places the cheapest projectile beyond its owned cap', () => {
-    // own CHAINSAW x1, BOMB x1; capacity 4 must NOT yield [CHAINSAW x4]
+    // own LIGHT_BULLET x1, BOMB x1; capacity 4 must NOT yield [LIGHT_BULLET x4]
     const seeds = tpl('spammer').instantiate(
-      ctx(['CHAINSAW', 'BOMB'], { capacity: 4, archetype: 'SPAM', caps: caps([['CHAINSAW', 1], ['BOMB', 1]]) }),
+      ctx(['LIGHT_BULLET', 'BOMB'], { capacity: 4, archetype: 'SPAM', caps: caps([['LIGHT_BULLET', 1], ['BOMB', 1]]) }),
     )
     expect(seeds).toHaveLength(1)
-    expect(count(seeds[0], 'CHAINSAW')).toBe(1)
+    expect(count(seeds[0], 'LIGHT_BULLET')).toBe(1)
     expect(count(seeds[0], 'BOMB')).toBe(1)
   })
 
   it('spammer spills to the next-cheapest once the cheapest is exhausted', () => {
-    // own CHAINSAW x2 (cheapest) then fall back to BOMB for the rest
+    // own LIGHT_BULLET x2 (cheapest) then fall back to BOMB for the rest
     const seeds = tpl('spammer').instantiate(
-      ctx(['CHAINSAW', 'BOMB'], { capacity: 4, archetype: 'SPAM', caps: caps([['CHAINSAW', 2], ['BOMB', 5]]) }),
+      ctx(['LIGHT_BULLET', 'BOMB'], { capacity: 4, archetype: 'SPAM', caps: caps([['LIGHT_BULLET', 2], ['BOMB', 5]]) }),
     )
-    expect(count(seeds[0], 'CHAINSAW')).toBe(2)
+    expect(count(seeds[0], 'LIGHT_BULLET')).toBe(2)
     expect(count(seeds[0], 'BOMB')).toBe(2)
   })
 

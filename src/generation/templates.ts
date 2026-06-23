@@ -9,7 +9,7 @@
 
 import type { Archetype } from '../analysis'
 import type { TemplateId } from './types'
-import { type PoolIndex, projectilesByMana } from './poolIndex'
+import { type PoolIndex, projectilesByMana, damageProjectilesByMana } from './poolIndex'
 
 export interface TemplateContext {
   index: PoolIndex
@@ -97,7 +97,8 @@ const triggerPayload: Template = {
     const used = new Map<string, number>()
     const trigger = index.triggers[0]
     if (!place(caps, used, trigger)) return [] // must own the trigger
-    const proj = projectilesByMana(index)
+    const proj = damageProjectilesByMana(index)
+    if (proj.length === 0) return [] // a trigger needs a DAMAGE carrier/payload, not a digger
     const carrier = proj[0]
     if (!place(caps, used, carrier)) return [] // must own a carrier projectile
     const deck = [trigger, carrier]
@@ -123,7 +124,7 @@ const multicastStack: Template = {
     const used = new Map<string, number>()
     const mc = index.multicasts[0]
     if (!place(caps, used, mc)) return [] // must own the multicast
-    const shots = draftFill(projectilesByMana(index), capacity - 1, caps, used)
+    const shots = draftFill(damageProjectilesByMana(index), capacity - 1, caps, used)
     if (shots.length === 0) return [] // need at least one owned shot to multicast
     return [truncate([mc, ...shots], capacity)]
   },
@@ -161,7 +162,7 @@ const multiplicativeStack: Template = {
       if (place(caps, used, m)) mods.push(m)
     }
     if (mods.length === 0) return [] // no owned modifier ⇒ this is just multicast-stack
-    const shots = draftFill(projectilesByMana(index), capacity - mods.length - 1, caps, used)
+    const shots = draftFill(damageProjectilesByMana(index), capacity - mods.length - 1, caps, used)
     if (shots.length === 0) return [] // need at least one shot for the multicast to draw
     return [truncate([...mods, mc, ...shots], capacity)]
   },
@@ -180,7 +181,7 @@ const cheapShotSpam: Template = {
   instantiate({ index, capacity, caps }) {
     if (index.modifiers.length === 0 || index.projectiles.length === 0 || capacity < 2) return []
     const used = new Map<string, number>()
-    const proj = projectilesByMana(index)
+    const proj = damageProjectilesByMana(index)
     const takeProj = (): string | null => proj.find((p) => place(caps, used, p)) ?? null
     const takeMod = (): string | null => index.modifiers.find((m) => place(caps, used, m)) ?? null
     const deck: string[] = []
@@ -204,7 +205,7 @@ const spammer: Template = {
   orderDependent: false,
   archetypes: ['SPAM'],
   instantiate({ index, capacity, caps }) {
-    const cheap = projectilesByMana(index)
+    const cheap = damageProjectilesByMana(index)
     if (cheap.length === 0 || capacity < 1) return []
     const deck = draftFill(cheap, capacity, caps, new Map())
     return deck.length > 0 ? [deck] : []
