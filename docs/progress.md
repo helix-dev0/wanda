@@ -2,7 +2,8 @@
 
 > Living status doc. Companion to [`plan.md`](./plan.md) (the milestone breakdown) and
 > [`../noita-wand-assistant-spec.md`](../noita-wand-assistant-spec.md) (the design).
-> **Last updated: 2026-06-22** · branch `feat/m5-generation` (off `feat/m3-engine`; M0 merged to `master`).
+> **Last updated: 2026-06-22** · branch `feat/engine-fidelity-tier1` (engine-fidelity + generation
+> slices: reload-overlap, REF re-grounding, status/DoT, modifier-stacking templates). 351 tests green.
 
 ## Milestone status
 
@@ -357,13 +358,24 @@ The live pipe works (mod → bridge → app, validated in-game): auto emit-on-ch
 (M1-T5), all carried wands (M1-T2), and per-spell quantity caps are in. The headline gap is now
 **engine fidelity** — the scorer doesn't model the real Noita meta (see "🔴 Engine grounding" above).
 
-**1. 🔴 Re-ground the scoring/sim engine — TOP PRIORITY ([APP], fixture/real-capture-testable).**
-Design + cited meta in [`docs/scoring-grounding-spec.md`](./scoring-grounding-spec.md). Tier 0 (now):
-payload-aware damage (walk `Projectile.trigger`), a damage term for SPAM (kills the chainsaw
-inversion), AoE weights explosion damage. Tier 1: multiplicative crit/velocity (verify the engine
-fields first), range/lifetime usability, effective-DPS mana model. Tier 2+: status/DoT, generation
-chassis-selection + multiplicative-stack templates + deeper search, REF-constant calibration vs real
-captures. Validate against a REAL captured wand, not just toy fixtures.
+**1. Engine fidelity — Tier 0/1/2 LARGELY DONE ([APP]).** Design + cited meta in
+[`docs/scoring-grounding-spec.md`](./scoring-grounding-spec.md). ✅ Tier 0 (payload-aware damage, SPAM
+damage term, AoE explosion damage), ✅ crit, ✅ **reload-overlap cycle** (2026-06-22), ✅ **REF.sustainedDps
+re-grounding**, ✅ **status/DoT capability flag**, ✅ chassis-selection, ✅ **modifier-stacking
+generation templates** (the multiplier engine). **Remaining, in priority:**
+- **REF/MANA_PENALTY full calibration** against a real-wand CORPUS — blocked on richer `captures/` (the
+  committed fixtures are all ≤117 DPS fresh-run starters); needs the maintainer to `npm run record` a
+  spread of real wands across the power curve.
+- **Velocity damage** — DEFERRED with rationale (anti-proxy; needs a projectile-table regen with
+  air_friction/gravity/mass + impact-distance modeling). The only Tier-1 magnitude gap left.
+- **Deeper generation search / fill-empty-slots** — DEFERRED: probed low-value under the current
+  single-payload-per-cast DPS model (filling a trigger seed's empties doesn't raise its score). Revisit
+  after multi-payload modeling.
+- **Investigated + deferred (2026-06-22, low-value/blocked):** a `max_uses` spam down-weight — our sim
+  is single-cycle so `max_uses≥1` only depletes in wrapping redraws (narrow), and a scoring hack would
+  pre-empt the correct fix (thread `max_uses` into the engine, which already supports `uses_remaining`);
+  gravity-based lobbed self-danger — needs a projectile-table regen (risks rippling all damage goldens)
+  for marginal gain over the shipped `LARGE_BLAST_RADIUS` rule. Neither warranted a change.
 
 **2. ✅ DONE — Per-spell quantity ([APP]).** Owned-count caps; `uses_remaining < 0 → null`. Writeup
 under "✅ FIXED" above. Phase 2 (owned + seen-in-world counts) unblocked by M1-T6.
