@@ -362,13 +362,16 @@ numbers, not heuristics). Grounded by an 8-dimension multi-agent meta audit → 
   the honest scorer ranks enabler+payload high, enabler-only low. Hybrid: template+polish fallback for large
   pools. Live anchor: top DAMAGE 8/D→34/C (found BOUNCY + Luminous-Drill-as-enabler on its own). 39ms/274 sims.
   7 enumeration tests. 369 tests green.
-- 🔴 **OPEN (found driving the maintainer's live RICH run, 2026-06-22):** (1) a **cap-22 / 12-distinct-spell
-  pool falls to the template path** (exhaustive is for ≤~8 distinct) — the template path still misses optima;
-  needs **trimmed-per-archetype exhaustive + beam** for rich pools. (2) **explosive AoE** (Dynamite/Bomb/Grenade,
-  real blast 63/125/73) is demoted by the self-danger veto (blast-in-face) — correct, but the strong AoE hides
-  in the Unsafe band; surface it with a "take explosion immunity" note. (3) **reach mean is outlier-inflated**
-  — a deck that's mostly melee but holds one ultra-range shot (bouncy 6250px) reads "ranged"; fix = clamp reach
-  PER-PROJECTILE then damage-weight (reachUsability), so a mostly-melee deck reads melee.
+- ✅ **B5 reach usability per-projectile (`3305fc5`).** B3's damage-weighted MEAN reach (px) let one ultra-range
+  shot mask a melee deck; now `reachUsability` ∈ [0,1] clamps each projectile's reach BEFORE weighting, so a
+  mostly-melee deck reads melee (anchor BOUNCY+2×DRILL 34/C→27/C). Also eslint ignores `.claude/` (review
+  worktrees no longer flood `npm run lint`).
+- 🔴 **OPEN (found driving the maintainer's live RICH run):** (1) a **cap-22 / 12-distinct-spell pool falls to
+  the template path** (exhaustive is for ≤~8 distinct) — still misses optima; needs **trimmed-per-archetype
+  exhaustive + beam** (task 11). (2) **explosive AoE** (Dynamite/Bomb/Grenade, real blast 63/125/73) is demoted
+  by the self-danger veto (blast-in-face) — correct, but the strong AoE hides in the Unsafe band; surface it
+  with a "take explosion immunity" note. (3) **a final clean-tree adversarial review** of the whole branch
+  (the mid-session one got stopped after it reverted uncommitted work — see memory).
 - **Calibration Qs** (REACH_REF=250, radioactive floor, healing-as-self-heal) in spec §6 — maintainer-gated.
 
 ## Tooling — recording real runs (2026-06-22)
