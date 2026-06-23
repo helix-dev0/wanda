@@ -317,6 +317,32 @@ surfaced in the dial copy + tier-list label (Teach rung). Fresh-context review (
 deck + budget-starvation hand-traces) → **SHIP**. 351 green. **Remaining (Tier 2):** deeper-than-depth-1
 search (polish still can't fill empty slots). [APP] `generation/templates.ts`.
 
+## ✅ Live-QA round — digger/utility split, spread-aware DAMAGE, tight seeds (2026-06-22)
+
+Branch merged to `main`; driving the LIVE app on a real run surfaced (and fixed) three build-quality
+bugs the maintainer caught:
+- **Digging/teleport = UTILITY, not damage (`cfb6109`).** A "Multiplier build" scored **S/98** off a
+  single 10 HP LASER × crit × multicast with **two 0-damage DIGGERs** as filler (the template grabbed
+  them as the *cheapest* projectiles, and polish kept re-adding LUMINOUS_DRILL for its 0.4 base). Fix:
+  `isUtilitySpell` (curated DIG/MOBILITY) → `damageProjectilesByMana` excludes them from every
+  DAMAGE/SPAM/AOE template payload AND the polish pool; `featureFill` keeps diggers (utility template).
+  Tagged `TELEPORT_PROJECTILE_STATIC`. Diggers now surface under the MOBILITY (utility) tab.
+- **DAMAGE is spread-aware (`1698d0e`).** The scorer ignored spread, so a tight BURST and a wide SCATTER
+  with identical DPS scored identically — it literally couldn't predict the better single-target wand.
+  Added an on-target fraction `REF.spreadDeg/(REF.spreadDeg+max(0,spread))` (no-op at ≤0°). BURST_2 60/A
+  > SCATTER_2 51/B > SCATTER_3 44/B.
+- **Generation seeds tight, clean damage builds (`09b4c68`).** multicast templates emit one seed PER
+  multicast (`MULTICAST_VARIANTS=3`) so the scorer picks BURST not pool-order; `damageModifiers` drops
+  spread-wideners (HEAVY_SPREAD). Live top DAMAGE build went from SCATTER_2+HEAVY_SPREAD+2×DIGGER to
+  **BURST_2 + CRITICAL_HIT + LASER/LANCE/LIGHT_BULLET, spread -17**. 353 green, lint/typecheck clean.
+
+### 🔴 OPEN — generation SEARCH doesn't find the best builds (next session's focus)
+The maintainer reports **hand-building wands the tool ITSELF scores HIGHER than what it suggests** — so
+the scorer is roughly trustworthy but the **generator/search is incomplete**: template seeds + depth-1
+polish (no empty-slot fill, no multi-spell coordinated edits, single multicast-stack depth) miss optima
+a human finds. This is the TOP next item — audit scoring fidelity AND (mainly) generation search
+completeness. See `docs/scoring-grounding-spec.md` and the next-session prompt.
+
 ## Tooling — recording real runs (2026-06-22)
 `npm run record` (`bridge/record.mjs`) persists every distinct live snapshot to `captures/` (gitignored),
 keyed by frame, surviving death/restart (the mod overwrites `snapshot.json` in place). Promote good

@@ -165,6 +165,24 @@ blast (radius>0, damage 0) no longer scores like a nuke.
   `archetypes.test.ts`. **Still provisional:** `MANA_PENALTY` + a full corpus calibration of all
   `REF`s against REAL captured wands (`captures/`) — blocked on richer captures than the current
   fresh-run starters (the committed fixtures are all ≤117 DPS).
+- **✅ Spread → single-target DPS (DONE 2026-06-22).** The scorer ignored spread, so a tight BURST and a
+  wide SCATTER at equal DPS scored identically (it could not predict the better damage wand). `scoreDamage`
+  now multiplies effective DPS by an on-target fraction `REF.spreadDeg/(REF.spreadDeg+max(0,spread))`
+  (no-op at ≤0°, AoE pays nothing). Generation also emits a seed per multicast + drops spread-widener
+  modifiers (HEAVY_SPREAD) so it seeds tight BURST builds. **Open:** the on-target model is a heuristic
+  (no target-distance/size); validate the magnitude vs real wands.
+- **✅ Utility (digging/teleport) excluded from damage builds (DONE 2026-06-22).** `isUtilitySpell`
+  (curated DIG/MOBILITY) keeps 0-damage diggers/teleports out of DAMAGE/SPAM/AOE payloads + polish pool;
+  they live in the MOBILITY tab.
+- **🔴 GENERATION SEARCH COMPLETENESS (TOP, OPEN).** The maintainer hand-builds wands the tool *scores
+  higher* than the builds it *suggests* — so the scorer is roughly right but the **search misses optima**.
+  Causes: template seeds are a fixed shape set; polish (`suggestEdits`) is **depth-1**, can't **fill empty
+  slots**, and can't make **multi-spell coordinated edits** (e.g. add Add-Trigger AND a payload together);
+  multicast-stacking depth is 1. Next session: capture the maintainer's better-by-hand wands as fixtures,
+  confirm the scorer rates them above the suggestions (isolates search-vs-scoring), then deepen the search
+  — beam/iterated local search, empty-slot insertion (the `allowInsert` seam noted above), seeding from
+  the player's OWN wands, and/or small-capacity near-exhaustive enumeration — keeping it interactive
+  (bounded, off-thread). Validate against the live run, not toy fixtures.
 
 ## 4. Verification
 
