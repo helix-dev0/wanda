@@ -103,6 +103,26 @@ describe('evaluateSelfDanger — EXPLOSION in-face', () => {
     expect(r.findings).toEqual([])
     expect(r.unsafe).toBe(false)
   })
+
+  it('a big-blast lobbed explosive (DYNAMITE) flags as danger even though it flies far', () => {
+    // tnt.xml: explosionDamage 2.5 (62.5 HP), radius 28, speed 800, lifetime 50 → reachOf
+    // ≈ 667px, so the old radius≥reach geometry MISSED it. But a 28px blast still engulfs
+    // you in a cave. This is the case the maintainer caught — generation spammed Dynamite
+    // onto a wand and never flagged it.
+    const r = evalReal(makeWand({ spells: ['DYNAMITE'] }))
+    const ex = r.findings.find((f) => f.hazard === 'EXPLOSION')
+    expect(ex?.severity).toBe('danger')
+    expect(r.unsafe).toBe(true)
+    expect(r.fixableByPerk).toContain('PROTECTION_EXPLOSION')
+  })
+
+  it('a bouncing beam with a tiny blast (LASER) is NOT false-flagged', () => {
+    // laser.xml bounces 10× but its blast is only 5.5 HP / 3px — harmless to you. The
+    // large-blast rule must NOT catch it, or it would wreck the good fast-laser wand.
+    const r = evalReal(makeWand({ spells: ['LASER'] }))
+    expect(r.findings.some((f) => f.hazard === 'EXPLOSION')).toBe(false)
+    expect(r.unsafe).toBe(false)
+  })
 })
 
 describe('evaluateSelfDanger — TOXIC + RECOIL (warn-only, never unsafe)', () => {

@@ -68,6 +68,13 @@ const CURATED_TOXIC: ReadonlySet<string> = new Set([
  *  this stays deliberately conservative — PROVISIONAL. */
 const RECOIL_WARN = 50
 
+/** A damaging blast this wide (px) engulfs the cast point in Noita's tight caves even
+ *  when the projectile nominally flies far before detonating — lobbed/short-fuse
+ *  explosives (Dynamite r28, nukes) detonate near you, which the straight-line `reachOf`
+ *  heuristic misses. PROVISIONAL like RECOIL_WARN; calibrate against real captures. Spares
+ *  Grenade (r7 — a deliberate ranged warn, "no crying wolf") + Laser (r3, bounces but tiny). */
+const LARGE_BLAST_RADIUS = 24
+
 /** Distance a projectile travels before it dies (px). 0 = stationary (detonates
  *  at the cast point ≈ the player); Infinity = endless (flies away, never back). */
 function reachOf(st: ProjectileStats): number {
@@ -114,7 +121,12 @@ export function evaluateSelfDanger(
       if (st) {
         const explDmg = st.explosionDamage + explAdd
         const explRadius = st.explosionRadius + radiusAdd
-        if (explDmg > 0 && (isBlast(sourceId, cs) || explRadius >= reachOf(st))) {
+        // In-your-face when: the game flags it point-blank; OR the blast reaches back
+        // farther than the projectile flies (stationary / short-reach); OR the blast is
+        // simply WIDE — a large radius catches you even when the projectile nominally
+        // flies far (lobbed/short-fuse Dynamite, nukes), which straight-line reach misses.
+        const wideBlast = explRadius >= LARGE_BLAST_RADIUS
+        if (explDmg > 0 && (isBlast(sourceId, cs) || explRadius >= reachOf(st) || wideBlast)) {
           explosionSource ??= sourceId
         }
       }
