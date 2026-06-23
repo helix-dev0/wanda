@@ -110,10 +110,11 @@ describe('scoreWand — fixture orderings (signature-dominant)', () => {
 
   it('SPAM mana-gate: at equal DPS+rate the sustainable wand strictly beats the staller', () => {
     // The calibration-robust property. (The old `bubble.score > grenade.score` fixture
-    // ordering was a low-REF artifact: both fixtures are near-zero DPS, so once REF rose
-    // the 117-DPS gated grenade edged the 17-DPS sustainable bubble — a meaningless
-    // ordering between two terrible spammers.) Isolate the gate: identical sustained
-    // DPS + fire rate, differ ONLY on mana sustain; the gate must drop the staller.
+    // ordering broke under this branch: the reload-overlap fix raised grenade's DPS
+    // (69→117 cycle) and REF rose 150→300, so the now-gated 117-DPS grenade (×0.2) edged
+    // the 17-DPS sustainable bubble — both round to ~4/100, a meaningless ordering between
+    // two terrible spammers.) Isolate the gate instead: identical sustained DPS + fire
+    // rate, differ ONLY on mana sustain; the gate must drop the staller.
     const sustainable = scoreSynth({ sustainedDps: 200, burstDps: 320, manaSustainable: true }).SPAM
     const stalling = scoreSynth({ sustainedDps: 200, burstDps: 320, manaSustainable: false, secondsUntilStall: 3 }).SPAM
     expect(sustainable.score).toBeGreaterThan(stalling.score)
