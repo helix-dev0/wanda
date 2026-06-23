@@ -55,10 +55,14 @@ export interface WandMetrics {
 
 // Per-shot frame delay. clickWand seeds each shot's fire_rate_wait WITH castDelay
 // (clickWand.ts:233), then actions mutate it; so castState.fire_rate_wait is the
-// COMPLETE per-shot delay — do NOT add castDelay again. The engine doesn't floor
-// it, so a heavily-negative wand is clamped to 0 here.
+// COMPLETE per-shot delay — do NOT add castDelay again. Floored at 1 FRAME (not 0):
+// Noita fires at most once per frame (the 60 casts/s ceiling) and "a negative Cast
+// Delay value is treated as 1 frame" (noita.wiki.gg/wiki/Wands + Guide:_Rapid-Fire_
+// Wands). WITHOUT this floor a maxed-fast wand (fire_rate_wait ≤ 0, e.g. Luminous
+// Drill) gives a 0-frame cycle → every rate (DPS, projectiles/s) divides to 0, so the
+// BEST wands score 0. Normal wands have ≥1 frame/shot, so this is a no-op for them.
 function perShotFrames(shot: WandShot, stats: WandStats): number {
-  return Math.max(0, shot.castState?.fire_rate_wait ?? stats.castDelay)
+  return Math.max(1, shot.castState?.fire_rate_wait ?? stats.castDelay)
 }
 
 /** Max trigger/timer nesting we descend. Real chains are shallow; this only guards a
@@ -114,7 +118,10 @@ export function computeMetrics(
 ): WandMetrics {
   // --- timing ---
   const fireFrames = shots.reduce((sum, s) => sum + perShotFrames(s, stats), 0)
-  const cycleFrames = fireFrames + (reloadTime ?? 0)
+  // Floor the cycle at one frame per shot too: a NEGATIVE reload (recharge-reduction
+  // enablers) must not drag the cycle back to ≤0 and re-zero every rate. With
+  // perShotFrames ≥ 1 this is a no-op unless reload is sharply negative.
+  const cycleFrames = Math.max(fireFrames + (reloadTime ?? 0), shots.length)
   const cycleSeconds = framesToSeconds(cycleFrames)
   const fireSeconds = framesToSeconds(fireFrames)
 
