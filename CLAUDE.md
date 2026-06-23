@@ -39,6 +39,17 @@ planning. Milestones run M0 (fixtures/schema) → M6 (in-game overlay).
    - Game/mod **paths differ by platform** (Proton compatdata prefix vs native Windows Steam).
      Snapshot-output and game-install paths must be configurable/auto-detected per OS, never
      hardcoded to one platform.
+9. **The app determines wand quality AUTONOMOUSLY (maintainer, 2026-06-23) — never from human labels.**
+   "Good" is derived from (a) the **simulator engine** (what a wand objectively does — DPS, mana, range,
+   draws, payloads) + (b) **encoded Noita wand-building meta** that the developer grounds in the game files +
+   noita.wiki.gg and cites. It must NEVER require the maintainer (or the agent) to hand-rate wands: **no
+   curated golden-tier corpus, no "tell it the tier" calibration, no fitting scores to human ratings.** The
+   maintainer is a validator/sanity-checker, not a labeler. Scoring constants (REF thresholds, REACH_REF, …)
+   are grounded in **cited meta facts** (enemy-HP curves, rapid-fire / high-damage guide thresholds, the
+   multiplicative-stacking math), and the engine is validated by checking its OUTPUT against meta KNOWLEDGE
+   (a meta-expert reasoning from the wiki) — not by fitting to labels. The simulator stays vendored TS
+   (invariant #4), so the scorer lives next to it; "use a different backend/API" doesn't change this —
+   correctness comes from the model + meta grounding, not the language.
 
 ## Testing discipline (this is the heart of the project)
 

@@ -12,6 +12,11 @@ grounding agents (Luminous-Drill/Chainsaw classification; mana model + multicast
 reach-calibration probe. Sources: noita.wiki.gg + the vendored salinecitrine engine (cited inline).
 
 ## 0. Maintainer ground truth (overrides wiki edge-cases)
+- **🔑 AUTONOMOUS quality (2026-06-23).** The app figures out what's good ON ITS OWN, from the simulator
+  engine + encoded Noita meta (grounded in the game + wiki, cited). NEVER from human labels — no curated
+  golden-tier corpus, no "tell it the tier" calibration, no fitting to ratings. The maintainer validates,
+  doesn't label. Scoring constants are grounded in cited meta facts, not tuned to ratings. (CLAUDE.md
+  invariant #9.)
 - **`BURST_2 + Luminous Drill ×3` is a DIGGING wand, NOT a damage weapon — because it is close range.**
   So a high DAMAGE score for it is a SCORING BUG, not a build the generator failed to find. The generator
   was CORRECT to keep drills out of damage decks; the bug is the held-wand scorer being range-blind.
