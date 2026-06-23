@@ -9,7 +9,7 @@
 
 import type { Archetype } from '../analysis'
 import type { TemplateId } from './types'
-import { type PoolIndex, projectilesByMana, damageProjectilesByMana } from './poolIndex'
+import { type PoolIndex, projectilesByMana, damageProjectilesByMana, damageModifiers } from './poolIndex'
 
 export interface TemplateContext {
   index: PoolIndex
@@ -113,20 +113,29 @@ const triggerPayload: Template = {
   },
 }
 
+/** How many distinct multicasts to seed a variant for. The scorer (spread-aware) then
+ *  ranks them, so a SCATTER and a BURST both get tried and the tight one wins for DAMAGE
+ *  instead of us guessing from pool order. Bounded so the candidate count stays small. */
+const MULTICAST_VARIANTS = 3
+
 /** A multicast spell followed by repeated shots — draws N at once. Order-loose
- *  enough to allow on shuffle (it still draws N, just from a luck-of-draw set). */
+ *  enough to allow on shuffle (it still draws N, just from a luck-of-draw set). One seed
+ *  per multicast so the scorer can prefer a tight BURST over a wide SCATTER. */
 const multicastStack: Template = {
   id: 'multicast-stack',
   orderDependent: false,
   archetypes: ['SPAM', 'AOE', 'DAMAGE'],
   instantiate({ index, capacity, caps }) {
     if (index.multicasts.length === 0 || index.projectiles.length === 0 || capacity < 2) return []
-    const used = new Map<string, number>()
-    const mc = index.multicasts[0]
-    if (!place(caps, used, mc)) return [] // must own the multicast
-    const shots = draftFill(damageProjectilesByMana(index), capacity - 1, caps, used)
-    if (shots.length === 0) return [] // need at least one owned shot to multicast
-    return [truncate([mc, ...shots], capacity)]
+    const seeds: string[][] = []
+    for (const mc of index.multicasts.slice(0, MULTICAST_VARIANTS)) {
+      const used = new Map<string, number>()
+      if (!place(caps, used, mc)) continue // must own this multicast
+      const shots = draftFill(damageProjectilesByMana(index), capacity - 1, caps, used)
+      if (shots.length === 0) continue // need at least one owned shot to multicast
+      seeds.push(truncate([mc, ...shots], capacity))
+    }
+    return seeds
   },
 }
 
@@ -150,21 +159,27 @@ const multiplicativeStack: Template = {
     ) {
       return []
     }
-    const used = new Map<string, number>()
-    const mc = index.multicasts[0]
-    if (!place(caps, used, mc)) return [] // must own the multicast
     // Modifiers lead so they broadcast; cap them at ~half the non-multicast slots so the
     // multicast still has shots to draw (the validated 2-mods/3-shots shape at cap 6).
     const maxMods = Math.max(1, Math.floor((capacity - 1) / 2))
-    const mods: string[] = []
-    for (const m of index.modifiers) {
-      if (mods.length >= maxMods) break
-      if (place(caps, used, m)) mods.push(m)
+    // Emit ONE seed PER multicast (capped) instead of guessing from pool order: the scorer
+    // is spread-aware, so it picks the tight BURST over a wide SCATTER on its own merits.
+    // Each seed respects owned caps independently (its own `used`).
+    const seeds: string[][] = []
+    for (const mc of index.multicasts.slice(0, MULTICAST_VARIANTS)) {
+      const used = new Map<string, number>()
+      if (!place(caps, used, mc)) continue // must own this multicast
+      const mods: string[] = []
+      for (const m of damageModifiers(index)) {
+        if (mods.length >= maxMods) break
+        if (place(caps, used, m)) mods.push(m)
+      }
+      if (mods.length === 0) continue // no owned damage modifier ⇒ this is just multicast-stack
+      const shots = draftFill(damageProjectilesByMana(index), capacity - mods.length - 1, caps, used)
+      if (shots.length === 0) continue // need at least one shot for the multicast to draw
+      seeds.push(truncate([...mods, mc, ...shots], capacity))
     }
-    if (mods.length === 0) return [] // no owned modifier ⇒ this is just multicast-stack
-    const shots = draftFill(damageProjectilesByMana(index), capacity - mods.length - 1, caps, used)
-    if (shots.length === 0) return [] // need at least one shot for the multicast to draw
-    return [truncate([...mods, mc, ...shots], capacity)]
+    return seeds
   },
 }
 
@@ -179,11 +194,12 @@ const cheapShotSpam: Template = {
   orderDependent: true,
   archetypes: ['SPAM', 'DAMAGE'],
   instantiate({ index, capacity, caps }) {
-    if (index.modifiers.length === 0 || index.projectiles.length === 0 || capacity < 2) return []
+    const mods = damageModifiers(index)
+    if (mods.length === 0 || index.projectiles.length === 0 || capacity < 2) return []
     const used = new Map<string, number>()
     const proj = damageProjectilesByMana(index)
     const takeProj = (): string | null => proj.find((p) => place(caps, used, p)) ?? null
-    const takeMod = (): string | null => index.modifiers.find((m) => place(caps, used, m)) ?? null
+    const takeMod = (): string | null => mods.find((m) => place(caps, used, m)) ?? null
     const deck: string[] = []
     while (deck.length < capacity) {
       const shot = takeProj()
@@ -194,7 +210,7 @@ const cheapShotSpam: Template = {
       deck.push(shot)
     }
     // Must actually pair a modifier with a shot (else it is just `spammer`).
-    if (!deck.some((id) => index.modifiers.includes(id))) return []
+    if (!deck.some((id) => mods.includes(id))) return []
     return deck.length >= 2 ? [truncate(deck, capacity)] : []
   },
 }

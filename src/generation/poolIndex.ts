@@ -94,3 +94,15 @@ export function isUtilitySpell(id: string): boolean {
 export function damageProjectilesByMana(ix: PoolIndex): string[] {
   return projectilesByMana(ix).filter((id) => !isUtilitySpell(id))
 }
+
+/** Modifiers that WIDEN spread and so hurt single-target damage — kept out of damage
+ *  modifier stacks (a SCATTER + HEAVY_SPREAD "damage" build was the maintainer's
+ *  complaint: polish only re-orders such a modifier to dodge the spread penalty, leaving
+ *  a useless slot). Curated; SCATTER/formation spread comes from the multicast slot and is
+ *  handled by trying tight multicasts. Extend as more spread-wideners are confirmed. */
+const SPREAD_MODIFIERS = new Set(['HEAVY_SPREAD'])
+
+/** Pool modifiers minus the spread-wideners — the modifier source for damage templates. */
+export function damageModifiers(ix: PoolIndex): string[] {
+  return ix.modifiers.filter((id) => !SPREAD_MODIFIERS.has(id))
+}
