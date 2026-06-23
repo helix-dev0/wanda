@@ -13,6 +13,8 @@ export type TemplateId =
   | 'single-nuke'
   | 'trigger-payload'
   | 'multicast-stack'
+  | 'multiplicative-stack'
+  | 'cheap-shot-spam'
   | 'spammer'
   | 'feature-fill'
 

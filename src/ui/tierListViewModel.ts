@@ -35,6 +35,8 @@ const TEMPLATE_LABEL: Record<TemplateId, string> = {
   'single-nuke': 'Nuke build',
   'trigger-payload': 'Trigger build',
   'multicast-stack': 'Multicast build',
+  'multiplicative-stack': 'Multiplier build',
+  'cheap-shot-spam': 'Modifier-spam build',
   spammer: 'Spam build',
   'feature-fill': 'Utility build',
 }

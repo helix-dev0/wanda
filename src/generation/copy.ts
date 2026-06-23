@@ -14,6 +14,10 @@ export const TEMPLATE_COPY: Record<TemplateId, string> = {
     'A trigger fires a second spell on impact — the payload goes right after it in the deck.',
   'multicast-stack':
     'A multicast draws several spells at once and throws them together — burst damage and spread.',
+  'multiplicative-stack':
+    'Damage modifiers sit before a multicast, so one copy of each boosts every spell it draws at once — the multiplier stacks instead of adding.',
+  'cheap-shot-spam':
+    'Each cheap shot is paired with a damage modifier — a flat bonus helps a weak spell most, and it fires fast.',
   spammer: 'Cheap, fast projectiles fired continuously — low mana per shot keeps it going.',
   'feature-fill':
     'Built around your utility spells — digging and movement (or shields) matter more than raw damage here.',

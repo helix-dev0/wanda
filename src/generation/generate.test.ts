@@ -100,6 +100,25 @@ describe('generate — template-seeded + polished builds', () => {
     expect(r.DAMAGE.note).toMatch(/no spells/i)
   })
 
+  it('modifiers in the pool unlock a much stronger multicast build (modifier-broadcast)', () => {
+    // The multiplier engine: damage modifiers BEFORE a multicast broadcast to every spell
+    // it draws (validated ~6×). With the same multicast + cheap shot but NO modifiers, the
+    // best build is the bare multicast — so the modifiers' presence must lift the top score.
+    const withMods = generate(req({ pool: ['BURST_3', 'DAMAGE', 'CRITICAL_HIT', 'LIGHT_BULLET'], archetypes: ['DAMAGE'] }))
+    clearSimCache()
+    const withoutMods = generate(req({ pool: ['BURST_3', 'LIGHT_BULLET'], archetypes: ['DAMAGE'] }))
+    const top = (r: ReturnType<typeof generate>) => r.DAMAGE.builds[0]?.analysis.scores.DAMAGE.score ?? 0
+    expect(hasTemplate(withMods, 'multiplicative-stack')).toBe(true)
+    expect(top(withMods)).toBeGreaterThan(top(withoutMods) + 10) // a real lift, not noise
+  })
+
+  it('cheap-shot-spam surfaces when there is a modifier but no multicast', () => {
+    // No multicast in the pool, so the modifier-broadcast template can't fire — the
+    // [modifier, cheap-shot] pairing build should appear for SPAM instead.
+    const r = generate(req({ pool: ['DAMAGE', 'LIGHT_BULLET'], archetypes: ['SPAM'] }))
+    expect(hasTemplate(r, 'cheap-shot-spam')).toBe(true)
+  })
+
   it('explains an archetype it cannot build (no defensive spells in pool)', () => {
     const r = generate(req())
     expect(r.DEFENSIVE.builds).toEqual([])

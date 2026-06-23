@@ -300,6 +300,21 @@ fixture baseline: only GRENADE's `fire:0.5` flags); false-positive scan clean; f
 **SHIP**. Honest gaps documented (no DoT-HP figure; fireblast-style pure-explosion fire missed). 345
 green. [APP] `sim/metrics.ts` + `analysis/archetypes.ts`.
 
+## ✅ Generation — modifier-stacking templates (2026-06-22)
+
+Generation couldn't seed the meta's **multiplier engine** (modifiers BEFORE a multicast broadcast to
+every spell it draws — crit ×, damage +). Added two shuffle-gated, cap-safe templates: **`multiplicative-stack`**
+([modifiers…, multicast, shots…]) and a **`cheap-shot-spam`** ([modifier, cheap-shot] pairing) for
+pools without a multicast. **Engine-validated before coding** (a key discipline): `[DAMAGE, CRITICAL_HIT,
+BURST_3, LIGHT_BULLET×3]` does ~6× the bare multicast's sustained DPS (43→257); a grounded negative
+result — crit BEFORE a trigger does NOT boost the payload (fresh cast) — so the template uses
+multicast-broadcast, not pre-trigger mods. **End-to-end:** a mixed pool now tops the DAMAGE column with
+a `multiplicative-stack` build at **89/S** (the bare multicast was 13/D), and trigger→nuke correctly
+still wins AOE. 6 new tests (template shapes + the without-mods lift + the no-multicast fallback);
+surfaced in the dial copy + tier-list label (Teach rung). Fresh-context review (cap-safety + malformed-
+deck + budget-starvation hand-traces) → **SHIP**. 351 green. **Remaining (Tier 2):** deeper-than-depth-1
+search (polish still can't fill empty slots). [APP] `generation/templates.ts`.
+
 ## Tooling — recording real runs (2026-06-22)
 `npm run record` (`bridge/record.mjs`) persists every distinct live snapshot to `captures/` (gitignored),
 keyed by frame, surviving death/restart (the mod overwrites `snapshot.json` in place). Promote good

@@ -53,6 +53,38 @@ describe('templates — instantiate seed decks from the pool', () => {
     expect(seeds[0][0]).toBe('BURST_3')
   })
 
+  it('multiplicative-stack: modifiers, then the multicast, then shots (broadcast order)', () => {
+    const seeds = tpl('multiplicative-stack').instantiate(
+      ctx(['DAMAGE', 'CRITICAL_HIT', 'BURST_3', 'LIGHT_BULLET'], { capacity: 6, archetype: 'DAMAGE' }),
+    )
+    expect(seeds).toHaveLength(1)
+    const deck = seeds[0]
+    const mcIdx = deck.indexOf('BURST_3')
+    expect(mcIdx).toBeGreaterThan(0) // ≥1 modifier precedes the multicast (so it broadcasts)
+    expect(deck.slice(0, mcIdx).every((id) => id === 'DAMAGE' || id === 'CRITICAL_HIT')).toBe(true)
+    expect(deck.slice(mcIdx + 1)).toContain('LIGHT_BULLET') // ≥1 shot for the multicast to draw
+  })
+
+  it('multiplicative-stack needs BOTH a multicast and a modifier', () => {
+    expect(tpl('multiplicative-stack').instantiate(ctx(['DAMAGE', 'LIGHT_BULLET']))).toEqual([]) // no multicast
+    expect(tpl('multiplicative-stack').instantiate(ctx(['BURST_3', 'LIGHT_BULLET']))).toEqual([]) // no modifier
+  })
+
+  it('cheap-shot-spam pairs a modifier immediately before a cheap shot', () => {
+    const seeds = tpl('cheap-shot-spam').instantiate(
+      ctx(['DAMAGE', 'LIGHT_BULLET'], { capacity: 4, archetype: 'SPAM' }),
+    )
+    expect(seeds).toHaveLength(1)
+    const deck = seeds[0]
+    const i = deck.indexOf('DAMAGE')
+    expect(i).toBeGreaterThanOrEqual(0)
+    expect(deck[i + 1]).toBe('LIGHT_BULLET') // a [modifier, shot] pairing
+  })
+
+  it('cheap-shot-spam yields nothing without a modifier (else it is just spammer)', () => {
+    expect(tpl('cheap-shot-spam').instantiate(ctx(['LIGHT_BULLET'], { archetype: 'SPAM' }))).toEqual([])
+  })
+
   it('feature-fill includes the archetype feature spells', () => {
     const seeds = tpl('feature-fill').instantiate(ctx(['CHAINSAW', 'LIGHT_BULLET'], { archetype: 'MOBILITY' }))
     expect(seeds[0]).toContain('CHAINSAW')

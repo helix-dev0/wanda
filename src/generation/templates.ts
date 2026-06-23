@@ -129,6 +129,75 @@ const multicastStack: Template = {
   },
 }
 
+/** Damage modifiers BROADCAST to a multicast's draws — the meta's multiplier engine
+ *  (a modifier before a multicast applies to ALL drawn projectiles for one cost: crit ×,
+ *  damage +). Validated against the engine: [DAMAGE, CRITICAL_HIT, BURST_3, LIGHT_BULLET
+ *  ×3] does ~6× the sustained DPS of the bare multicast (43→257). Order is essential
+ *  (modifiers + multicast must precede the shots) → shuffle-gated. The mods/shots split
+ *  mirrors that validated shape (~half the non-multicast slots to modifiers). Needs ≥1
+ *  multicast, ≥1 modifier, ≥1 projectile, capacity ≥3. */
+const multiplicativeStack: Template = {
+  id: 'multiplicative-stack',
+  orderDependent: true,
+  archetypes: ['DAMAGE', 'SPAM', 'AOE'],
+  instantiate({ index, capacity, caps }) {
+    if (
+      index.multicasts.length === 0 ||
+      index.modifiers.length === 0 ||
+      index.projectiles.length === 0 ||
+      capacity < 3
+    ) {
+      return []
+    }
+    const used = new Map<string, number>()
+    const mc = index.multicasts[0]
+    if (!place(caps, used, mc)) return [] // must own the multicast
+    // Modifiers lead so they broadcast; cap them at ~half the non-multicast slots so the
+    // multicast still has shots to draw (the validated 2-mods/3-shots shape at cap 6).
+    const maxMods = Math.max(1, Math.floor((capacity - 1) / 2))
+    const mods: string[] = []
+    for (const m of index.modifiers) {
+      if (mods.length >= maxMods) break
+      if (place(caps, used, m)) mods.push(m)
+    }
+    if (mods.length === 0) return [] // no owned modifier ⇒ this is just multicast-stack
+    const shots = draftFill(projectilesByMana(index), capacity - mods.length - 1, caps, used)
+    if (shots.length === 0) return [] // need at least one shot for the multicast to draw
+    return [truncate([...mods, mc, ...shots], capacity)]
+  },
+}
+
+/** A damage modifier paired with the cheapest projectile, repeated — each shot carries
+ *  the modifier's bonus ("a flat +bonus disproportionately helps weak spells"; the
+ *  cheap-shot × right-modifier pairing is the unit of value). Validated: ~3× the bare
+ *  spam (20→58). Order is essential (modifier before its shot) → shuffle-gated. The
+ *  modifier-broadcast multicast above is stronger when a multicast is owned; this is the
+ *  no-multicast fallback. Needs ≥1 modifier, ≥1 projectile, capacity ≥2. */
+const cheapShotSpam: Template = {
+  id: 'cheap-shot-spam',
+  orderDependent: true,
+  archetypes: ['SPAM', 'DAMAGE'],
+  instantiate({ index, capacity, caps }) {
+    if (index.modifiers.length === 0 || index.projectiles.length === 0 || capacity < 2) return []
+    const used = new Map<string, number>()
+    const proj = projectilesByMana(index)
+    const takeProj = (): string | null => proj.find((p) => place(caps, used, p)) ?? null
+    const takeMod = (): string | null => index.modifiers.find((m) => place(caps, used, m)) ?? null
+    const deck: string[] = []
+    while (deck.length < capacity) {
+      const shot = takeProj()
+      if (!shot) break
+      // Prepend a modifier when the [mod, shot] pair still fits and one is still owned.
+      const mod = deck.length + 1 < capacity ? takeMod() : null
+      if (mod) deck.push(mod)
+      deck.push(shot)
+    }
+    // Must actually pair a modifier with a shot (else it is just `spammer`).
+    if (!deck.some((id) => index.modifiers.includes(id))) return []
+    return deck.length >= 2 ? [truncate(deck, capacity)] : []
+  },
+}
+
 /** The deck filled with the cheapest projectile — continuous fire. */
 const spammer: Template = {
   id: 'spammer',
@@ -173,16 +242,22 @@ const featureFill: Template = {
 export const TEMPLATES: readonly Template[] = [
   singleNuke,
   triggerPayload,
+  multiplicativeStack,
   multicastStack,
+  cheapShotSpam,
   spammer,
   featureFill,
 ]
 
-/** Stable priority for tie-breaking equally-scored builds (earlier = preferred). */
+/** Stable priority for tie-breaking equally-scored builds (earlier = preferred). New
+ *  modifier-stacking templates are appended (not renumbered) so existing tie-breaks are
+ *  unchanged; they win on score when stronger, so their tie-break rank rarely matters. */
 export const TEMPLATE_ORDER: Record<TemplateId, number> = {
   'single-nuke': 0,
   'trigger-payload': 1,
   'multicast-stack': 2,
   spammer: 3,
   'feature-fill': 4,
+  'multiplicative-stack': 5,
+  'cheap-shot-spam': 6,
 }

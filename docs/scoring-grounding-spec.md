@@ -143,10 +143,15 @@ blast (radius>0, damage 0) no longer scores like a nuke.
   `generateForArchetype` loops chassis into one candidate pool with a **fair per-chassis sub-budget**
   (`ceil(MAX_CANDIDATES/N)`, so chassis #1 can't starve the rest); **N=1 (theorycraft) is byte-identical**
   to the old path; owned caps stay per-build. (`generate.ts`, `useGeneration.ts` `ownedChassis`,
-  `tierListViewModel` `chassisLabel`.) **Still Tier 2:** a **multiplicative-stack template** (Add-Trigger
-  wrap + multicast modifier-broadcast + payload) and a cheap-shot×modifier spam template, plus
-  **deeper-than-depth-1 search** to *discover* trigger chains (polish still can't fill empty slots, so
-  build quality is bounded by template shape + depth-1).
+  `tierListViewModel` `chassisLabel`.) **✅ Modifier-stacking templates (DONE 2026-06-22):** a
+  **`multiplicative-stack`** template (damage modifiers BEFORE a multicast → broadcast to every draw,
+  the meta's multiplier engine) + a **`cheap-shot-spam`** ([modifier, cheap-shot] pairing) fallback,
+  both shuffle-gated + cap-safe. Engine-validated (modifier-broadcast ≈ 6× the bare multicast: sustDps
+  43→257) and end-to-end (a mixed pool now tops DAMAGE at 89/S where the bare multicast was 13/D).
+  Grounded finding: crit BEFORE a trigger does NOT boost the payload, so the multiplier template uses
+  multicast-broadcast, not pre-trigger mods. **Still Tier 2:** **deeper-than-depth-1 search** to
+  *discover* chains beyond template seeds (polish still can't fill empty slots, so build quality is
+  bounded by template shape + depth-1 — a follow-on).
 - **REF-constant calibration** — once damage is payload-aware + the reload-overlap fix raised
   fast-wand DPS, the magnitudes shifted. **`REF.sustainedDps` re-grounded 150→300 (2026-06-22)** so S
   is elite DPS (was: the 300–2000+ range all collapsed to S); monotonic, band intent pinned in
