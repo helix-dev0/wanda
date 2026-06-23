@@ -336,12 +336,25 @@ bugs the maintainer caught:
   spread-wideners (HEAVY_SPREAD). Live top DAMAGE build went from SCATTER_2+HEAVY_SPREAD+2×DIGGER to
   **BURST_2 + CRITICAL_HIT + LASER/LANCE/LIGHT_BULLET, spread -17**. 353 green, lint/typecheck clean.
 
-### 🔴 OPEN — generation SEARCH doesn't find the best builds (next session's focus)
-The maintainer reports **hand-building wands the tool ITSELF scores HIGHER than what it suggests** — so
-the scorer is roughly trustworthy but the **generator/search is incomplete**: template seeds + depth-1
-polish (no empty-slot fill, no multi-spell coordinated edits, single multicast-stack depth) miss optima
-a human finds. This is the TOP next item — audit scoring fidelity AND (mainly) generation search
-completeness. See `docs/scoring-grounding-spec.md` and the next-session prompt.
+### 🔧 SCORING REBUILD (in progress, 2026-06-22, `feat/scoring-rebuild`) — reframed from "search" to "fidelity"
+The "tool scores my hand-built wands higher than its suggestions" symptom was **isolated against the
+maintainer's LIVE wand** (STEP 1, read-only): the tool rated a `BURST_2 + Luminous Drill ×3` wand
+**DAMAGE 60/A** while its suggestions sat at 9/D. **Maintainer ground truth: that wand is a DIGGER, not a
+damage weapon — it's close range.** So it was a **SCORING-fidelity gap wearing a search gap's clothes** —
+the scorer was blind to RANGE and MANA, and the generator was *correct* to keep drills out of damage decks.
+Maintainer chose a full **fitness rebuild + simulator-driven exhaustive search** (transparent grounded
+numbers, not heuristics). Grounded by an 8-dimension multi-agent meta audit → **[`scoring-rebuild-spec.md`](./scoring-rebuild-spec.md)**.
+
+- ✅ **Slice 1 — B3 range + B4 mana (`f551e77`).** `metrics.ts` gains `reachWeightedPx` (damage-weighted
+  reach) + `effectiveSustainedDps` (= sustainedDps × min(1, regen/drain), mana shortfall DROPS casts per
+  engine `gun.ts:333`). `scoreDamage`/`scoreSpam` multiply by `reachFraction` (full credit ≥250px) and read
+  the mana-honest effective DPS; the binary `MANA_PENALTY` cliff is gone. **Identity-safe**: every ranged +
+  sustainable fixture is byte-identical; only grenade's effective DPS moves (117→43.2, it out-drains). Live
+  anchor: drill wand **60/A → 17/D DAMAGE, 60/A MOBILITY** (a digger ✓). 359 tests (6 new), typecheck/lint clean.
+- ⏭ **Next:** B1 (sum `damageByType` — CHAINSAW/typed carriers read 0 HP today, critical), B2 (crit on
+  explosion + AoE), comment cleanup, then the **exhaustive simulator-driven search** (enumerate every spell
+  combination for small pools → provably-best; feasibility measured: fresh-run 190–1.2k sims <1s, hybrid beam
+  for big pools). Open calibration Qs (REACH_REF, radioactive floor) in spec §6.
 
 ## Tooling — recording real runs (2026-06-22)
 `npm run record` (`bridge/record.mjs`) persists every distinct live snapshot to `captures/` (gitignored),
