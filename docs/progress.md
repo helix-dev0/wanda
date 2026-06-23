@@ -351,10 +351,25 @@ numbers, not heuristics). Grounded by an 8-dimension multi-agent meta audit → 
   the mana-honest effective DPS; the binary `MANA_PENALTY` cliff is gone. **Identity-safe**: every ranged +
   sustainable fixture is byte-identical; only grenade's effective DPS moves (117→43.2, it out-drains). Live
   anchor: drill wand **60/A → 17/D DAMAGE, 60/A MOBILITY** (a digger ✓). 359 tests (6 new), typecheck/lint clean.
-- ⏭ **Next:** B1 (sum `damageByType` — CHAINSAW/typed carriers read 0 HP today, critical), B2 (crit on
-  explosion + AoE), comment cleanup, then the **exhaustive simulator-driven search** (enumerate every spell
-  combination for small pools → provably-best; feasibility measured: fresh-run 190–1.2k sims <1s, hybrid beam
-  for big pools). Open calibration Qs (REACH_REF, radioactive floor) in spec §6.
+- ✅ **B1 typed damage (`c8e0429`).** `shotDamage` summed only untyped `damage`; now adds `damage_by_type`
+  (slice/electricity/melee/fire/…, skip `healing`). CHAINSAW 0→12.75 HP; a whole class of weapons was
+  invisible. Range factor keeps close-range melee (chainsaw) from over-rating. Grenade goldens re-derived
+  (+fire-on-hit). ✅ **B2 crit-on-explosion+AoE (`2b30ade`).** crit now scales explosion + blast, not just
+  the projectile (×1 no-crit ⇒ goldens-safe).
+- ✅ **Exhaustive simulator-driven search (`7b9cc08`) — "run all the options".** For a small owned pool,
+  enumerate EVERY cap-limited spell combination on each chassis (one meta-canonical order each), score by the
+  honest fitness, keep best per archetype — provably complete. ENABLERS included (no `isUtilitySpell` ban):
+  the honest scorer ranks enabler+payload high, enabler-only low. Hybrid: template+polish fallback for large
+  pools. Live anchor: top DAMAGE 8/D→34/C (found BOUNCY + Luminous-Drill-as-enabler on its own). 39ms/274 sims.
+  7 enumeration tests. 369 tests green.
+- 🔴 **OPEN (found driving the maintainer's live RICH run, 2026-06-22):** (1) a **cap-22 / 12-distinct-spell
+  pool falls to the template path** (exhaustive is for ≤~8 distinct) — the template path still misses optima;
+  needs **trimmed-per-archetype exhaustive + beam** for rich pools. (2) **explosive AoE** (Dynamite/Bomb/Grenade,
+  real blast 63/125/73) is demoted by the self-danger veto (blast-in-face) — correct, but the strong AoE hides
+  in the Unsafe band; surface it with a "take explosion immunity" note. (3) **reach mean is outlier-inflated**
+  — a deck that's mostly melee but holds one ultra-range shot (bouncy 6250px) reads "ranged"; fix = clamp reach
+  PER-PROJECTILE then damage-weight (reachUsability), so a mostly-melee deck reads melee.
+- **Calibration Qs** (REACH_REF=250, radioactive floor, healing-as-self-heal) in spec §6 — maintainer-gated.
 
 ## Tooling — recording real runs (2026-06-22)
 `npm run record` (`bridge/record.mjs`) persists every distinct live snapshot to `captures/` (gitignored),
