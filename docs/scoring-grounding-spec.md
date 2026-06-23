@@ -104,8 +104,20 @@ blast (radius>0, damage 0) no longer scores like a nuke.
   triggers); `damage_critical_multiplier` is never set (the ×5 is a game constant). Implemented in
   `metrics.ts` `critMultiplier = 1 + min(c,1)·(5·max(1,c) − 1)` (c = chance/100), applied per shot to
   direct projectile damage AFTER additive adds. `c=0 → ×1`, so goldens are byte-identical. Validated:
-  `CRITICAL_HIT` → ×1.5, ×3 → ×2.5. **Remaining:** explosion-crit + **velocity damage**
-  (`speed_multiplier` is set by 68 actions, but needs impact-speed modeling — harder, deferred).
+  `CRITICAL_HIT` → ×1.5, ×3 → ×2.5. **Remaining:** explosion-crit.
+- **❌ Velocity damage — DEFERRED (decided 2026-06-22, grounded, do NOT implement a static model).**
+  Verified against the engine + wiki: `speed_multiplier` (default **1.0**, engine-clamped **[0,20]**) is
+  the projectile-LAUNCH-speed modifier, and it is an **anti-proxy** for the real damage bonus. Noita's
+  speed damage = `(FinalSpeed/InitialSpeed) × BaseDamage` **computed on impact**
+  (noita.wiki.gg/wiki/Spells_With_Damage_Scaled_By_Speed), so the strongest velocity builds *lower*
+  initial speed (Heavy Shot ×0.3, Accelerating Shot ×0.32) to maximize the ratio — a naive
+  `×speed_multiplier` model would score them as a damage **penalty** (sign-inverted). It also: applies
+  to only **5 vanilla projectiles** (Arrow, Bouncing Burst, Disc, Energy Sphere, Infestation), and needs
+  flight physics (air_friction/gravity/mass/distance-to-target) absent from `projectileStats.generated`.
+  A static approximation would make scoring WORSE, not better. **Unblock = regen the projectile table
+  with air_friction/mass/acceleration + assume an impact distance**, then an upper-bound "potential
+  with a velocity build" figure shown SEPARATELY from baseline DPS — never folded in, never keyed off
+  `speed_multiplier`. Until then: not modeled.
 - **Range/lifetime usability factor** — down-weight DPS that can't reach a reference engagement
   distance, from `projectileStats` lifetime × speed. (Modeling choice; pick the reference distance.)
 - **Effective-DPS mana model** — blend burst-rate for `secondsUntilStall` then the regen-limited rate,
