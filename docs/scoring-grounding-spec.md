@@ -147,7 +147,9 @@ blast (radius>0, damage 0) no longer scores like a nuke.
   **`multiplicative-stack`** template (damage modifiers BEFORE a multicast → broadcast to every draw,
   the meta's multiplier engine) + a **`cheap-shot-spam`** ([modifier, cheap-shot] pairing) fallback,
   both shuffle-gated + cap-safe. Engine-validated (modifier-broadcast ≈ 6× the bare multicast: sustDps
-  43→257) and end-to-end (a mixed pool now tops DAMAGE at 89/S where the bare multicast was 13/D).
+  ≈6×, sustDps ~29→172 on a roomy fast chassis) and end-to-end (a mixed pool's top DAMAGE build is the
+  modifier-broadcast one, lifted far above the bare multicast's 13/D — the absolute tier is
+  chassis-dependent: B on a typical chassis, S on a roomy fast one).
   Grounded finding: crit BEFORE a trigger does NOT boost the payload, so the multiplier template uses
   multicast-broadcast, not pre-trigger mods. **Deeper search / fill-empty-slots — DEFERRED (probed
   low-value 2026-06-22).** Polish can't fill empty deck slots, but a probe showed filling a short

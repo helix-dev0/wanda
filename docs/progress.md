@@ -307,10 +307,11 @@ Generation couldn't seed the meta's **multiplier engine** (modifiers BEFORE a mu
 every spell it draws — crit ×, damage +). Added two shuffle-gated, cap-safe templates: **`multiplicative-stack`**
 ([modifiers…, multicast, shots…]) and a **`cheap-shot-spam`** ([modifier, cheap-shot] pairing) for
 pools without a multicast. **Engine-validated before coding** (a key discipline): `[DAMAGE, CRITICAL_HIT,
-BURST_3, LIGHT_BULLET×3]` does ~6× the bare multicast's sustained DPS (43→257); a grounded negative
+BURST_3, LIGHT_BULLET×3]` does ~6× the bare multicast's sustained DPS; a grounded negative
 result — crit BEFORE a trigger does NOT boost the payload (fresh cast) — so the template uses
 multicast-broadcast, not pre-trigger mods. **End-to-end:** a mixed pool now tops the DAMAGE column with
-a `multiplicative-stack` build at **89/S** (the bare multicast was 13/D), and trigger→nuke correctly
+a `multiplicative-stack` build lifted far above the bare multicast's **13/D** (the modifier-broadcast;
+absolute tier is chassis-dependent — B on a typical chassis, S on a roomy fast one), and trigger→nuke correctly
 still wins AOE. 6 new tests (template shapes + the without-mods lift + the no-multicast fallback);
 surfaced in the dial copy + tier-list label (Teach rung). Fresh-context review (cap-safety + malformed-
 deck + budget-starvation hand-traces) → **SHIP**. 351 green. **Remaining (Tier 2):** deeper-than-depth-1
