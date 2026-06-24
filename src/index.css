@@ -858,15 +858,47 @@ h1 .rune {
   accent-color: var(--gold);
 }
 
-.gen-loading,
 .gen-error {
   font-size: 12px;
-  color: var(--ink-dim);
+  color: #f0b8b0;
   margin: 0 0 10px;
 }
 
-.gen-error {
-  color: #f0b8b0;
+/* Build-recompute loader. A non-shifting overlay (the prior builds stay visible, dimmed,
+   underneath) so switching wands or picking up a spell shows a graceful loader instead of
+   the old layout-shifting line that read as a jarring page reload. */
+.tier-board-wrap {
+  position: relative;
+}
+
+.gen-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--ink);
+  background: rgba(20, 16, 11, 0.62);
+  border-radius: 8px;
+}
+
+.gen-overlay .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--gold-deep);
+  border-top-color: var(--gold-bright);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* --- generated builds + per-card drill --------------------------------------- */

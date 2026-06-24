@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { uiStore } from '../store/uiStore'
 import { ownedCounts } from '../store/runStore'
+import { wandKey } from '../analysis/wandKey'
 import { useRunStore } from './useRunStore'
 import { useUiStore } from './useUiStore'
 import { requestGenerate } from '../generation/workerClient'
@@ -57,6 +58,25 @@ export function useGeneration(): void {
   const theorycraft = useUiStore((s) => s.theorycraft)
   const constraints = useUiStore((s) => s.constraints)
 
+  // Stable signature of everything generation ACTUALLY depends on. Critically it EXCLUDES
+  // the volatile current `mana` (wandKey already drops it; we add slot + active for chassis
+  // selection) — so while the player fires, only `mana` ticks and this string is unchanged.
+  // Without it, the snapshot's new `wands` ref re-ran generation on EVERY shot (~2×/s), which
+  // flipped the tier list to a loading state each frame = the jarring "page-reload" flash.
+  // A real change (swap/reorder a spell, switch the active wand, pick up a spell, take a perk,
+  // toggle a constraint/theorycraft) DOES change the signature → exactly one graceful regen.
+  const genKey = useMemo(
+    () =>
+      JSON.stringify({
+        wands: wands.map((w) => ({ slot: w.slot, active: !!w.active, key: wandKey(w) })),
+        counts: theorycraft ? null : [...ownedCounts(wands, bag)].sort(),
+        perks: perks.map((p) => p.id).sort(),
+        theorycraft,
+        constraints,
+      }),
+    [wands, bag, perks, theorycraft, constraints],
+  )
+
   useEffect(() => {
     // Owned mode builds on every carried wand; theorycraft builds on one ideal chassis.
     const chassis = theorycraft ? [IDEAL_CHASSIS] : ownedChassis(wands)
@@ -79,5 +99,8 @@ export function useGeneration(): void {
       uiStore.getState().genStart(reqId)
     }, 250)
     return () => clearTimeout(handle)
-  }, [wands, bag, perks, theorycraft, constraints])
+    // Re-run ONLY when the mana-excluding signature changes (see genKey) — depending on the raw
+    // wands/bag/perks refs would re-fire every mana tick while firing (the flash this fixes).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genKey])
 }
