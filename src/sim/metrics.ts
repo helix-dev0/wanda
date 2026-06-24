@@ -39,7 +39,10 @@ export interface WandMetrics {
    *  out-drains its regen (it can only fire as often as it can pay for). The honest
    *  single-target headline the scorer reads. */
   effectiveSustainedDps: number
-  /** HP/sec while actively firing, excluding reload (the burst/nova peak). */
+  /** HP/sec while actively firing, excluding reload (the burst/nova peak). For a single-cast
+   *  cycle this equals `sustainedDps` — there is no firing window distinct from the cycle (you
+   *  fire once, then must recharge), so the achievable peak IS the sustained rate. Only a
+   *  multi-shot wand has a real front-loading window where burst > sustained. */
   burstDps: number
 
   manaPerCycle: number
@@ -50,11 +53,12 @@ export interface WandMetrics {
   /** Wand base spread + the cast's accumulated spread (degrees; may be negative). */
   effectiveSpread: number
   /** Damage-weighted range usability in [0,1] — what FRACTION of the wand's single-target
-   *  damage actually reaches an engaged enemy. 1 = fully ranged (every ranged fixture);
-   *  low = a close-range tool used as a "damage" wand (luminous drill ~47px, chainsaw ~7px).
-   *  Clamped per-projectile then damage-weighted, so one ultra-range shot can't mask a melee
-   *  deck. The scorer multiplies DAMAGE/SPAM effective DPS by this. 1 when the deck deals no
-   *  damage (range is moot). */
+   *  damage actually reaches an engaged enemy. 1 = fully ranged (every fired projectile +
+   *  combat beam + explosion); low = a contact/digging tool used as a "damage" wand (drill,
+   *  chainsaw, tentacles). Classified PER PROJECTILE by weapon KIND — digging/melee, NOT
+   *  ballistic distance (which fails in Noita; see `isCloseRangeProjectile`) — then damage-
+   *  weighted, so a mostly-contact deck reads close even with one ranged shot. The scorer
+   *  multiplies DAMAGE/SPAM effective DPS by this. 1 when the deck deals no damage (range moot). */
   reachUsability: number
   /** Largest explosion radius produced in the cycle (px); 0 if none. */
   maxExplosionRadius: number
@@ -133,18 +137,34 @@ function reachOfStats(st: ProjectileStats): number {
   return (st.speedMax * st.lifetime) / 60
 }
 
-/** Reach (px) at/above which a projectile's damage gets FULL single-target credit; below it,
- *  damage is discounted toward REACH_FLOOR (it can't reliably reach an engaged enemy). Every
- *  ranged fixture projectile is ≥500px so they're unaffected; close-range tools (luminous drill
- *  ~47px, chainsaw ~7px) fall below. PROVISIONAL — calibrate vs real wands (rebuild-spec §6 Q2). */
-const REACH_REF = 250
+/** Reach factor for a contact/digging weapon's DIRECT damage — it can't reliably reach an
+ *  engaged enemy, so that damage barely counts toward ranged single-target DPS. */
 const REACH_FLOOR = 0.1
 
-/** A SINGLE projectile's range usability in [REACH_FLOOR, 1]. Clamped PER PROJECTILE so one
- *  ultra-long-range shot (bouncy ~6250px) can't mask a mostly-melee deck when damage-weighted —
- *  the deck usability is Σ(damage·thisFrac)/Σdamage, not a frac of the inflated mean reach. */
-function reachFracOf(st: ProjectileStats): number {
-  return Math.min(1, Math.max(REACH_FLOOR, reachOfStats(st) / REACH_REF))
+/** Below this projectile flight (px) a slice/melee-damage projectile is a genuine MELEE swing
+ *  (chainsaw 7px, tentacle 8px), not a ranged slicer (arrow 8125px, disc, bouncy 6250px). */
+const MELEE_REACH_PX = 16
+
+/** Untyped DIGGING beams: their damage is plain `damage`, NOT the `drill` type, so neither
+ *  damage-type nor ballistic distance flags them as the digging tools they are (Luminous Drill
+ *  reads 47px — farther than Chain Bolt's 29px). Curated by entity substring. Drill-TYPE diggers
+ *  (digger / powerdigger / xray) carry `damageByType.drill` and need no entry here. */
+const DIGGING_BEAM_ENTITIES: readonly string[] = ['luminous_drill', 'digging_bolt']
+
+/**
+ * Does this projectile deliver CLOSE-RANGE (contact/digging) damage that must NOT count as ranged
+ * single-target DPS? Grounded in weapon KIND, not ballistic distance — distance is unusable in
+ * Noita: a slow ranged bolt (Chain Bolt 29px) under-reaches a digging beam (Luminous Drill 47px),
+ * and a powerful combat beam (Megalaser) barely moves (~1px). A weapon is close-range iff it DIGS
+ * (drill damage-type, or a curated untyped digging beam) or is MELEE (slice/melee damage delivered
+ * within MELEE_REACH_PX). Everything else — every FIRED projectile and combat beam — reaches at
+ * range. Validated across all vanilla projectiles: only diggers + chainsaw/tentacles/tongue
+ * classify close; Chain Bolt, Megalaser, Laser, bombs (via their blast) all stay ranged. */
+function isCloseRangeProjectile(entity: string, st: ProjectileStats): boolean {
+  if ((st.damageByType?.drill ?? 0) > 0) return true // digger / powerdigger / xray
+  if (DIGGING_BEAM_ENTITIES.some((d) => entity.includes(d))) return true // luminous drill (untyped)
+  const sliceMelee = (st.damageByType?.slice ?? 0) + (st.damageByType?.melee ?? 0)
+  return sliceMelee > 0 && reachOfStats(st) < MELEE_REACH_PX // chainsaw / tentacle / tongue swing
 }
 
 // Expected HP of one shot INCLUDING its trigger payloads: every top-level projectile
@@ -223,7 +243,17 @@ export function computeMetrics(
   const damagePerCast = shots[0] ? shotDamage(shots[0], onMissing) : 0
   const damagePerCycle = shots.reduce((hp, s) => hp + shotDamage(s, onMissing), 0)
   const sustainedDps = cycleSeconds > 0 ? damagePerCycle / cycleSeconds : 0
-  const burstDps = fireSeconds > 0 ? damagePerCycle / fireSeconds : 0
+  // Burst = peak HP/s during active firing, excluding reload — the alpha advantage of
+  // front-loading multiple shots before recharge. But a SINGLE-cast cycle (one click empties
+  // the deck — a multicast nova or a trigger) has NO firing window distinct from the cycle:
+  // you fire once, then must recharge. Dividing that one cast's damage by its sub-cast firing
+  // window (≈1 frame once an enabler like Luminous Drill zeroes cast delay) invents an
+  // UNREPEATABLE rate — a nova read ~2600 HP/s for a wand whose achievable peak is ~200. The
+  // honest peak for a one-cast deck IS its sustained rate, so burst == sustained there; only a
+  // genuine multi-shot wand has an exploitable firing window where burst > sustained. (Goldens-
+  // safe: the one 1-shot fixture, grenade, already had burst == sustained via recharge overlap.)
+  const burstDps =
+    shots.length > 1 ? (fireSeconds > 0 ? damagePerCycle / fireSeconds : 0) : sustainedDps
 
   // --- mana sustainability ---
   const manaPerCycle = shots.reduce((m, s) => m + (s.manaDrain ?? 0), 0)
@@ -286,14 +316,16 @@ export function computeMetrics(
     for (const p of shot.projectiles) {
       const st = getProjectileStats(p.entity)
       if (st) {
-        // DIRECT/contact damage is reach-gated (a melee beam can't hit a ranged target); the
-        // EXPLOSION reaches wherever the projectile lands, so it always gets full reach — even a
-        // lobbed explosive with config `speedMax=0` (Bomb/Mine) is thrown by the wand, not melee.
+        // DIRECT damage reaches at range UNLESS the weapon is contact/digging (a drill/chainsaw
+        // can't hit a ranged target); the EXPLOSION reaches wherever the projectile lands, so it
+        // always gets full reach — even a lobbed explosive (Bomb/Mine, config speedMax=0) is
+        // thrown by the wand, not melee.
         const directW = Math.max(0, st.damage + typedDmg(st))
         const explW = Math.max(0, st.explosionDamage)
         if (directW + explW > 0) {
           reachDenom += directW + explW
-          reachNumer += directW * reachFracOf(st) + explW
+          const directFrac = isCloseRangeProjectile(p.entity, st) ? REACH_FLOOR : 1
+          reachNumer += directW * directFrac + explW
         }
       }
       const r = (st?.explosionRadius ?? 0) + radiusAdd

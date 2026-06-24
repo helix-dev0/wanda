@@ -102,6 +102,25 @@ describe('computeMetrics — fixture goldens', () => {
   })
 })
 
+describe('burstDps — achievable peak, not a fictional sub-cast rate', () => {
+  it('a single-cast long-recharge nova reports burst == sustained (not a 1-frame rate)', () => {
+    // One projectile, ~0 cast delay (enabler-like), long recharge: the old burst =
+    // damage/(1 frame) invented an unrepeatable rate (you fire once, then recharge for 2s).
+    // The achievable peak for a one-cast deck IS its sustained rate.
+    const m = metricsForDeck(['BULLET'], { castDelay: 0, rechargeTime: 120, capacity: 1 })
+    expect(m.shotsUntilReload).toBe(1)
+    expect(m.burstDps).toBeCloseTo(m.sustainedDps) // was damage×60 >> sustained
+  })
+
+  it('a multi-shot wand KEEPS burst > sustained (a real firing window is front-loadable)', () => {
+    // Several shots fire back-to-back before a long recharge — that window genuinely exceeds
+    // the cycle-average rate, so burst > sustained must be preserved (no over-correction).
+    const m = metricsForDeck(['BULLET', 'BULLET', 'BULLET'], { castDelay: 6, rechargeTime: 90, capacity: 3 })
+    expect(m.shotsUntilReload).toBe(3)
+    expect(m.burstDps).toBeGreaterThan(m.sustainedDps)
+  })
+})
+
 describe('shotDamage — typed damage_by_type counts as HP (B1)', () => {
   it('CHAINSAW (slice 0.51) reads ~12.75 HP/cast — was 0 (typed damage ignored)', () => {
     expect(metricsForDeck(['CHAINSAW']).damagePerCast).toBeCloseTo(12.75, 1)
@@ -134,6 +153,30 @@ describe('computeMetrics — range + mana-honest fields (B3/B4)', () => {
     const m = metricsForDeck(['BOMB'])
     expect(m.maxExplosionDamage).toBeGreaterThan(0) // it does explode
     expect(m.reachUsability).toBeGreaterThan(0.9) // explosion weight gets full reach, not melee 0.1
+  })
+
+  // Range is classified by weapon KIND, not ballistic distance: distance is unusable in Noita
+  // (a slow ranged bolt under-reaches a digging beam; a combat beam barely moves). See
+  // isCloseRangeProjectile + docs/scoring-rebuild-spec.md.
+  it('CHAIN_BOLT (a slow ranged bolt, 29px flight) is FULLY ranged — fired, not contact', () => {
+    // The bug: ballistic reach (29px) ranked Chain Bolt BELOW the digging drill (47px) and
+    // crushed it to ~0.12. It is a fired chaining spell, so its damage reaches at range.
+    expect(metricsForDeck(['CHAIN_BOLT']).reachUsability).toBeCloseTo(1)
+  })
+  it('LUMINOUS_DRILL (untyped digging beam) stays close-range — keystone preserved', () => {
+    expect(metricsForDeck(['LUMINOUS_DRILL']).reachUsability).toBeCloseTo(0.1)
+  })
+  it('CHAINSAW (melee swing, slice at 7px) stays close-range — keystone preserved', () => {
+    expect(metricsForDeck(['CHAINSAW']).reachUsability).toBeCloseTo(0.1)
+  })
+  it('a drill ENABLER does not drag a real ranged payload to melee (damage-weighted)', () => {
+    // The maintainer's wand: Chain Bolt is the damage (ranged), the drill is a speed enabler.
+    // Chain Bolt's 25 HP dominates the weighting, so the deck reads MOSTLY ranged (~0.74) —
+    // far above the old all-ballistic 0.15 that crushed it. The drill's own 10 HP is honestly
+    // counted as close-range (it does deal it), so the deck isn't a pure 1.0; that's correct.
+    const u = metricsForDeck(['CHAIN_BOLT', 'LUMINOUS_DRILL']).reachUsability
+    expect(u).toBeGreaterThan(0.7)
+    expect(u).toBeLessThan(1)
   })
   it('effectiveSustainedDps == sustainedDps when mana-sustainable (identity, goldens-safe)', () => {
     const a = metricsFor('snapshot_01.json')
