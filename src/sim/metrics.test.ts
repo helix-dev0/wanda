@@ -4,6 +4,7 @@ import type { WandShot } from '../engine/eval/types'
 import type { GunActionState } from '../engine/extra/types'
 import { simulateWand } from './simulateWand'
 import { computeMetrics, type WandMetrics } from './metrics'
+import { getProjectileStats } from './data/projectileStats'
 
 /** Minimal castState carrying only the modifier deltas metrics reads. */
 const castState = (over: Partial<GunActionState>): GunActionState =>
@@ -177,6 +178,13 @@ describe('computeMetrics — range + mana-honest fields (B3/B4)', () => {
     const u = metricsForDeck(['CHAIN_BOLT', 'LUMINOUS_DRILL']).reachUsability
     expect(u).toBeGreaterThan(0.7)
     expect(u).toBeLessThan(1)
+  })
+  it('keystone canary: the untyped digging-beam entity path still exists', () => {
+    // LUMINOUS_DRILL is floored as close-range only via entity.includes('luminous_drill') (its
+    // damage is untyped, not `drill`-typed). If a game/mod version renames this path the guard
+    // silently fails and the digger reverts to ranged — the exact bug the reach factor prevents.
+    // Fail LOUDLY here on a rename instead.
+    expect(getProjectileStats('data/entities/projectiles/deck/luminous_drill.xml')).toBeDefined()
   })
   it('effectiveSustainedDps == sustainedDps when mana-sustainable (identity, goldens-safe)', () => {
     const a = metricsFor('snapshot_01.json')

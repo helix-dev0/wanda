@@ -70,7 +70,7 @@ export function useGeneration(): void {
       JSON.stringify({
         wands: wands.map((w) => ({ slot: w.slot, active: !!w.active, key: wandKey(w) })),
         counts: theorycraft ? null : [...ownedCounts(wands, bag)].sort(),
-        perks: perks.map((p) => p.id).sort(),
+        perks: perks.map((p) => p.id).sort(), // id only: generation reads immunity PRESENCE, not stacks
         theorycraft,
         constraints,
       }),

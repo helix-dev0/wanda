@@ -147,7 +147,11 @@ const MELEE_REACH_PX = 16
 
 /** Untyped DIGGING beams: their damage is plain `damage`, NOT the `drill` type, so neither
  *  damage-type nor ballistic distance flags them as the digging tools they are (Luminous Drill
- *  reads 47px — farther than Chain Bolt's 29px). Curated by entity substring. Drill-TYPE diggers
+ *  reads 47px — farther than Chain Bolt's 29px). Curated by entity substring; the classifier's
+ *  correctness is load-bearing on these strings, so a canary test (metrics.test.ts) asserts the
+ *  `luminous_drill` entity still exists in the projectile table (fail loudly on a version rename).
+ *  `digging_bolt` is a real vanilla spell pre-registered here but ABSENT from the current
+ *  projectile-stats snapshot (no entry yet) — harmless until it appears. Drill-TYPE diggers
  *  (digger / powerdigger / xray) carry `damageByType.drill` and need no entry here. */
 const DIGGING_BEAM_ENTITIES: readonly string[] = ['luminous_drill', 'digging_bolt']
 
