@@ -39,10 +39,11 @@ export interface WandMetrics {
    *  out-drains its regen (it can only fire as often as it can pay for). The honest
    *  single-target headline the scorer reads. */
   effectiveSustainedDps: number
-  /** HP/sec while actively firing, excluding reload (the burst/nova peak). For a single-cast
-   *  cycle this equals `sustainedDps` — there is no firing window distinct from the cycle (you
-   *  fire once, then must recharge), so the achievable peak IS the sustained rate. Only a
-   *  multi-shot wand has a real front-loading window where burst > sustained. */
+  /** The ACHIEVABLE peak HP/sec: the most damage the wand can actually deliver in a ~1s window,
+   *  front-loading casts but bounded by BOTH recharge (idle between cycles) and MANA (start full
+   *  + 1s regen). NOT "damage ÷ a 1-frame firing window" (which invented unrepeatable nova rates).
+   *  Always ≥ effectiveSustainedDps (it's an upside), and a mana-starved nova can burst only
+   *  briefly. See the derivation in computeMetrics. */
   burstDps: number
 
   manaPerCycle: number

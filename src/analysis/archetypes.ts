@@ -99,8 +99,10 @@ function scoreDamage(m: WandMetrics): ArchetypeScore {
   const reach = m.reachUsability
   const reasons: string[] = []
   // Sustained term uses the MANA-HONEST effectiveSustainedDps (B4): a wand that out-drains
-  // its regen can't keep that DPS up. Burst stays the raw peak — a mana-starved wand can
-  // still nova, and the 0.3 weight credits that. Both still gated by reach + on-target.
+  // its regen can't keep that DPS up. `burstDps` is now the mana+recharge-bounded ACHIEVABLE
+  // peak (metrics.ts) — not a fictional nova rate — and is provably ≥ effectiveSustainedDps,
+  // so the 0.3 weight is a bounded UPSIDE that can't flip a sustained deficit. Both gated by
+  // reach + on-target.
   const score =
     0.7 * sat(m.effectiveSustainedDps * onTarget * reach, REF.sustainedDps) +
     0.3 * sat(m.burstDps * onTarget * reach, REF.burstDps)

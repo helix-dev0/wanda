@@ -66,7 +66,10 @@ by `regen/drain`.
 ## 3. Per-archetype blend (signature-dominant; factors multiply, damage is the additive base)
 ```
 DAMAGE = 0.7*sat(effectiveSustainedDps*onTarget*reachFrac, REF.sustainedDps)
-       + 0.3*sat(burstDps*onTarget*reachFrac, REF.burstDps)        // burst NOT mana-throttled (it IS the nova)
+       + 0.3*sat(burstDps*onTarget*reachFrac, REF.burstDps)        // SUPERSEDED 2026-06-24: burstDps is now the
+       //   mana+recharge-bounded ACHIEVABLE peak (max HP in a ~1s window), not the raw nova rate — so an
+       //   unsustainable nova can't dominate DAMAGE. Provably ≥ effectiveSustainedDps (a bounded upside).
+       //   See docs/progress.md "achievable mana-bounded burst" + sim/metrics.ts computeMetrics.
        // MANA_PENALTY deleted — mana already inside effectiveSustainedDps. DoT stays a NOTE, never a number.
 SPAM   = sat(effectiveSustainedDps*reachFrac, REF.sustainedDps) * (0.6 + 0.4*sat(pps, REF.projPerSec)/100)
        // hard mana gate deleted — manaRatio is the smooth equivalent.
