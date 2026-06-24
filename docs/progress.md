@@ -366,6 +366,34 @@ numbers, not heuristics). Grounded by an 8-dimension multi-agent meta audit → 
   shot mask a melee deck; now `reachUsability` ∈ [0,1] clamps each projectile's reach BEFORE weighting, so a
   mostly-melee deck reads melee (anchor BOUNCY+2×DRILL 34/C→27/C). Also eslint ignores `.claude/` (review
   worktrees no longer flood `npm run lint`).
+- ✅ **Reach by weapon-KIND, not ballistic distance (2026-06-24).** A fast CHAIN_BOLT wand the maintainer
+  confirms is good scored DAMAGE 3/D. Root cause: `reachUsability` used ballistic `speedMax×lifetime`, which is
+  UNUSABLE — proven across all 375 projectiles (CHAIN_BOLT 29px < LUMINOUS_DRILL 47px < combat-beam MEGALASER;
+  Chain Bolt's range is scripted chaining, invisible to statics). Rebuilt `isCloseRangeProjectile` (`sim/metrics.ts`):
+  close iff DIGS (drill-type or curated untyped beam) or MELEE (slice/melee within 16px); else RANGED (full).
+  Goldens byte-safe. Live: Chain Bolt 3→12/D (reach 0.15→0.60); drill-only 5/D + chainsaw-only 1/D stay demoted
+  (keystone). REACH_REF=250 retired.
+- ✅ **Burst single-cast fix (2026-06-24).** A 1-cast nova read damage÷1-frame = thousands HP/s; `burstDps` now ==
+  sustainedDps for a 1-shot cycle. PARTIAL — multi-shot novas still inflate; see the TOP-OPEN item below.
+- ✅ **Live "page-reload" flash fixed (2026-06-24) [UI].** Shooting (mana ticks) re-fired generation every frame;
+  `useGeneration` now keys off a mana-excluding signature → no regen while firing. Genuine reloads (wand switch /
+  new spell) show a non-shifting overlay loader instead of a content flash.
+- 📋 **Stack decision + validation strategy → [`scoring-validation-spec.md`](./scoring-validation-spec.md).** Stay
+  TypeScript/local-first (correctness is a MODEL problem, not a language one — invariants #4/#9); the productive
+  "API" is an importer for builds shared online + a 3-layer validation harness (sim-fidelity · archetype-routing ·
+  differential ordering), all #9-compliant (no human tier labels). The salinecitrine simulator shares builds as
+  spell-ID lists (our IDs) → direct import. Unblocks REF calibration via the meta's own power-curve language.
+- 🔴 **TOP OPEN — burst inflation + over-weighting ranks unsustainable novas ABOVE good held wands (2026-06-24,
+  maintainer-flagged live).** PROVEN: a multicast nova (effSust **42**, burst **1050**, "sustains 42 of 373")
+  scores DAMAGE **34**, while the maintainer's held CHAIN_BOLT wand (effSust **56**, RANGED) scores **12** — the
+  nova wins PURELY on its 0.3 burst term (26.6 vs 7.8 sustained). Two coordinated causes: (1) burst is an
+  UNACHIEVABLE rate (damage ÷ tiny firing window) that saturates `REF.burstDps=400`; (2) the held wand's reach is
+  dragged to 0.60 by the LUMINOUS_DRILL enabler's incidental 10 HP (a speed tool, not damage). **Fix plan (grounded
+  in Principle 5 "damage you can pay for"; reverses the burst-raw + 0.7/0.3 decisions — maintainer-confirmed wrong):**
+  (a) burst → ACHIEVABLE peak (max HP in a ~1s window, recharge + mana bounded); (b) DAMAGE becomes
+  sustained-EFFECTIVE-dominant — burst a small bounded bonus that can't flip a sustained deficit; (c) exclude curated
+  ENABLER/utility incidental damage (drill) from DAMAGE/reach. Validate: held CHAIN_BOLT ≥ the unsustainable novas;
+  keystone (drill-only/chainsaw-only demoted) holds. THE next slice.
 - 🔴 **OPEN (found driving the maintainer's live RICH run):** (1) a **cap-22 / 12-distinct-spell pool falls to
   the template path** (exhaustive is for ≤~8 distinct) — still misses optima; needs **trimmed-per-archetype
   exhaustive + beam** (task 11). (2) **explosive AoE** (Dynamite/Bomb/Grenade, real blast 63/125/73) is demoted
