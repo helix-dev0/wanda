@@ -171,6 +171,19 @@ function isCloseRangeProjectile(entity: string, st: ProjectileStats): boolean {
   return sliceMelee > 0 && reachOfStats(st) < MELEE_REACH_PX // chainsaw / tentacle / tongue swing
 }
 
+/** A projectile's COMBAT damage (enemy HP) in the 1.0 = 25 HP unit: untyped `damage` + typed
+ *  damage_by_type, MINUS digging. DIGGING is excluded because terrain-carving is not combat damage
+ *  — counting it (a) inflated diggers as "damage" (crit/multicast could lift the original Luminous-
+ *  Drill bug back) and (b) dragged a real ranged payload's reach when a drill ENABLER rode along.
+ *  Excluded: `drill`-type damage, and the curated untyped digging beams (Luminous Drill). A pure
+ *  digger → 0 combat ⇒ ~0 DAMAGE score (demoted by zero offensive output, not by the reach floor).
+ *  Melee (chainsaw slice) IS combat damage — it counts, but the reach factor floors its short range. */
+function combatDamage(entity: string, st: ProjectileStats): number {
+  if (DIGGING_BEAM_ENTITIES.some((d) => entity.includes(d))) return 0
+  const drill = st.damageByType?.drill ?? 0
+  return Math.max(0, st.damage + typedDmg(st) - drill)
+}
+
 // Expected HP of one shot INCLUDING its trigger payloads: every top-level projectile
 // gets the shot's accumulated damage_*_add (1.0 = 25 HP), plus its explosion when it
 // explodes; and a TRIGGER projectile recursively adds the damage its payload delivers
@@ -187,11 +200,11 @@ function shotDamage(shot: WandShot, onMissing: () => void, depth = 0): number {
   for (const p of shot.projectiles) {
     const st = getProjectileStats(p.entity)
     if (st) {
-      // Total direct HP = untyped `damage` + every damage_by_type entry (slice, electricity,
-      // melee, fire-on-hit, ice, …) except non-damage types (healing heals the enemy). Without
-      // the typed sum, CHAINSAW (slice 0.51) and every typed-only carrier read 0 HP. (B1;
-      // grounded noita.wiki.gg/wiki/Damage_types — typed damage is real enemy HP, additive.)
-      hp += Math.max(0, st.damage + typedDmg(st) + projAdd) * DAMAGE_UNIT_HP * critMul
+      // Direct HP = combat damage (untyped + typed slice/electricity/melee/fire/ice/…, B1) MINUS
+      // digging (drill / curated digging beams are terrain work, not combat — see combatDamage),
+      // plus the shot's damage_projectile_add. Without the typed sum CHAINSAW (slice) read 0; with
+      // the digging exclusion a drill ENABLER no longer counts as offensive damage.
+      hp += Math.max(0, combatDamage(p.entity, st) + projAdd) * DAMAGE_UNIT_HP * critMul
       if (st.explosionDamage > 0 || explAdd > 0) {
         // Crit applies to ALL damage types, not just projectile damage — including the
         // explosion (B2a; noita.wiki.gg/wiki/Critical_hit). ×1 when no crit (goldens safe).
@@ -247,20 +260,28 @@ export function computeMetrics(
   const damagePerCast = shots[0] ? shotDamage(shots[0], onMissing) : 0
   const damagePerCycle = shots.reduce((hp, s) => hp + shotDamage(s, onMissing), 0)
   const sustainedDps = cycleSeconds > 0 ? damagePerCycle / cycleSeconds : 0
-  // Burst = peak HP/s during active firing, excluding reload — the alpha advantage of
-  // front-loading multiple shots before recharge. But a SINGLE-cast cycle (one click empties
-  // the deck — a multicast nova or a trigger) has NO firing window distinct from the cycle:
-  // you fire once, then must recharge. Dividing that one cast's damage by its sub-cast firing
-  // window (≈1 frame once an enabler like Luminous Drill zeroes cast delay) invents an
-  // UNREPEATABLE rate — a nova read ~2600 HP/s for a wand whose achievable peak is ~200. The
-  // honest peak for a one-cast deck IS its sustained rate, so burst == sustained there; only a
-  // genuine multi-shot wand has an exploitable firing window where burst > sustained. (Goldens-
-  // safe: the one 1-shot fixture, grenade, already had burst == sustained via recharge overlap.)
-  const burstDps =
-    shots.length > 1 ? (fireSeconds > 0 ? damagePerCycle / fireSeconds : 0) : sustainedDps
+  const manaPerCycle = shots.reduce((m, s) => m + (s.manaDrain ?? 0), 0)
+
+  // Burst = the highest damage rate the wand can ACTUALLY hold for a brief engagement — NOT the
+  // fictional rate of dividing one cast's damage by a ~1-frame firing window (which read ~2600 HP/s
+  // for a multicast nova whose real peak is ~200, letting unsustainable novas dominate DAMAGE). We
+  // bound it the way the game does: over a 1-second window, front-load shots but fire at most as
+  // many cycles as (a) TIME allows — recharge idles between cycles — and (b) MANA pays for (start
+  // full + 1s regen): "damage you can pay for" (Principle 5). So a wand that out-drains its mana
+  // can burst only for a fraction of a second, and a fast sustainable wand's burst ≈ sustained.
+  const BURST_WINDOW_S = 1
+  let burstDps = 0
+  if (cycleSeconds > 0 && damagePerCycle > 0) {
+    const fullByTime = Math.floor(BURST_WINDOW_S / cycleSeconds)
+    const partialByTime =
+      fireSeconds > 0 ? Math.min(1, (BURST_WINDOW_S - fullByTime * cycleSeconds) / fireSeconds) : 1
+    const cyclesByTime = fullByTime + partialByTime
+    const manaBudget = stats.manaMax + stats.manaChargeSpeed * BURST_WINDOW_S // start full + 1s regen
+    const cyclesByMana = manaPerCycle > 0 ? manaBudget / manaPerCycle : Infinity
+    burstDps = (damagePerCycle * Math.min(cyclesByTime, cyclesByMana)) / BURST_WINDOW_S
+  }
 
   // --- mana sustainability ---
-  const manaPerCycle = shots.reduce((m, s) => m + (s.manaDrain ?? 0), 0)
   const regenPerCycle = stats.manaChargeSpeed * cycleSeconds
   const manaSustainable = manaPerCycle <= regenPerCycle
   // Effective sustained DPS: a mana shortfall DROPS casts (it doesn't slow the clock —
@@ -320,11 +341,11 @@ export function computeMetrics(
     for (const p of shot.projectiles) {
       const st = getProjectileStats(p.entity)
       if (st) {
-        // DIRECT damage reaches at range UNLESS the weapon is contact/digging (a drill/chainsaw
-        // can't hit a ranged target); the EXPLOSION reaches wherever the projectile lands, so it
-        // always gets full reach — even a lobbed explosive (Bomb/Mine, config speedMax=0) is
-        // thrown by the wand, not melee.
-        const directW = Math.max(0, st.damage + typedDmg(st))
+        // Weight reach by COMBAT damage (digging excluded → a drill enabler contributes 0 and can't
+        // drag a real payload's reach). Direct combat damage reaches at range UNLESS the weapon is
+        // MELEE (chainsaw); the EXPLOSION reaches wherever the projectile lands, so it always gets
+        // full reach — even a lobbed explosive (Bomb/Mine, config speedMax=0) is thrown, not melee.
+        const directW = combatDamage(p.entity, st)
         const explW = Math.max(0, st.explosionDamage)
         if (directW + explW > 0) {
           reachDenom += directW + explW

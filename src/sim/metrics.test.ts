@@ -52,7 +52,7 @@ describe('computeMetrics — fixture goldens', () => {
     expect(m.damagePerCast).toBe(3)
     expect(m.damagePerCycle).toBe(6)
     expect(m.sustainedDps).toBeCloseTo(9.2308)
-    expect(m.burstDps).toBeCloseTo(16.3636) // unchanged — fireSeconds (active firing) is unaffected
+    expect(m.burstDps).toBeCloseTo(11.7273) // achievable: ~1.95 cycles fit a 1s window (cycle 0.65s)
     expect(m.manaPerCycle).toBe(10)
     expect(m.manaSustainable).toBe(true)
     expect(m.secondsUntilStall).toBeNull()
@@ -85,7 +85,7 @@ describe('computeMetrics — fixture goldens', () => {
     expect(m.projectilesPerSecond).toBeCloseTo(3.4615)
     expect(m.damagePerCast).toBe(5)
     expect(m.damagePerCycle).toBe(15)
-    expect(m.burstDps).toBeCloseTo(50)
+    expect(m.burstDps).toBeCloseTo(21.6667) // achievable: ~1.44 cycles in a 1s window (cycle 0.87s)
     expect(m.manaSustainable).toBe(true)
     expect(m.effectiveSpread).toBeCloseTo(-3)
     expect(m.maxExplosionRadius).toBe(4)
@@ -103,19 +103,27 @@ describe('computeMetrics — fixture goldens', () => {
   })
 })
 
-describe('burstDps — achievable peak, not a fictional sub-cast rate', () => {
-  it('a single-cast long-recharge nova reports burst == sustained (not a 1-frame rate)', () => {
-    // One projectile, ~0 cast delay (enabler-like), long recharge: the old burst =
-    // damage/(1 frame) invented an unrepeatable rate (you fire once, then recharge for 2s).
-    // The achievable peak for a one-cast deck IS its sustained rate.
+describe('burstDps — ACHIEVABLE peak (recharge + mana bounded), not a fictional sub-cast rate', () => {
+  it('a single nova with a long recharge bursts ONE cast in the window, not damage×60', () => {
+    // cast delay ~0 + 2s recharge: the old damage÷1-frame read ~60× a cast's damage. The
+    // achievable peak is the ONE cast you get off in a 1s window (then you idle out the recharge).
     const m = metricsForDeck(['BULLET'], { castDelay: 0, rechargeTime: 120, capacity: 1 })
     expect(m.shotsUntilReload).toBe(1)
-    expect(m.burstDps).toBeCloseTo(m.sustainedDps) // was damage×60 >> sustained
+    expect(m.burstDps).toBeCloseTo(m.damagePerCycle) // one nova per 1s window, NOT damage×60
+  })
+
+  it('an unsustainable nova is MANA-bounded — cannot burst beyond what mana pays for (Principle 5)', () => {
+    // Same deck, only manaMax differs: the mana-starved one fires fewer casts in the window, so
+    // its burst is strictly lower. This is what stops a "sustains 42 of 373" nova reading huge.
+    const opts = { manaChargeSpeed: 10, rechargeTime: 4, castDelay: 1, capacity: 2 }
+    const starved = metricsForDeck(['CHAIN_BOLT', 'CHAIN_BOLT'], { ...opts, manaMax: 80 })
+    const loaded = metricsForDeck(['CHAIN_BOLT', 'CHAIN_BOLT'], { ...opts, manaMax: 100000 })
+    expect(starved.burstDps).toBeLessThan(loaded.burstDps)
   })
 
   it('a multi-shot wand KEEPS burst > sustained (a real firing window is front-loadable)', () => {
-    // Several shots fire back-to-back before a long recharge — that window genuinely exceeds
-    // the cycle-average rate, so burst > sustained must be preserved (no over-correction).
+    // Several shots fire before a long recharge; that window beats the cycle-average rate, so
+    // burst > sustained must be preserved (no over-correction).
     const m = metricsForDeck(['BULLET', 'BULLET', 'BULLET'], { castDelay: 6, rechargeTime: 90, capacity: 3 })
     expect(m.shotsUntilReload).toBe(3)
     expect(m.burstDps).toBeGreaterThan(m.sustainedDps)
@@ -164,20 +172,21 @@ describe('computeMetrics — range + mana-honest fields (B3/B4)', () => {
     // crushed it to ~0.12. It is a fired chaining spell, so its damage reaches at range.
     expect(metricsForDeck(['CHAIN_BOLT']).reachUsability).toBeCloseTo(1)
   })
-  it('LUMINOUS_DRILL (untyped digging beam) stays close-range — keystone preserved', () => {
-    expect(metricsForDeck(['LUMINOUS_DRILL']).reachUsability).toBeCloseTo(0.1)
+  it('LUMINOUS_DRILL (digging beam) contributes ~0 COMBAT damage — keystone via zero offense', () => {
+    // Digging isn't combat damage, so a drill-only "damage" wand has ~0 sustained DPS and is
+    // demoted by zero offensive output (not by the reach floor). Crit/multicast can't inflate 0.
+    const m = metricsForDeck(['LUMINOUS_DRILL'])
+    expect(m.sustainedDps).toBeCloseTo(0)
+    expect(m.damagePerCast).toBeCloseTo(0)
   })
   it('CHAINSAW (melee swing, slice at 7px) stays close-range — keystone preserved', () => {
+    // Slice IS combat damage (it counts), but the reach factor floors its 7px melee range.
     expect(metricsForDeck(['CHAINSAW']).reachUsability).toBeCloseTo(0.1)
   })
-  it('a drill ENABLER does not drag a real ranged payload to melee (damage-weighted)', () => {
-    // The maintainer's wand: Chain Bolt is the damage (ranged), the drill is a speed enabler.
-    // Chain Bolt's 25 HP dominates the weighting, so the deck reads MOSTLY ranged (~0.74) —
-    // far above the old all-ballistic 0.15 that crushed it. The drill's own 10 HP is honestly
-    // counted as close-range (it does deal it), so the deck isn't a pure 1.0; that's correct.
-    const u = metricsForDeck(['CHAIN_BOLT', 'LUMINOUS_DRILL']).reachUsability
-    expect(u).toBeGreaterThan(0.7)
-    expect(u).toBeLessThan(1)
+  it('a drill ENABLER no longer drags a ranged payload — its digging damage is excluded', () => {
+    // Chain Bolt is the damage (ranged); the drill is a speed enabler whose digging damage is
+    // excluded from combat, so the deck reads FULLY ranged (was dragged to ~0.6 by the drill).
+    expect(metricsForDeck(['CHAIN_BOLT', 'LUMINOUS_DRILL']).reachUsability).toBeCloseTo(1)
   })
   it('keystone canary: the untyped digging-beam entity path still exists', () => {
     // LUMINOUS_DRILL is floored as close-range only via entity.includes('luminous_drill') (its

@@ -383,8 +383,16 @@ numbers, not heuristics). Grounded by an 8-dimension multi-agent meta audit → 
   "API" is an importer for builds shared online + a 3-layer validation harness (sim-fidelity · archetype-routing ·
   differential ordering), all #9-compliant (no human tier labels). The salinecitrine simulator shares builds as
   spell-ID lists (our IDs) → direct import. Unblocks REF calibration via the meta's own power-curve language.
-- 🔴 **TOP OPEN — burst inflation + over-weighting ranks unsustainable novas ABOVE good held wands (2026-06-24,
-  maintainer-flagged live).** PROVEN: a multicast nova (effSust **42**, burst **1050**, "sustains 42 of 373")
+- ✅ **FIXED (2026-06-24) — burst inflation + the enabler reach-drag ranked unsustainable novas ABOVE good held
+  wands.** Fix: (a) burst is now the ACHIEVABLE peak (max HP in a 1s window, recharge + MANA bounded — a
+  "sustains 42 of 373" nova can no longer read 1050 HP/s); (b) DIGGING damage excluded from combat DPS
+  (`combatDamage` in `sim/metrics.ts`) — a drill enabler contributes 0 offense and no longer drags a real
+  payload's reach, and a pure digger is demoted by ZERO combat output (keystone now via 0-DPS, not the reach
+  floor). The 0.7/0.3 DAMAGE weight stayed (sustained already dominates once burst is achievable). Live: the
+  maintainer's held wand outranks every suggestion (**46/B vs 33/C**); a full-pool viability sweep found every
+  build buildable + sane + safe; MOBILITY diggers read effSust 0 (no DAMAGE pollution). 378 tests; fresh-context
+  reviewed. Original finding ↓
+- 🔴 **(was) burst inflation + over-weighting (2026-06-24, maintainer-flagged live).** PROVEN: a multicast nova (effSust **42**, burst **1050**, "sustains 42 of 373")
   scores DAMAGE **34**, while the maintainer's held CHAIN_BOLT wand (effSust **56**, RANGED) scores **12** — the
   nova wins PURELY on its 0.3 burst term (26.6 vs 7.8 sustained). Two coordinated causes: (1) burst is an
   UNACHIEVABLE rate (damage ÷ tiny firing window) that saturates `REF.burstDps=400`; (2) the held wand's reach is
