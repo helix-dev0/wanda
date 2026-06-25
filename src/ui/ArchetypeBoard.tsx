@@ -50,10 +50,14 @@ function TierEntry({ entry, onDrill }: { entry: TierEntryView; onDrill: (key: st
   return (
     <div
       className={`tier-entry${entry.unsafe ? ' unsafe' : ''}${
-        entry.source === 'generated' ? ' generated' : ''
+        entry.source === 'generated' ? ' generated' : ' held'
       }${entry.matchesHeld ? ' matches-held' : ''}`}
     >
       <div className="tier-entry-head">
+        {/* Visually separate "your wands" from "build ideas" while keeping them ranked together. */}
+        <span className={`source-tag ${entry.source}`}>
+          {entry.source === 'held' ? '◈ your wand' : 'build idea'}
+        </span>
         <span className="tier-entry-title">{entry.title}</span>
         <span className="tier-entry-score" title="archetype score (0–100)">
           {entry.score}

@@ -903,24 +903,49 @@ h1 .rune {
 
 /* --- generated builds + per-card drill --------------------------------------- */
 
+/* Your wand vs build idea — ranked together but visually separated (left accent + tag). */
+.tier-entry.held {
+  border-left: 2px solid var(--t-modifier);
+  padding-left: 8px;
+}
+
 .tier-entry.generated {
   border-left: 2px solid var(--gold-deep);
   padding-left: 8px;
 }
 
-/* A generated build that already equals the held wand — "you have this". */
+.source-tag {
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  border-radius: 3px;
+  padding: 0 5px;
+  white-space: nowrap;
+}
+
+.source-tag.held {
+  color: var(--t-modifier);
+  border: 1px solid color-mix(in srgb, var(--t-modifier) 50%, transparent);
+}
+
+.source-tag.generated {
+  color: var(--gold);
+  border: 1px solid var(--gold-deep);
+}
+
+/* A build whose deck already equals your HELD wand — GREEN "you have this" (already built). */
 .tier-entry.matches-held {
-  border: 1px solid var(--gold);
-  border-left: 3px solid var(--gold);
+  border: 1px solid var(--t-utility);
+  border-left: 3px solid var(--t-utility);
   border-radius: 4px;
-  background: color-mix(in srgb, var(--gold) 7%, transparent);
+  background: color-mix(in srgb, var(--t-utility) 9%, transparent);
 }
 
 .held-match-chip {
   font-size: 11px;
   letter-spacing: 0.3px;
-  color: var(--gold);
-  border: 1px solid var(--gold-deep);
+  color: var(--t-utility);
+  border: 1px solid var(--t-utility);
   border-radius: 3px;
   padding: 1px 7px;
   white-space: nowrap;
