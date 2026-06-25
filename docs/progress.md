@@ -2,8 +2,16 @@
 
 > Living status doc. Companion to [`plan.md`](./plan.md) (the milestone breakdown) and
 > [`../noita-wand-assistant-spec.md`](../noita-wand-assistant-spec.md) (the design).
-> **Last updated: 2026-06-22** · branch `feat/engine-fidelity-tier1` (engine-fidelity + generation
-> slices: reload-overlap, REF re-grounding, status/DoT, modifier-stacking templates). 351 tests green.
+> **Last updated: 2026-06-24** · branch `feat/scoring-rebuild`. 378 tests green.
+>
+> 🔴 **SCORING NOT YET TRUSTED (maintainer verdict, 2026-06-24).** Many individually-correct, reviewed
+> slice-fixes have shipped (reach-by-weapon-kind, achievable mana-bounded burst, digging-excluded-from-
+> combat-DPS, payload damage, crit, reload-overlap, …) — but the maintainer's holistic judgment is that
+> the **build ranking still does NOT work well.** A per-slice "✅ FIXED" means that specific bug is gone,
+> **NOT** that the scorer is good or that the maintainer is satisfied. Patch-by-patch has hit diminishing
+> returns (each fix correct, overall ranking still off ⇒ a STRUCTURAL problem). On the table: a **complete
+> scoring rebuild + re-think of how we score AND how we use the simulator engine** — next step is a FRESH,
+> interview-grounded SPEC, not more patches.
 
 ## Milestone status
 
