@@ -1,0 +1,169 @@
+// The TTK model (scoring-model-v2-spec §5.1–5.3). PURE functions over WandMetrics +
+// the cited reference enemies — the unit that replaces the old sat(metric, REF) blend.
+// Lower TTK / higher kill-rate / higher dig scalar ⇒ higher score, mapped onto the
+// existing tierForScore cutoffs (≥80 S … ≥20 C) so that band test is untouched.
+//
+// #9: no human tier labels. The band CUTOFFS below are PROVISIONAL — the method (kill
+// enemy X every ≤ t seconds) is fixed; the meta-expert sets the exact numbers (S6/§5.6).
+
+import type { WandMetrics } from '../sim/metrics'
+import {
+  REFERENCE_ENEMIES,
+  REFERENCE_SWARM,
+  MOB_SPACING_PX,
+  DOT_RATE_PER_SEC,
+  DOT_FLOOR_FRACTION,
+} from './referenceEnemies'
+
+export interface FocusFactors {
+  /** Fraction of shots that land on a single target (spread penalty), in [0,1]. */
+  onTarget: number
+  /** Fraction of damage that reaches an engaged target (close-range penalty), in [0,1]. */
+  reach: number
+}
+
+/** No focusing penalty — used by AOE (spread/range don't gate clearing a cluster, §5.3). */
+export const NO_FOCUS: FocusFactors = { onTarget: 1, reach: 1 }
+
+const dotTypeCount = (d: WandMetrics['appliesDot']): number =>
+  (d.fire ? 1 : 0) + (d.poison ? 1 : 0) + (d.toxic ? 1 : 0)
+
+/** Seconds to deliver `hp` of PROJECTILE damage at the focused rate, modelling mana as two
+ *  phases: full-mana until the wand stalls (`secondsUntilStall`), then mana-throttled
+ *  (`effectiveSustainedDps`). Infinity if it deals no damage or stalls before the kill. */
+function projectileKillSeconds(m: WandMetrics, f: FocusFactors, hp: number): number {
+  if (hp <= 0) return 0
+  const fullRate = m.sustainedDps * f.onTarget * f.reach
+  if (fullRate <= 0) return Infinity
+  const burstSeconds = m.secondsUntilStall ?? Infinity // null = sustainable forever
+  const hpInBurst = fullRate * burstSeconds
+  if (hpInBurst >= hp) return hp / fullRate // killed during the full-mana phase
+  const throttRate = m.effectiveSustainedDps * f.onTarget * f.reach
+  if (throttRate <= 0) return Infinity // stalls before the kill and can't recover
+  return burstSeconds + (hp - hpInBurst) / throttRate
+}
+
+/**
+ * Expected seconds to kill an enemy of `hp`, focused by spread/reach, with DoT a parallel
+ * softener (2%/s of MAX HP, capped at the ~2%-HP floor so it can't finish) and a one-cast
+ * overkill floor (a one-shot kills in `firstCastSeconds` — best possible for that enemy).
+ * Monotonic non-increasing in damage. Infinity ⇒ cannot kill (e.g. a pure digger).
+ */
+export function ttkAgainst(m: WandMetrics, hp: number, f: FocusFactors): number {
+  const focusedPerCast = m.damagePerCast * f.onTarget * f.reach
+  if (focusedPerCast <= 0) return Infinity
+  if (focusedPerCast >= hp) return m.firstCastSeconds // overkill floor: one cast kills it
+
+  const dotRate = dotTypeCount(m.appliesDot) * DOT_RATE_PER_SEC * hp // HP/s the stains tick
+  const dotCap = (1 - DOT_FLOOR_FRACTION) * hp // DoT removes at most this; projectiles do the rest
+  let t = projectileKillSeconds(m, f, hp)
+  if (dotRate > 0 && Number.isFinite(t)) {
+    // DoT lowers the HP the projectiles must deliver. Fixed-point: the softening DoT
+    // achieves over the fight depends on the fight length, which depends on the softening.
+    for (let i = 0; i < 4; i++) {
+      const dotHP = Math.min(dotCap, dotRate * t)
+      t = projectileKillSeconds(m, f, hp - dotHP)
+    }
+  }
+  return Math.max(t, m.firstCastSeconds)
+}
+
+/** Convenience: TTK vs a named reference enemy. */
+export function ttkVs(m: WandMetrics, enemy: keyof typeof REFERENCE_ENEMIES, f: FocusFactors): number {
+  return ttkAgainst(m, REFERENCE_ENEMIES[enemy].hp, f)
+}
+
+/**
+ * Seconds to clear a swarm of `count` weak mobs. One cast clears `coverage` mobs =
+ * explosion-radius mobs + penetrating-projectile mobs (each gated by per-hit lethality vs
+ * the weak mob), with a single direct hit clearing ≤1 mob/cast. Spread/range don't gate
+ * AOE (§5.3). ceil(count/coverage) casts × cadence, floored at the first cast.
+ */
+export function aoeClearSeconds(m: WandMetrics, count: number = REFERENCE_SWARM): number {
+  const mobHP = REFERENCE_ENEMIES.weakMob.hp
+  const explosionMobs =
+    m.maxExplosionDamage >= mobHP ? Math.min(REFERENCE_SWARM, m.maxExplosionRadius / MOB_SPACING_PX) : 0
+  const pierceMobs =
+    m.pierceHitHP >= mobHP ? Math.min(REFERENCE_SWARM, m.pierceReachPx / MOB_SPACING_PX) : 0
+  const directMobs = Math.min(1, m.damagePerCast / mobHP) // single-target kills ≤1/cast (overkill wasted)
+  const coverage = Math.max(directMobs, explosionMobs + pierceMobs)
+  if (coverage <= 0) return Infinity
+  const casts = Math.ceil(count / coverage)
+  return Math.max(m.firstCastSeconds, casts * m.cycleSeconds)
+}
+
+/** Sustainable weak-mobs killed per second — the SPAM scalar. Mana-honest
+ *  (`effectiveSustainedDps` self-throttles a wand that can't pay for its fire), reaching
+ *  at range. Grounded in the rapid-fire guide (cast-rate is mana-bound). */
+export function spamKillRate(m: WandMetrics): number {
+  return (m.effectiveSustainedDps * m.reachUsability) / REFERENCE_ENEMIES.weakMob.hp
+}
+
+// --- score mapping: scalar → 0–100, aligned to tierForScore (≥80 S, 60 A, 40 B, 20 C) ----
+
+/** Piecewise-linear over (x, score) anchors sorted by ascending x, clamped at the ends. */
+function interp(x: number, anchors: readonly (readonly [number, number])[]): number {
+  if (x <= anchors[0][0]) return anchors[0][1]
+  const last = anchors[anchors.length - 1]
+  if (x >= last[0]) return last[1]
+  for (let i = 1; i < anchors.length; i++) {
+    const [x1, y1] = anchors[i]
+    if (x <= x1) {
+      const [x0, y0] = anchors[i - 1]
+      const frac = x1 === x0 ? 0 : (x - x0) / (x1 - x0)
+      return y0 + frac * (y1 - y0)
+    }
+  }
+  return last[1]
+}
+
+/** TTK thresholds (seconds) at the S/A/B/C boundaries — lower is better. */
+export interface TtkBands {
+  S: number
+  A: number
+  B: number
+  C: number
+}
+/** Scalar thresholds at C/B/A/S — higher is better. */
+export interface ScalarBands {
+  C: number
+  B: number
+  A: number
+  S: number
+}
+
+/** Map a TTK (seconds, lower better) onto 0–100. Infinity ⇒ 0. */
+export function scoreFromTtk(ttk: number, b: TtkBands): number {
+  if (!Number.isFinite(ttk)) return 0
+  return interp(ttk, [
+    [0, 100],
+    [b.S, 80],
+    [b.A, 60],
+    [b.B, 40],
+    [b.C, 20],
+    [b.C * 2, 0],
+  ])
+}
+
+/** Map a scalar (higher better) onto 0–100. */
+export function scoreFromScalar(x: number, b: ScalarBands): number {
+  return interp(x, [
+    [0, 0],
+    [b.C, 20],
+    [b.B, 40],
+    [b.A, 60],
+    [b.S, 80],
+    [b.S * 1.5, 100],
+  ])
+}
+
+// PROVISIONAL band cutoffs (§5.6 — method fixed, numbers tuned by the meta-expert at S6).
+// Grounded in "to avoid being overwhelmed you must kill enemy X every ≤ t seconds".
+/** vs Isohiisi (150) — the mid bruiser; most strong wands beat the C band easily. */
+export const DAMAGE_BANDS_MID: TtkBands = { S: 0.6, A: 1.5, B: 3.5, C: 8 }
+/** vs Ylialkemisti (1000) — the boss sponge; where top-end damage discriminates. */
+export const DAMAGE_BANDS_BOSS: TtkBands = { S: 4, A: 10, B: 25, C: 60 }
+/** clear a swarm of weak mobs. */
+export const AOE_BANDS: TtkBands = { S: 1.5, A: 3.5, B: 7, C: 15 }
+/** sustainable weak-mobs/sec (rapid-fire guide: a strong early spammer kills many/sec). */
+export const SPAM_RATE_BANDS: ScalarBands = { C: 1, B: 3, A: 6, S: 12 }
