@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildPoolIndex, projectilesByMana, spellMana } from './poolIndex'
+import { buildPoolIndex, projectilesByMana, spellMana, isDamageModifier, damageModifiers } from './poolIndex'
 
 describe('buildPoolIndex — bucket pool spells by role', () => {
   it('buckets by feature tag + DB type', () => {
@@ -40,5 +40,29 @@ describe('buildPoolIndex — bucket pool spells by role', () => {
   it('spellMana reads DB mana; unknown → 0', () => {
     expect(spellMana('NUKE')).toBe(200)
     expect(spellMana('TOTALLY_FAKE_SPELL')).toBe(0)
+  })
+})
+
+describe('damageModifiers — sim-grounded allowlist (not a blocklist)', () => {
+  it('isDamageModifier TRUE for modifiers that raise a real damage field', () => {
+    expect(isDamageModifier('DAMAGE')).toBe(true) // damage_projectile_add += 0.4
+    expect(isDamageModifier('CRITICAL_HIT')).toBe(true) // damage_critical_chance += 15
+  })
+
+  it('isDamageModifier FALSE for utility modifiers with no damage field (the bug)', () => {
+    expect(isDamageModifier('BURN_TRAIL')).toBe(false) // fire trail — game_effect_entities, no damage
+    expect(isDamageModifier('HOMING')).toBe(false) // accuracy, not damage
+    expect(isDamageModifier('HEAVY_SPREAD')).toBe(false) // spread, not damage
+  })
+
+  it('isDamageModifier FALSE for an unknown/modded id (never throws, defaults out)', () => {
+    expect(isDamageModifier('TOTALLY_FAKE_SPELL')).toBe(false)
+  })
+
+  it('damageModifiers keeps Damage Plus but drops Fire Trail / Homing', () => {
+    const dm = damageModifiers(buildPoolIndex(['DAMAGE', 'BURN_TRAIL', 'HOMING', 'LIGHT_BULLET']))
+    expect(dm).toContain('DAMAGE')
+    expect(dm).not.toContain('BURN_TRAIL')
+    expect(dm).not.toContain('HOMING')
   })
 })

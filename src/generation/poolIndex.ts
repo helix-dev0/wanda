@@ -6,6 +6,8 @@
 import { spellFeatures, SPELL_FEATURES } from '../analysis/features/spellFeatures'
 import { getSpell } from '../data/spellDb'
 import { ACTION_TYPE } from '../schema/spell-db'
+import { simulateWand } from '../sim/simulateWand'
+import type { Wand, WandStats } from '../schema/snapshot'
 
 /** Pool spells bucketed by role. Each list preserves pool iteration order. */
 export interface PoolIndex {
@@ -100,7 +102,52 @@ export function damageProjectilesByMana(ix: PoolIndex): string[] {
  *  handled by trying tight multicasts. Extend as more spread-wideners are confirmed. */
 const SPREAD_MODIFIERS = new Set(['HEAVY_SPREAD'])
 
-/** Pool modifiers minus the spread-wideners — the modifier source for damage templates. */
+// A minimal probe chassis: room for [modifier, projectile], 1 spell/cast, no shuffle.
+const PROBE_STATS: WandStats = {
+  shuffle: false, spellsPerCast: 1, castDelay: 10, rechargeTime: 20,
+  manaMax: 1000, mana: 1000, manaChargeSpeed: 100, capacity: 4, spread: 0, speedMultiplier: 1,
+}
+const PROBE_PROJECTILE = 'LIGHT_BULLET'
+
+/** The shot-level damage fields a probe deck accumulates, read from the REAL engine cast state. */
+function probeDamageFields(spells: string[]): { proj: number; crit: number; expl: number } {
+  const wand: Wand = { slot: 0, active: true, always_cast: [], spells, stats: PROBE_STATS }
+  const cs = simulateWand(wand).shots[0]?.castState
+  return {
+    proj: cs?.damage_projectile_add ?? 0,
+    crit: cs?.damage_critical_chance ?? 0,
+    expl: cs?.damage_explosion_add ?? 0,
+  }
+}
+
+let probeBaseline: { proj: number; crit: number; expl: number } | undefined
+const damageModifierCache = new Map<string, boolean>()
+
+/** Is `id` a modifier that actually INCREASES damage? Grounded in the simulator, NOT a curated
+ *  list: run [id, LIGHT_BULLET] through the real engine and check whether the modifier raised any
+ *  damage field (damage_projectile_add / damage_critical_chance / damage_explosion_add) over a
+ *  bare LIGHT_BULLET. Damage Plus (+projectile), Critical Hit (+crit), explosion buffers qualify;
+ *  Fire Trail / Homing / Bounce — modifiers that add UTILITY but no damage — do not. This stops
+ *  generation stacking non-damage modifiers into "damage" builds where they only burn mana.
+ *  Engine-deterministic ⇒ memoized once per id (modded modifiers handled, nothing hand-listed). */
+export function isDamageModifier(id: string): boolean {
+  const hit = damageModifierCache.get(id)
+  if (hit !== undefined) return hit
+  if (!probeBaseline) probeBaseline = probeDamageFields([PROBE_PROJECTILE])
+  const b = probeBaseline
+  const w = probeDamageFields([id, PROBE_PROJECTILE])
+  const EPS = 1e-9
+  const adds = w.proj > b.proj + EPS || w.crit > b.crit + EPS || w.expl > b.expl + EPS
+  damageModifierCache.set(id, adds)
+  return adds
+}
+
+/** Pool modifiers that actually boost damage — the modifier source for damage templates. Was a
+ *  BLOCKLIST ("every modifier except spread-wideners"), which wrongly stacked Fire Trail / Homing /
+ *  Bounce into damage builds (mana cost, zero damage — the maintainer's "why is Fire Trail here
+ *  not Damage Plus"). Now a sim-grounded ALLOWLIST. The spread exclusion stays as belt-and-
+ *  suspenders (a damage modifier that ALSO widened spread would hurt single-target; today none do,
+ *  so it is already subsumed by isDamageModifier). */
 export function damageModifiers(ix: PoolIndex): string[] {
-  return ix.modifiers.filter((id) => !SPREAD_MODIFIERS.has(id))
+  return ix.modifiers.filter((id) => isDamageModifier(id) && !SPREAD_MODIFIERS.has(id))
 }
