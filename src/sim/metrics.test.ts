@@ -383,3 +383,33 @@ describe('computeMetrics — edge cases', () => {
     expect(metricsFor('snapshot_03.json').appliesDot).toEqual({ fire: false, poison: false, toxic: false })
   })
 })
+
+// S2 — additive raw ingredients the TTK scorer (S3/S4) consumes. These are
+// reference-agnostic (no enemy HP, no mob spacing): the analysis layer turns them
+// into mob coverage / overkill floors. Adding them must not move any golden above.
+describe('computeMetrics — TTK ingredients (S2, additive)', () => {
+  it('firstCastSeconds is the first shot’s cast time (overkill-floor granularity)', () => {
+    // snapshot_01: d1 = 11 frames (cycleFrames 39 = 11 + max(11 d2, 28 recharge)).
+    expect(metricsFor('snapshot_01.json').firstCastSeconds).toBeCloseTo(11 / 60)
+    // single-shot grenade: the whole cast IS the first cast.
+    expect(metricsFor('snapshot_02.json').firstCastSeconds).toBeGreaterThan(0)
+  })
+
+  it('penetration capability: a penetrating projectile exposes reach + per-hit HP', () => {
+    const chain = metricsForDeck(['CHAIN_BOLT'])
+    expect(chain.pierceReachPx).toBeCloseTo((40 * 44) / 60) // speedMax×lifetime/60 = 29.33px
+    expect(chain.pierceHitHP).toBeCloseTo(25) // 1.0 internal × 25 HP, no modifiers
+  })
+
+  it('a non-penetrating projectile reports zero penetration', () => {
+    const light = metricsForDeck(['LIGHT_BULLET'])
+    expect(light.pierceReachPx).toBe(0)
+    expect(light.pierceHitHP).toBe(0)
+  })
+
+  it('a penetrating projectile that deals no combat damage clears nothing (Black Hole)', () => {
+    const bh = metricsForDeck(['BLACK_HOLE'])
+    expect(bh.pierceReachPx).toBeCloseTo((40 * 120) / 60) // 80px — it does penetrate
+    expect(bh.pierceHitHP).toBe(0) // …but 0 combat damage, so it kills no mob
+  })
+})

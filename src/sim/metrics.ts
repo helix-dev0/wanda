@@ -22,6 +22,10 @@ export interface WandMetrics {
   cycleSeconds: number
   /** Firing portion only (excludes reload), seconds. */
   fireSeconds: number
+  /** Seconds the FIRST cast takes (the first shot's per-shot delay). The TTK overkill
+   *  floor: a wand that one-shots the reference enemy kills in this time, so two
+   *  one-shotters are ordered by cadence, not collapsed to the full cycle. */
+  firstCastSeconds: number
 
   /** Top-level projectiles from the first cast (one click). */
   projectilesPerCast: number
@@ -66,6 +70,17 @@ export interface WandMetrics {
   /** Largest explosion DAMAGE produced in the cycle (HP); 0 if none. Separates a
    *  lethal blast from a harmless digging explosion (same radius, no damage). */
   maxExplosionDamage: number
+
+  /** Penetration capability for AOE coverage (reference-agnostic — the analysis layer
+   *  turns px → mob count via the reference swarm spacing). The farthest a PENETRATING
+   *  projectile (`penetrate_entities`) travels in the cycle (px); 0 if nothing penetrates.
+   *  A penetrating projectile hits one body per mob along this path. */
+  pierceReachPx: number
+  /** The largest per-HIT combat HP among the cycle's penetrating projectiles (incl. the
+   *  shot's damage/crit mods); 0 if nothing penetrates. The scorer gates coverage on this:
+   *  a penetrating projectile that can't kill the reference mob (e.g. Black Hole, 0 dmg)
+   *  clears nothing despite a long path. */
+  pierceHitHP: number
 
   /** Status / damage-over-time the wand APPLIES — a capability flag, not a damage
    *  number. Poison/toxic are material-stain status (not a projectile damage field), so
@@ -247,6 +262,7 @@ export function computeMetrics(
     n === 0 ? 0 : Math.max(1, fireFrames - lastShotFrames + Math.max(lastShotFrames, recharge))
   const cycleSeconds = framesToSeconds(cycleFrames)
   const fireSeconds = framesToSeconds(fireFrames)
+  const firstCastSeconds = n > 0 ? framesToSeconds(perShotFrames(shots[0], stats)) : 0
 
   // --- throughput ---
   const projectilesPerCast = shots[0]?.projectiles.length ?? 0
@@ -311,6 +327,12 @@ export function computeMetrics(
   // digging explosion (same radius, 0 damage).
   let maxExplosionRadius = 0
   let maxExplosionDamage = 0
+  // Penetration capability (AOE coverage). Tracked over the whole cycle (incl. trigger
+  // payloads): the farthest a penetrating projectile travels, and the largest per-hit
+  // combat HP among penetrating projectiles. Kept as two independent maxes — the scorer
+  // needs BOTH (a long-reach 0-damage Black Hole clears nothing; a lethal Chain Bolt does).
+  let pierceReachPx = 0
+  let pierceHitHP = 0
   // Damage-weighted range USABILITY: Σ(perProjectileDamage × perProjectileReachFrac) /
   // Σ(perProjectileDamage) over the whole cycle (recursing payloads). Each projectile's reach
   // is clamped to [FLOOR,1] BEFORE weighting, so a deck whose damage is mostly a short-range
@@ -332,6 +354,7 @@ export function computeMetrics(
   const scanProjectileTree = (shot: WandShot, depth: number): void => {
     const radiusAdd = shot.castState?.explosion_radius ?? 0
     const explAdd = shot.castState?.damage_explosion_add ?? 0
+    const projAdd = shot.castState?.damage_projectile_add ?? 0
     // Crit scales the blast too (B2b) — a crit nuke's AoE is bigger. ×1 with no crit.
     const critMul = critMultiplier(shot.castState?.damage_critical_chance ?? 0)
     const material = shot.castState?.material ?? ''
@@ -359,6 +382,15 @@ export function computeMetrics(
       const baseExpl = st?.explosionDamage ?? 0
       const dHp = (baseExpl > 0 || explAdd > 0 ? Math.max(0, baseExpl + explAdd) : 0) * DAMAGE_UNIT_HP * critMul
       if (dHp > maxExplosionDamage) maxExplosionDamage = dHp
+      // Penetration: a `penetrate_entities` projectile passes through bodies along its
+      // flight path. Its per-hit combat HP (incl. this shot's projectile-add + crit) gates
+      // whether each pass is lethal. Reach + lethality tracked as independent maxes.
+      if (st?.penetrateEntities) {
+        const reachPx = reachOfStats(st)
+        if (reachPx > pierceReachPx) pierceReachPx = reachPx
+        const hitHP = Math.max(0, combatDamage(p.entity, st) + projAdd) * DAMAGE_UNIT_HP * critMul
+        if (hitHP > pierceHitHP) pierceHitHP = hitHP
+      }
       if ((st?.damageByType?.fire ?? 0) > 0) appliesDot.fire = true
       if (p.entity.includes('poison')) appliesDot.poison = true
       if (p.entity.includes('acid')) appliesDot.toxic = true
@@ -374,6 +406,7 @@ export function computeMetrics(
     cycleFrames,
     cycleSeconds,
     fireSeconds,
+    firstCastSeconds,
     projectilesPerCast,
     projectilesPerCycle,
     projectilesPerSecond,
@@ -389,6 +422,8 @@ export function computeMetrics(
     reachUsability,
     maxExplosionRadius,
     maxExplosionDamage,
+    pierceReachPx,
+    pierceHitHP,
     appliesDot,
     truncated: hitIterationLimit,
     damageApproximate,

@@ -44,6 +44,7 @@ const synthMetrics = (over: Partial<WandMetrics> = {}): WandMetrics => {
     shotsUntilReload: 1, cycleFrames: 30, cycleSeconds: 0.5, fireSeconds: 0.3,
     projectilesPerCast: 1, projectilesPerCycle: 1, projectilesPerSecond: 6,
     damagePerCast: 0, damagePerCycle: 0, sustainedDps: 0, effectiveSustainedDps: 0, burstDps: 0,
+    firstCastSeconds: 0.5, pierceReachPx: 0, pierceHitHP: 0,
     manaPerCycle: 0, manaSustainable: true, secondsUntilStall: null,
     effectiveSpread: 0, reachUsability: 1, maxExplosionRadius: 0, maxExplosionDamage: 0,
     appliesDot: { fire: false, poison: false, toxic: false },
