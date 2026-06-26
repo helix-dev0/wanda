@@ -17,6 +17,13 @@ export interface ProjectileStats {
   speedMin: number
   speedMax: number
   bouncesLeft: number
+  /** `penetrate_entities` — the projectile passes THROUGH enemy bodies (hits many, one
+   *  hit each), bounded by lifetime/range. Innate to specific spells (Black Hole, Chain
+   *  Bolt, …) and uncreatable by any modifier. Drives AOE coverage, not single-target. */
+  penetrateEntities: boolean
+  /** `on_collision_die` (engine default true) — dies on terrain contact. A projectile that
+   *  does NOT die on collision keeps travelling/penetrating. */
+  diesOnCollision: boolean
   /** Typed-damage split (e.g. { fire: 0.5 }), in the same 1.0 = 25 HP unit. Absent when untyped. */
   damageByType?: Record<string, number>
 }

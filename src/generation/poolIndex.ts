@@ -6,6 +6,8 @@
 import { spellFeatures, SPELL_FEATURES } from '../analysis/features/spellFeatures'
 import { getSpell } from '../data/spellDb'
 import { ACTION_TYPE } from '../schema/spell-db'
+import { simulateWand } from '../sim/simulateWand'
+import type { Wand, WandStats } from '../schema/snapshot'
 
 /** Pool spells bucketed by role. Each list preserves pool iteration order. */
 export interface PoolIndex {
@@ -15,9 +17,6 @@ export interface PoolIndex {
   triggers: string[]
   multicasts: string[]
   diggers: string[]
-  mobility: string[]
-  defensive: string[]
-  homing: string[]
   /** type PROJECTILE | STATIC_PROJECTILE — things that can be a payload/spam shot. */
   projectiles: string[]
   /** type MODIFIER — damage/spread/etc. tweaks placed before a projectile. */
@@ -29,6 +28,13 @@ export function spellMana(id: string): number {
   return getSpell(id)?.mana ?? 0
 }
 
+/** A CHARGE-limited spell: the spell DB sets `max_uses` only on limited spells (absent ⇒
+ *  unlimited). Generation drops these unless the player has Unlimited Spells (or opts in), so
+ *  it never recommends a build that runs out of charges. */
+export function isChargeSpell(id: string): boolean {
+  return getSpell(id)?.max_uses != null
+}
+
 /** Bucket a pool of spell ids by role in one pass. Unknown/modded ids land only
  *  in `all` (their type/features resolve empty) — never throws. */
 export function buildPoolIndex(pool: Iterable<string>): PoolIndex {
@@ -38,9 +44,6 @@ export function buildPoolIndex(pool: Iterable<string>): PoolIndex {
     triggers: [],
     multicasts: [],
     diggers: [],
-    mobility: [],
-    defensive: [],
-    homing: [],
     projectiles: [],
     modifiers: [],
   }
@@ -55,9 +58,6 @@ export function buildPoolIndex(pool: Iterable<string>): PoolIndex {
     if (feats.includes('TRIGGER')) ix.triggers.push(id)
     if (feats.includes('MULTICAST')) ix.multicasts.push(id)
     if (feats.includes('DIG')) ix.diggers.push(id)
-    if (feats.includes('MOBILITY')) ix.mobility.push(id)
-    if (feats.includes('DEFENSIVE')) ix.defensive.push(id)
-    if (feats.includes('HOMING')) ix.homing.push(id)
 
     const type = getSpell(id)?.type
     if (type === ACTION_TYPE.PROJECTILE || type === ACTION_TYPE.STATIC_PROJECTILE) {
@@ -102,7 +102,96 @@ export function damageProjectilesByMana(ix: PoolIndex): string[] {
  *  handled by trying tight multicasts. Extend as more spread-wideners are confirmed. */
 const SPREAD_MODIFIERS = new Set(['HEAVY_SPREAD'])
 
-/** Pool modifiers minus the spread-wideners — the modifier source for damage templates. */
+// A minimal probe chassis: room for [modifier, projectile], 1 spell/cast, no shuffle.
+const PROBE_STATS: WandStats = {
+  shuffle: false, spellsPerCast: 1, castDelay: 10, rechargeTime: 20,
+  manaMax: 1000, mana: 1000, manaChargeSpeed: 100, capacity: 4, spread: 0, speedMultiplier: 1,
+}
+const PROBE_PROJECTILE = 'LIGHT_BULLET'
+
+/** The shot-level damage fields a probe deck accumulates, read from the REAL engine cast state. */
+function probeDamageFields(spells: string[]): { proj: number; crit: number; expl: number } {
+  const wand: Wand = { slot: 0, active: true, always_cast: [], spells, stats: PROBE_STATS }
+  const cs = simulateWand(wand).shots[0]?.castState
+  return {
+    proj: cs?.damage_projectile_add ?? 0,
+    crit: cs?.damage_critical_chance ?? 0,
+    expl: cs?.damage_explosion_add ?? 0,
+  }
+}
+
+let probeBaseline: { proj: number; crit: number; expl: number } | undefined
+const damageModifierCache = new Map<string, boolean>()
+
+/** Is `id` a modifier that actually INCREASES damage? Grounded in the simulator, NOT a curated
+ *  list: run [id, LIGHT_BULLET] through the real engine and check whether the modifier raised any
+ *  damage field (damage_projectile_add / damage_critical_chance / damage_explosion_add) over a
+ *  bare LIGHT_BULLET. Damage Plus (+projectile), Critical Hit (+crit), explosion buffers qualify;
+ *  Fire Trail / Homing / Bounce — modifiers that add UTILITY but no damage — do not. This stops
+ *  generation stacking non-damage modifiers into "damage" builds where they only burn mana.
+ *  Engine-deterministic ⇒ memoized once per id (modded modifiers handled, nothing hand-listed). */
+export function isDamageModifier(id: string): boolean {
+  const hit = damageModifierCache.get(id)
+  if (hit !== undefined) return hit
+  if (!probeBaseline) probeBaseline = probeDamageFields([PROBE_PROJECTILE])
+  const b = probeBaseline
+  const w = probeDamageFields([id, PROBE_PROJECTILE])
+  const EPS = 1e-9
+  const adds = w.proj > b.proj + EPS || w.crit > b.crit + EPS || w.expl > b.expl + EPS
+  damageModifierCache.set(id, adds)
+  return adds
+}
+
+/** Pool modifiers that actually boost damage — the modifier source for damage templates. Was a
+ *  BLOCKLIST ("every modifier except spread-wideners"), which wrongly stacked Fire Trail / Homing /
+ *  Bounce into damage builds (mana cost, zero damage — the maintainer's "why is Fire Trail here
+ *  not Damage Plus"). Now a sim-grounded ALLOWLIST. The spread exclusion stays as belt-and-
+ *  suspenders (a damage modifier that ALSO widened spread would hurt single-target; today none do,
+ *  so it is already subsumed by isDamageModifier). */
 export function damageModifiers(ix: PoolIndex): string[] {
-  return ix.modifiers.filter((id) => !SPREAD_MODIFIERS.has(id))
+  return ix.modifiers.filter((id) => isDamageModifier(id) && !SPREAD_MODIFIERS.has(id))
+}
+
+const castSpeedEnablerCache = new Map<string, boolean>()
+
+/** The smallest per-shot fire_rate_wait (cast delay, frames) any shot of `spells` reaches in the
+ *  real engine. Lower = faster casting; can go negative (the engine allows it). */
+function minFireRateWait(spells: string[]): number {
+  const wand: Wand = { slot: 0, active: true, always_cast: [], spells, stats: PROBE_STATS }
+  let min = Infinity
+  for (const s of simulateWand(wand).shots) {
+    const f = s.castState?.fire_rate_wait
+    if (typeof f === 'number' && f < min) min = f
+  }
+  return min
+}
+
+/** Is `id` a CAST-SPEED ENABLER — a card whose value in a damage wand is ACCELERATION, not its own
+ *  (zero) combat damage? Luminous Drill (fire_rate_wait −35) and Chainsaw (→ ~0) cut cast delay and
+ *  so speed the whole cycle; the meta puts them in damage wands as accelerants, and the honest
+ *  scorer then ranks enabler+payload high, enabler-only ~0 (verified: a Luminous-Drill damage wand
+ *  ~tripled its sustained DPS). Grounded in the engine — probe whether `[id, LIGHT_BULLET]` drives
+ *  fire_rate_wait BELOW the wand's NEUTRAL cast delay (PROBE_STATS.castDelay). That neutral baseline
+ *  is load-bearing: clickWand resets fire_rate_wait to castDelay PER shot and LIGHT_BULLET sits in
+ *  its OWN shot adding +3, so a bare-bullet baseline (13) would mis-flag any card adding < +3 frames
+ *  — e.g. a plain DIGGER (+1) — as an "enabler". Comparing to castDelay isolates `id`'s OWN
+ *  reduction: only a real accelerant drives below it (Drill −35, Chainsaw →0); DIGGER/POWERDIGGER
+ *  (+1) do not. Catches modded accelerants, nothing hand-listed. Memoized; engine-deterministic. */
+export function isCastSpeedEnabler(id: string): boolean {
+  const hit = castSpeedEnablerCache.get(id)
+  if (hit !== undefined) return hit
+  const enabler = minFireRateWait([id, PROBE_PROJECTILE]) < PROBE_STATS.castDelay
+  castSpeedEnablerCache.set(id, enabler)
+  return enabler
+}
+
+/** Pool cast-speed enablers (Luminous Drill / Chainsaw …), cheapest-mana first — the accelerant a
+ *  damage template prepends so a fast enabler+payload build can surface (the maintainer's "Luminous
+ *  Drill isn't suggested in damage wands" gap). Scoped to the DIG-tagged spells: the enablers worth
+ *  RE-ADMITTING are exactly the digging tools otherwise excluded from damage builds (a teleport
+ *  doesn't accelerate; a non-digger accelerant isn't excluded in the first place), and probing only
+ *  diggers keeps this O(few) instead of O(whole-DB). isCastSpeedEnabler still gates out a plain
+ *  Digger that doesn't cut cast delay. Excluded from the payload source (enabler-only reads ~0). */
+export function castSpeedEnablers(ix: PoolIndex): string[] {
+  return ix.diggers.filter(isCastSpeedEnabler).sort((a, b) => spellMana(a) - spellMana(b))
 }

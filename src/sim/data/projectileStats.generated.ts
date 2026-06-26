@@ -16,7 +16,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 20,
     "speedMin": 160,
     "speedMax": 160,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/acidshot.xml": {
     "damage": 0.24,
@@ -25,7 +27,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 330,
     "speedMin": 90,
     "speedMax": 108,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/acidshot_slow.xml": {
     "damage": 0.24,
@@ -34,7 +38,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 90,
     "speedMax": 90,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/arrow.xml": {
     "damage": 0.5,
@@ -43,7 +49,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 750,
     "speedMin": 150,
     "speedMax": 250,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/bat.xml": {
     "damage": 0,
@@ -52,7 +60,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 180,
     "speedMax": 200,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/bloomshot.xml": {
     "damage": 0.26,
@@ -61,7 +71,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 120,
     "speedMin": 90,
     "speedMax": 90,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/bomb.xml": {
     "damage": 0,
@@ -70,7 +82,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 180,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/bomb_cart.xml": {
     "damage": 0,
@@ -79,7 +93,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 420,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/bomb_holy.xml": {
     "damage": 0,
@@ -88,7 +104,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 170,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/bomb_holy_giga.xml": {
     "damage": 0,
@@ -97,7 +115,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 260,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/bomb_small.xml": {
     "damage": 1,
@@ -106,7 +126,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 260,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/bossdragon.xml": {
     "damage": 0.08,
@@ -115,7 +137,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 20,
     "speedMin": 200,
     "speedMax": 400,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/bossdragon_ray.xml": {
     "damage": 0.1,
@@ -124,7 +148,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 20,
     "speedMin": 1000,
     "speedMax": 1000,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/buckshot.xml": {
     "damage": 0.27,
@@ -133,7 +159,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 120,
     "speedMin": 500,
     "speedMax": 600,
-    "bouncesLeft": 1
+    "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/bullet_poison.xml": {
     "damage": 0.33,
@@ -142,7 +170,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 450,
     "speedMax": 550,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/chaos_polymorph.xml": {
     "damage": 0,
@@ -151,7 +181,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/chunk_of_soil.xml": {
     "damage": 0,
@@ -160,7 +192,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 1,
     "speedMin": 0,
     "speedMax": 10,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/clusterbomb.xml": {
     "damage": 0,
@@ -169,7 +203,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 250,
     "speedMax": 280,
-    "bouncesLeft": 4
+    "bouncesLeft": 4,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/cocktail.xml": {
     "damage": 1,
@@ -178,7 +214,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": -1,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/coward_bullet.xml": {
     "damage": 0,
@@ -187,7 +225,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 20,
     "speedMin": 300,
     "speedMax": 400,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/darkflame.xml": {
     "damage": 0.8,
@@ -196,7 +236,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 250,
     "speedMax": 250,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/darkflame_stationary.xml": {
     "damage": 0.25,
@@ -206,6 +248,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.25
     }
@@ -217,7 +261,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 10,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/acidshot.xml": {
     "damage": 0.24,
@@ -226,7 +272,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 330,
     "speedMin": 90,
     "speedMax": 108,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/alcohol_blast.xml": {
     "damage": 0,
@@ -235,7 +283,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/all_spells_base.xml": {
     "damage": 0.15,
@@ -244,7 +294,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 250,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/all_spells_loader_slow.xml": {
     "damage": 0.15,
@@ -253,7 +305,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 36005,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/all_spells_orb.xml": {
     "damage": 4.8,
@@ -262,7 +316,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 20,
     "speedMin": 350,
     "speedMax": 350,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/all_spells_part.xml": {
     "damage": 0.15,
@@ -271,7 +327,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 250,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/arrow.xml": {
     "damage": 0,
@@ -281,6 +339,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 550,
     "speedMax": 650,
     "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "slice": 0.2
     }
@@ -293,6 +353,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 600,
     "speedMax": 1000,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false,
     "damageByType": {
       "electricity": 0.5
     }
@@ -304,7 +366,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/berserk_field.xml": {
     "damage": 0,
@@ -313,7 +377,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/big_magic_shield_part.xml": {
     "damage": 0.09,
@@ -322,7 +388,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 500,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/big_magic_shield_start.xml": {
     "damage": 0,
@@ -331,7 +399,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 5,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/black_hole.xml": {
     "damage": 0,
@@ -340,7 +410,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 120,
     "speedMin": 40,
     "speedMax": 40,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/black_hole_big.xml": {
     "damage": 0,
@@ -349,7 +421,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 500,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/black_hole_giga.xml": {
     "damage": 0,
@@ -358,7 +432,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 1000,
     "speedMin": 100,
     "speedMax": 140,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/bloodtentacle.xml": {
     "damage": 0,
@@ -368,6 +444,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 8,
     "speedMax": 8,
     "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false,
     "damageByType": {
       "melee": 0.8
     }
@@ -379,7 +457,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 3,
     "speedMin": 26,
     "speedMax": 26,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/bounce_explosion.xml": {
     "damage": 0,
@@ -388,7 +468,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/bounce_laser.xml": {
     "damage": 0.1,
@@ -397,7 +479,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 10,
     "speedMin": 130,
     "speedMax": 150,
-    "bouncesLeft": 10
+    "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/bounce_spark.xml": {
     "damage": 0.2,
@@ -406,7 +490,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 200,
     "speedMax": 300,
-    "bouncesLeft": 20
+    "bouncesLeft": 20,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/bounce_spark_friendly_fire.xml": {
     "damage": 0.2,
@@ -415,7 +501,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 200,
     "speedMax": 300,
-    "bouncesLeft": 20
+    "bouncesLeft": 20,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/bounce_spark_friendly_fire_silent.xml": {
     "damage": 0.2,
@@ -424,7 +512,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 200,
     "speedMax": 300,
-    "bouncesLeft": 20
+    "bouncesLeft": 20,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/bouncy_orb.xml": {
     "damage": 0.2,
@@ -434,6 +524,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 400,
     "speedMax": 500,
     "bouncesLeft": 5,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "slice": 0.2
     }
@@ -445,7 +537,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 200,
     "speedMax": 300,
-    "bouncesLeft": 20
+    "bouncesLeft": 20,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/buckshot_player.xml": {
     "damage": 0.185,
@@ -454,7 +548,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 120,
     "speedMin": 500,
     "speedMax": 600,
-    "bouncesLeft": 1
+    "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/bullet.xml": {
     "damage": 0.4,
@@ -463,7 +559,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 600,
     "speedMax": 650,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/bullet_heavy.xml": {
     "damage": 0.51,
@@ -472,7 +570,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 30,
     "speedMin": 600,
     "speedMax": 750,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/bullet_slow.xml": {
     "damage": 0.45,
@@ -481,7 +581,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 180,
     "speedMax": 240,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/chain_bolt.xml": {
     "damage": 1,
@@ -490,7 +592,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 44,
     "speedMin": 40,
     "speedMax": 40,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/chain_bolt_explosion.xml": {
     "damage": 0.2,
@@ -499,7 +603,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 1,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/chainsaw.xml": {
     "damage": 0,
@@ -509,6 +615,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 400,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "slice": 0.51
     }
@@ -520,7 +628,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/charm_field.xml": {
     "damage": 0,
@@ -529,7 +639,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/cloud_acid.xml": {
     "damage": 0,
@@ -538,7 +650,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/cloud_blood.xml": {
     "damage": 0,
@@ -547,7 +661,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/cloud_oil.xml": {
     "damage": 0,
@@ -556,7 +672,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/cloud_thunder.xml": {
     "damage": 0,
@@ -565,7 +683,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/cloud_water.xml": {
     "damage": 0,
@@ -574,7 +694,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/commander_bullet.xml": {
     "damage": 0.12,
@@ -583,7 +705,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 300,
     "speedMin": 150,
     "speedMax": 150,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/crumbling_earth.xml": {
     "damage": 1,
@@ -592,7 +716,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 30,
     "speedMin": 110,
     "speedMax": 110,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/death_cross.xml": {
     "damage": 0,
@@ -601,7 +727,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 68,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 20
+    "bouncesLeft": 20,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/death_cross_big.xml": {
     "damage": 0,
@@ -610,7 +738,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 20
+    "bouncesLeft": 20,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/death_cross_big_explosion.xml": {
     "damage": 0,
@@ -619,7 +749,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/death_cross_big_laser.xml": {
     "damage": 1.15,
@@ -628,7 +760,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 180,
     "speedMax": 240,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/decoy_trigger.xml": {
     "damage": 0,
@@ -637,7 +771,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 200,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/delayed_spell.xml": {
     "damage": 0,
@@ -646,7 +782,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 26,
     "speedMax": 26,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/digger.xml": {
     "damage": 0,
@@ -656,6 +794,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "drill": 0.3
     }
@@ -668,6 +808,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 350,
     "speedMax": 450,
     "bouncesLeft": 2,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "slice": 0.8
     }
@@ -680,6 +822,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 250,
     "speedMax": 250,
     "bouncesLeft": 2,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "slice": 2.5
     }
@@ -692,6 +836,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 150,
     "speedMax": 150,
     "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": false,
     "damageByType": {
       "slice": 1.5
     }
@@ -704,6 +850,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 250,
     "speedMax": 280,
     "bouncesLeft": 5,
+    "penetrateEntities": false,
+    "diesOnCollision": false,
     "damageByType": {
       "fire": 1.2
     }
@@ -715,7 +863,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/exploding_deer.xml": {
     "damage": 0,
@@ -724,7 +874,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": -1,
     "speedMin": 250,
     "speedMax": 280,
-    "bouncesLeft": 4
+    "bouncesLeft": 4,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/explosion.xml": {
     "damage": 0,
@@ -733,7 +885,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/explosion_giga.xml": {
     "damage": 0,
@@ -742,7 +896,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/explosion_light.xml": {
     "damage": 0,
@@ -751,7 +907,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/fireball.xml": {
     "damage": 0,
@@ -761,6 +919,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 160,
     "speedMax": 170,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.25
     }
@@ -773,6 +933,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 160,
     "speedMax": 170,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.18
     }
@@ -785,6 +947,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 160,
     "speedMax": 170,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.4
     }
@@ -796,7 +960,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/firebomb.xml": {
     "damage": 0,
@@ -806,6 +972,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 120,
     "speedMax": 140,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.4
     }
@@ -817,7 +985,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 30,
     "speedMin": 70,
     "speedMax": 80,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/fireworks/firework_green.xml": {
     "damage": 1,
@@ -826,7 +996,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 30,
     "speedMin": 70,
     "speedMax": 80,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/fireworks/firework_orange.xml": {
     "damage": 1,
@@ -835,7 +1007,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 30,
     "speedMin": 70,
     "speedMax": 80,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/fireworks/firework_pink.xml": {
     "damage": 1,
@@ -844,7 +1018,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 30,
     "speedMin": 70,
     "speedMax": 80,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/fizzle.xml": {
     "damage": 0.18,
@@ -853,7 +1029,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 20,
     "speedMin": 600,
     "speedMax": 800,
-    "bouncesLeft": 10
+    "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/flamethrower.xml": {
     "damage": 0,
@@ -863,6 +1041,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 160,
     "speedMax": 170,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.45
     }
@@ -874,7 +1054,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/freezing_gaze.xml": {
     "damage": 0,
@@ -883,7 +1065,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 44,
     "speedMin": 40,
     "speedMax": 40,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/freezing_gaze_beam.xml": {
     "damage": 0,
@@ -893,6 +1077,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 220,
     "speedMax": 220,
     "bouncesLeft": 10,
+    "penetrateEntities": true,
+    "diesOnCollision": true,
     "damageByType": {
       "ice": 0.4
     }
@@ -905,6 +1091,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 50,
     "speedMax": 150,
     "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": false,
     "damageByType": {
       "melee": 0.4
     }
@@ -916,7 +1104,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 800,
     "speedMax": 800,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/glitter_bomb_shrapnel.xml": {
     "damage": 0,
@@ -925,7 +1115,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 200,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/glowing_bolt.xml": {
     "damage": 0.2,
@@ -934,7 +1126,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 90,
     "speedMin": 800,
     "speedMax": 900,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/glue_shot.xml": {
     "damage": 0.1,
@@ -943,7 +1137,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 300,
     "speedMax": 350,
-    "bouncesLeft": 2
+    "bouncesLeft": 2,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/grenade.xml": {
     "damage": 1.3,
@@ -953,6 +1149,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 250,
     "speedMax": 280,
     "bouncesLeft": 4,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.5
     }
@@ -965,6 +1163,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 250,
     "speedMax": 280,
     "bouncesLeft": 4,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.8
     }
@@ -977,6 +1177,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 50,
     "speedMax": 80,
     "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 1.8
     }
@@ -989,6 +1191,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 250,
     "speedMax": 280,
     "bouncesLeft": 5,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 1.2
     }
@@ -1001,6 +1205,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 250,
     "speedMax": 280,
     "bouncesLeft": 7,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 1.8
     }
@@ -1013,6 +1219,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 600,
     "speedMax": 650,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "healing": -0.35
     }
@@ -1025,6 +1233,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 600,
     "speedMax": 650,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "healing": -0.15
     }
@@ -1037,6 +1247,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 160,
     "speedMax": 170,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "ice": 0.25
     }
@@ -1049,6 +1261,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 350,
     "speedMax": 750,
     "bouncesLeft": 20,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "slice": 0
     }
@@ -1060,7 +1274,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/kantele/kantele_d.xml": {
     "damage": 0,
@@ -1069,7 +1285,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/kantele/kantele_dis.xml": {
     "damage": 0,
@@ -1078,7 +1296,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/kantele/kantele_e.xml": {
     "damage": 0,
@@ -1087,7 +1307,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/kantele/kantele_g.xml": {
     "damage": 0,
@@ -1096,7 +1318,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/keyshot.xml": {
     "damage": 3,
@@ -1105,7 +1329,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 330,
     "speedMin": 180,
     "speedMax": 205,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/lance.xml": {
     "damage": 1.4,
@@ -1114,7 +1340,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 300,
     "speedMin": 300,
     "speedMax": 400,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/laser.xml": {
     "damage": 0.39,
@@ -1123,7 +1351,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 30,
     "speedMin": 130,
     "speedMax": 150,
-    "bouncesLeft": 10
+    "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/levitation_field.xml": {
     "damage": 0,
@@ -1132,7 +1362,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/light_bullet.xml": {
     "damage": 0.12,
@@ -1141,7 +1373,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 750,
     "speedMax": 850,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/light_bullet_air.xml": {
     "damage": 0.23,
@@ -1150,7 +1384,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 350,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/light_bullet_blue.xml": {
     "damage": 0.15,
@@ -1159,7 +1395,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 650,
     "speedMax": 750,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/lightning.xml": {
     "damage": 0,
@@ -1169,6 +1407,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false,
     "damageByType": {
       "electricity": 1
     }
@@ -1181,6 +1421,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false,
     "damageByType": {
       "electricity": 1
     }
@@ -1193,6 +1435,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false,
     "damageByType": {
       "electricity": 0.5
     }
@@ -1204,7 +1448,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 4,
     "speedMin": 1800,
     "speedMax": 1800,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/luminous_drill.xml": {
     "damage": 0.4,
@@ -1213,7 +1459,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 1400,
     "speedMax": 1400,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/machinegun_bullet.xml": {
     "damage": 0.15,
@@ -1222,7 +1470,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 400,
     "speedMax": 500,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/magic_shield_part.xml": {
     "damage": 0.05,
@@ -1231,7 +1481,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 500,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/magic_shield_start.xml": {
     "damage": 0,
@@ -1240,7 +1492,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 5,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/mana.xml": {
     "damage": 0,
@@ -1249,7 +1503,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 10,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/material_acid.xml": {
     "damage": 0,
@@ -1258,7 +1514,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 123,
     "speedMax": 135,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/material_blood.xml": {
     "damage": 0,
@@ -1267,7 +1525,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 123,
     "speedMax": 135,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/material_cement.xml": {
     "damage": 0,
@@ -1276,7 +1536,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 123,
     "speedMax": 135,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/material_debug.xml": {
     "damage": 0,
@@ -1285,7 +1547,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 123,
     "speedMax": 135,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/material_dirt.xml": {
     "damage": 0,
@@ -1294,7 +1558,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 123,
     "speedMax": 135,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/material_gunpowder_explosive.xml": {
     "damage": 0,
@@ -1303,7 +1569,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 123,
     "speedMax": 135,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/material_lava.xml": {
     "damage": 0,
@@ -1312,7 +1580,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 123,
     "speedMax": 135,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/material_liquid.xml": {
     "damage": 0,
@@ -1321,7 +1591,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 123,
     "speedMax": 135,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/material_oil.xml": {
     "damage": 0,
@@ -1330,7 +1602,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 123,
     "speedMax": 135,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/material_water.xml": {
     "damage": 0,
@@ -1339,7 +1613,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 123,
     "speedMax": 135,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/megalaser.xml": {
     "damage": 5,
@@ -1348,7 +1624,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 32,
     "speedMin": 1,
     "speedMax": 1,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/megalaser_beam.xml": {
     "damage": 1,
@@ -1357,7 +1635,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 180,
     "speedMin": 40,
     "speedMax": 40,
-    "bouncesLeft": 10
+    "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/meteor.xml": {
     "damage": 0,
@@ -1367,6 +1647,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 300,
     "speedMax": 400,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 2.25
     }
@@ -1379,6 +1661,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 300,
     "speedMax": 400,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 10.25
     }
@@ -1390,7 +1674,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/meteor_rain_meteor.xml": {
     "damage": 0,
@@ -1400,6 +1686,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 300,
     "speedMax": 400,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 2.25
     }
@@ -1411,7 +1699,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": -1,
     "speedMin": 250,
     "speedMax": 280,
-    "bouncesLeft": 4
+    "bouncesLeft": 4,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/mist_alcohol.xml": {
     "damage": 0,
@@ -1420,7 +1710,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/mist_blood.xml": {
     "damage": 0,
@@ -1429,7 +1721,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 500,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/mist_radioactive.xml": {
     "damage": 0,
@@ -1438,7 +1732,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 500,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/mist_slime.xml": {
     "damage": 0,
@@ -1447,7 +1743,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 500,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/nuke.xml": {
     "damage": 3,
@@ -1456,7 +1754,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 300,
     "speedMax": 300,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/nuke_giga.xml": {
     "damage": 10,
@@ -1465,7 +1765,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 900,
     "speedMax": 900,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/ocarina/ocarina_a.xml": {
     "damage": 0,
@@ -1474,7 +1776,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/ocarina/ocarina_a2.xml": {
     "damage": 0,
@@ -1483,7 +1787,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/ocarina/ocarina_b.xml": {
     "damage": 0,
@@ -1492,7 +1798,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/ocarina/ocarina_c.xml": {
     "damage": 0,
@@ -1501,7 +1809,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/ocarina/ocarina_d.xml": {
     "damage": 0,
@@ -1510,7 +1820,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/ocarina/ocarina_e.xml": {
     "damage": 0,
@@ -1519,7 +1831,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/ocarina/ocarina_f.xml": {
     "damage": 0,
@@ -1528,7 +1842,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/ocarina/ocarina_gsharp.xml": {
     "damage": 0,
@@ -1537,7 +1853,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 250,
     "speedMax": 450,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/orb_laseremitter.xml": {
     "damage": 0.8,
@@ -1546,7 +1864,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 40,
     "speedMax": 40,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/orb_laseremitter_cutter.xml": {
     "damage": 0.8,
@@ -1555,7 +1875,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 60,
     "speedMin": 40,
     "speedMax": 40,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/orb_laseremitter_four.xml": {
     "damage": 0.8,
@@ -1564,7 +1886,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 40,
     "speedMax": 40,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/orb_laseremitter_weak.xml": {
     "damage": 0.8,
@@ -1573,7 +1897,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 40,
     "speedMax": 40,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/orb_laseremitter_weak_opposite.xml": {
     "damage": 0.8,
@@ -1582,7 +1908,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 40,
     "speedMax": 40,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/pata_rocket_1.xml": {
     "damage": 5,
@@ -1591,7 +1919,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 70,
     "speedMax": 100,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/pata_rocket_2.xml": {
     "damage": 5,
@@ -1600,7 +1930,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 70,
     "speedMax": 100,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/pata_rocket_3.xml": {
     "damage": 5,
@@ -1609,7 +1941,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 70,
     "speedMax": 100,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/pata_rocket_4.xml": {
     "damage": 5,
@@ -1618,7 +1952,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 70,
     "speedMax": 100,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/pata_rocket_5.xml": {
     "damage": 5,
@@ -1627,7 +1963,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 70,
     "speedMax": 100,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/pata_rocket_6.xml": {
     "damage": 5,
@@ -1636,7 +1974,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 70,
     "speedMax": 100,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/pebble_player.xml": {
     "damage": 0,
@@ -1645,7 +1985,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 60,
     "speedMin": 220,
     "speedMax": 240,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/pebble_player_physics.xml": {
     "damage": 1,
@@ -1654,7 +1996,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/pink_orb.xml": {
     "damage": 0.8,
@@ -1663,7 +2007,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/pipe_bomb.xml": {
     "damage": 0,
@@ -1672,7 +2018,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": -1,
     "speedMin": 250,
     "speedMax": 280,
-    "bouncesLeft": 4
+    "bouncesLeft": 4,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/poison_blast.xml": {
     "damage": 0,
@@ -1681,7 +2029,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/pollen.xml": {
     "damage": 0.2,
@@ -1690,7 +2040,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 750,
     "speedMin": 150,
     "speedMax": 250,
-    "bouncesLeft": 1
+    "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/polymorph_field.xml": {
     "damage": 0,
@@ -1699,7 +2051,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/powerdigger.xml": {
     "damage": 0,
@@ -1709,6 +2063,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "drill": 0.1
     }
@@ -1720,7 +2076,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/projectile_thunder_field.xml": {
     "damage": 0,
@@ -1729,7 +2087,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/projectile_thunder_lightning.xml": {
     "damage": 0,
@@ -1739,6 +2099,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false,
     "damageByType": {
       "electricity": 0.5
     }
@@ -1750,7 +2112,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/purple_explosion.xml": {
     "damage": 0,
@@ -1759,7 +2123,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/purple_explosion_field.xml": {
     "damage": 0,
@@ -1768,7 +2134,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 600,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/regeneration_aura.xml": {
     "damage": 0,
@@ -1778,6 +2146,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false,
     "damageByType": {
       "healing": -0.05
     }
@@ -1790,6 +2160,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false,
     "damageByType": {
       "healing": -0.05
     }
@@ -1802,6 +2174,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false,
     "damageByType": {
       "healing": -0.05
     }
@@ -1813,7 +2187,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": -1,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/rocket.xml": {
     "damage": 3,
@@ -1822,7 +2198,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 70,
     "speedMax": 100,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/rocket_downwards.xml": {
     "damage": 1.3,
@@ -1831,7 +2209,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 70,
     "speedMax": 100,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/rocket_player.xml": {
     "damage": 2,
@@ -1840,7 +2220,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 80,
     "speedMax": 80,
-    "bouncesLeft": 1
+    "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/rocket_tier_2.xml": {
     "damage": 4,
@@ -1849,7 +2231,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 70,
     "speedMax": 100,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/rocket_tier_3.xml": {
     "damage": 5,
@@ -1858,7 +2242,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 70,
     "speedMax": 100,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/rubber_ball.xml": {
     "damage": 0.12,
@@ -1868,6 +2254,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 650,
     "speedMax": 750,
     "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "slice": 0
     }
@@ -1879,7 +2267,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": -1,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/shield_field.xml": {
     "damage": 0,
@@ -1888,7 +2278,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 7220,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/skull.xml": {
     "damage": 0.05,
@@ -1897,7 +2289,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 99
+    "bouncesLeft": 99,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/slime.xml": {
     "damage": 0.25,
@@ -1906,7 +2300,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 330,
     "speedMin": 90,
     "speedMax": 115,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/spiral_part.xml": {
     "damage": 0.17,
@@ -1915,7 +2311,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/spiral_shot.xml": {
     "damage": 0.2,
@@ -1924,7 +2322,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/spitter.xml": {
     "damage": 0.3,
@@ -1933,7 +2333,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 25,
     "speedMin": 400,
     "speedMax": 600,
-    "bouncesLeft": 10
+    "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/spitter_tier_2.xml": {
     "damage": 0.5,
@@ -1942,7 +2344,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 30,
     "speedMin": 600,
     "speedMax": 800,
-    "bouncesLeft": 10
+    "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/spitter_tier_3.xml": {
     "damage": 0.6,
@@ -1951,7 +2355,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 35,
     "speedMin": 800,
     "speedMax": 1000,
-    "bouncesLeft": 10
+    "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/spore_pod.xml": {
     "damage": 0.1,
@@ -1960,7 +2366,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 210,
     "speedMax": 240,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/spore_pod_growing.xml": {
     "damage": 0,
@@ -1969,7 +2377,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 60,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/spore_pod_spike.xml": {
     "damage": 0.1,
@@ -1978,7 +2388,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 750,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 1
+    "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/summon_portal.xml": {
     "damage": 1,
@@ -1987,7 +2399,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/super_teleport_cast.xml": {
     "damage": 0,
@@ -1996,7 +2410,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 5,
     "speedMin": 100,
     "speedMax": 100,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/swapper.xml": {
     "damage": 0,
@@ -2005,7 +2421,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 750,
     "speedMax": 850,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/swarm_firebug.xml": {
     "damage": 0,
@@ -2015,6 +2433,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 50,
     "speedMax": 150,
     "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": false,
     "damageByType": {
       "fire": 0.15
     }
@@ -2027,6 +2447,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 50,
     "speedMax": 150,
     "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": false,
     "damageByType": {
       "melee": 0.14
     }
@@ -2039,6 +2461,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 50,
     "speedMax": 150,
     "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": false,
     "damageByType": {
       "melee": 0.28
     }
@@ -2050,7 +2474,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/teleport_cast.xml": {
     "damage": 0,
@@ -2059,7 +2485,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 26,
     "speedMax": 26,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/teleport_projectile.xml": {
     "damage": 0,
@@ -2068,7 +2496,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 750,
     "speedMax": 850,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/teleport_projectile_closer.xml": {
     "damage": 0,
@@ -2077,7 +2507,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 750,
     "speedMax": 850,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/teleport_projectile_short.xml": {
     "damage": 0,
@@ -2086,7 +2518,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 8,
     "speedMin": 1350,
     "speedMax": 1350,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/teleport_projectile_static.xml": {
     "damage": 0,
@@ -2095,7 +2529,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 240,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/teleportation_field.xml": {
     "damage": 0,
@@ -2104,7 +2540,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/temporary_platform.xml": {
     "damage": 0,
@@ -2113,7 +2551,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 300,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/temporary_wall.xml": {
     "damage": 0,
@@ -2122,7 +2562,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 300,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/tentacle.xml": {
     "damage": 0,
@@ -2132,6 +2574,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 8,
     "speedMax": 8,
     "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false,
     "damageByType": {
       "melee": 0.8
     }
@@ -2143,7 +2587,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/thunder_blast.xml": {
     "damage": 0,
@@ -2152,7 +2598,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 3,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/tnt.xml": {
     "damage": 0,
@@ -2161,7 +2609,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 800,
     "speedMax": 800,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/tntbox.xml": {
     "damage": 0,
@@ -2170,7 +2620,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": -1,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/tntbox_big.xml": {
     "damage": 0,
@@ -2179,7 +2631,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": -1,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/vacuum_entities.xml": {
     "damage": 0,
@@ -2188,7 +2642,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 20,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/vacuum_liquid.xml": {
     "damage": 0,
@@ -2197,7 +2653,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 300,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/vacuum_powder.xml": {
     "damage": 0,
@@ -2206,7 +2664,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 300,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/wall_builder.xml": {
     "damage": 0,
@@ -2215,7 +2675,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 10,
     "speedMin": 1000,
     "speedMax": 1000,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/wall_horizontal.xml": {
     "damage": 0,
@@ -2224,7 +2686,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 3,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/wall_piece.xml": {
     "damage": 1.29,
@@ -2233,7 +2697,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 400,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/wall_square.xml": {
     "damage": 0,
@@ -2242,7 +2708,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 3,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/wall_vertical.xml": {
     "damage": 0,
@@ -2251,7 +2719,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 3,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/wand_ghost_player.xml": {
     "damage": 1,
@@ -2260,7 +2730,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/water.xml": {
     "damage": 0,
@@ -2269,7 +2741,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 123,
     "speedMax": 135,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/deck/worm_shot.xml": {
     "damage": 0.1,
@@ -2278,7 +2752,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 200,
     "speedMax": 300,
-    "bouncesLeft": 10
+    "bouncesLeft": 10,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/deck/xray.xml": {
     "damage": 0,
@@ -2288,6 +2764,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "drill": 0.01
     }
@@ -2299,7 +2777,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 600,
     "speedMax": 600,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/dotshot.xml": {
     "damage": 0.8,
@@ -2308,7 +2788,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 150,
     "speedMax": 150,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/dotshot_strong.xml": {
     "damage": 0.8,
@@ -2317,7 +2799,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 150,
     "speedMax": 150,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/dummy.xml": {
     "damage": 0,
@@ -2326,7 +2810,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/egg_fire.xml": {
     "damage": 0,
@@ -2335,7 +2821,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 19,
     "speedMin": 160,
     "speedMax": 170,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/egg_monster.xml": {
     "damage": 0,
@@ -2344,7 +2832,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 19,
     "speedMin": 160,
     "speedMax": 170,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/egg_purple.xml": {
     "damage": 0,
@@ -2353,7 +2843,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 19,
     "speedMin": 160,
     "speedMax": 170,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/egg_red.xml": {
     "damage": 0,
@@ -2362,7 +2854,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 19,
     "speedMin": 160,
     "speedMax": 170,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/egg_slime.xml": {
     "damage": 0,
@@ -2371,7 +2865,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 19,
     "speedMin": 160,
     "speedMax": 170,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/egg_worm.xml": {
     "damage": 0,
@@ -2380,7 +2876,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 19,
     "speedMin": 160,
     "speedMax": 170,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/enlightened_laser_dark_wand.xml": {
     "damage": 5,
@@ -2389,7 +2887,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 52,
     "speedMin": 1,
     "speedMax": 1,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/enlightened_laser_darkbeam.xml": {
     "damage": 1,
@@ -2398,7 +2898,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 180,
     "speedMin": 40,
     "speedMax": 40,
-    "bouncesLeft": 10
+    "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/enlightened_laser_elec_wand.xml": {
     "damage": 5,
@@ -2407,7 +2909,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 82,
     "speedMin": 1,
     "speedMax": 1,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/enlightened_laser_elecbeam.xml": {
     "damage": 1,
@@ -2417,6 +2921,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "electricity": 1
     }
@@ -2428,7 +2934,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 62,
     "speedMin": 1,
     "speedMax": 1,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/enlightened_laser_fireball.xml": {
     "damage": 0,
@@ -2438,6 +2946,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 300,
     "speedMax": 400,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 2.25
     }
@@ -2449,7 +2959,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 52,
     "speedMin": 1,
     "speedMax": 1,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/enlightened_laser_lightbeam.xml": {
     "damage": 0.45,
@@ -2458,7 +2970,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 90,
     "speedMin": 800,
     "speedMax": 900,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/explosion.xml": {
     "damage": 0,
@@ -2467,7 +2981,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 1,
     "speedMin": 160,
     "speedMax": 170,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/fire_trap.xml": {
     "damage": 0,
@@ -2477,6 +2993,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 250,
     "speedMax": 250,
     "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.53
     }
@@ -2489,6 +3007,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 160,
     "speedMax": 170,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.25
     }
@@ -2501,6 +3021,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 160,
     "speedMax": 200,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.3
     }
@@ -2513,6 +3035,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 100,
     "speedMax": 120,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.2
     }
@@ -2525,6 +3049,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 160,
     "speedMax": 170,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.25
     }
@@ -2537,6 +3063,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 160,
     "speedMax": 170,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.45
     }
@@ -2548,7 +3076,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 9999999,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/fungus.xml": {
     "damage": 0,
@@ -2557,7 +3087,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": -1,
     "speedMin": 200,
     "speedMax": 340,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/fungus_big_explosion.xml": {
     "damage": 0.5,
@@ -2566,7 +3098,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 1,
     "speedMin": 160,
     "speedMax": 170,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/fungus_explosion.xml": {
     "damage": 0.5,
@@ -2575,7 +3109,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 1,
     "speedMin": 160,
     "speedMax": 170,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/gasblob.xml": {
     "damage": 0.25,
@@ -2584,7 +3120,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 130,
     "speedMin": 90,
     "speedMax": 115,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/glitter_bomb.xml": {
     "damage": 0,
@@ -2593,7 +3131,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 800,
     "speedMax": 800,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/glitter_bomb_shrapnel.xml": {
     "damage": 0,
@@ -2602,7 +3142,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 200,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/glue_shot.xml": {
     "damage": 0.1,
@@ -2611,7 +3153,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 40,
     "speedMin": 100,
     "speedMax": 300,
-    "bouncesLeft": 2
+    "bouncesLeft": 2,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/grenade_leader.xml": {
     "damage": 0.5,
@@ -2620,7 +3164,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 500,
     "speedMin": 80,
     "speedMax": 90,
-    "bouncesLeft": 4
+    "bouncesLeft": 4,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/grenade_scavenger.xml": {
     "damage": 1.3,
@@ -2629,7 +3175,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 500,
     "speedMin": 150,
     "speedMax": 180,
-    "bouncesLeft": 4
+    "bouncesLeft": 4,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/healshot.xml": {
     "damage": 0,
@@ -2639,6 +3187,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 200,
     "speedMax": 250,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "healing": -0.2
     }
@@ -2651,6 +3201,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 100,
     "speedMax": 250,
     "bouncesLeft": 50,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "healing": -0.2
     }
@@ -2663,6 +3215,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 250,
     "speedMax": 300,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "healing": -0.2
     }
@@ -2675,6 +3229,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 500,
     "speedMax": 500,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.3,
       "slice": 0.3,
@@ -2689,6 +3245,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 50,
     "speedMax": 50,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "ice": 0.3
     }
@@ -2701,6 +3259,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 220,
     "speedMax": 240,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "ice": 0.35
     }
@@ -2712,7 +3272,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/icethrower.xml": {
     "damage": 0,
@@ -2722,6 +3284,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 160,
     "speedMax": 170,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "ice": 0
     }
@@ -2733,7 +3297,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 200,
     "speedMax": 250,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/laser_bouncy.xml": {
     "damage": 0.35,
@@ -2742,7 +3308,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 30,
     "speedMin": 130,
     "speedMax": 150,
-    "bouncesLeft": 10
+    "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/laser_lasergun.xml": {
     "damage": 1,
@@ -2751,7 +3319,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 20,
     "speedMin": 1450,
     "speedMax": 1850,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/laser_spear.xml": {
     "damage": 1.4,
@@ -2760,7 +3330,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 300,
     "speedMin": 500,
     "speedMax": 600,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/laser_turret.xml": {
     "damage": 1,
@@ -2769,7 +3341,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 20,
     "speedMin": 1450,
     "speedMax": 1850,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/laserbeam.xml": {
     "damage": 0.35,
@@ -2778,7 +3352,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 30,
     "speedMin": 130,
     "speedMax": 150,
-    "bouncesLeft": 10
+    "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/laserbeam_green.xml": {
     "damage": 0.15,
@@ -2787,7 +3363,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 60,
     "speedMin": 130,
     "speedMax": 150,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/lavashot.xml": {
     "damage": 1.5,
@@ -2796,7 +3374,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 330,
     "speedMin": 130,
     "speedMax": 160,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/levitation_trail.xml": {
     "damage": 0.12,
@@ -2805,7 +3385,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 300,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/lightning.xml": {
     "damage": 1,
@@ -2815,6 +3397,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "electricity": 1
     }
@@ -2827,6 +3411,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 0,
     "speedMax": 0,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false,
     "damageByType": {
       "electricity": 1
     }
@@ -2839,6 +3425,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 500,
     "speedMax": 700,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "electricity": 0.6
     }
@@ -2850,7 +3438,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 60,
     "speedMin": 150,
     "speedMax": 150,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/machinegun_bullet_roboguard_big.xml": {
     "damage": 0.45,
@@ -2860,6 +3450,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 600,
     "speedMax": 750,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.2
     }
@@ -2871,7 +3463,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 30,
     "speedMin": 600,
     "speedMax": 700,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/machinegun_bullet_slower.xml": {
     "damage": 0.15,
@@ -2880,7 +3474,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 400,
     "speedMax": 500,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/machinegun_bullet_tank.xml": {
     "damage": 0.15,
@@ -2889,7 +3485,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 400,
     "speedMax": 500,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/machinegun_bullet_tank_super.xml": {
     "damage": 0.35,
@@ -2898,7 +3496,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 30,
     "speedMin": 600,
     "speedMax": 750,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/megalaser_blue.xml": {
     "damage": 0,
@@ -2907,7 +3507,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 32,
     "speedMin": 1,
     "speedMax": 1,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/megalaser_blue_beam.xml": {
     "damage": 0.1,
@@ -2916,7 +3518,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 180,
     "speedMin": 40,
     "speedMax": 40,
-    "bouncesLeft": 10
+    "bouncesLeft": 10,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/meteor_green.xml": {
     "damage": 5,
@@ -2926,6 +3530,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 300,
     "speedMax": 400,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 10.25
     }
@@ -2937,7 +3543,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": -1,
     "speedMin": 220,
     "speedMax": 240,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/mine_explosion.xml": {
     "damage": 0.25,
@@ -2946,7 +3554,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/neutralizershot.xml": {
     "damage": 0,
@@ -2955,7 +3565,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 350,
     "speedMax": 350,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb.xml": {
     "damage": 0.8,
@@ -2964,7 +3576,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 200,
     "speedMin": 350,
     "speedMax": 350,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_blue.xml": {
     "damage": 0.8,
@@ -2973,7 +3587,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 150,
     "speedMax": 150,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_cursed.xml": {
     "damage": 0.6,
@@ -2982,7 +3598,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 120,
     "speedMin": 1,
     "speedMax": 2,
-    "bouncesLeft": 2
+    "bouncesLeft": 2,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_dark.xml": {
     "damage": 0.3,
@@ -2991,7 +3609,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_expanding.xml": {
     "damage": 3,
@@ -3000,7 +3620,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 180,
     "speedMin": 45,
     "speedMax": 55,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_green.xml": {
     "damage": 0.8,
@@ -3009,7 +3631,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 350,
     "speedMax": 350,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_green_accelerating.xml": {
     "damage": 0.8,
@@ -3018,7 +3642,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 350,
     "speedMax": 350,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_green_boss_dragon.xml": {
     "damage": 0.75,
@@ -3027,7 +3653,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 350,
     "speedMax": 350,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_green_spin.xml": {
     "damage": 0.8,
@@ -3036,7 +3664,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 350,
     "speedMax": 350,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_hearty.xml": {
     "damage": 0.3,
@@ -3045,7 +3675,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_homing.xml": {
     "damage": 0.3,
@@ -3054,7 +3686,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_neutral.xml": {
     "damage": 0.3,
@@ -3063,7 +3697,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_pink.xml": {
     "damage": 0.8,
@@ -3072,7 +3708,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 25,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_pink_big.xml": {
     "damage": 0.8,
@@ -3081,7 +3719,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_pink_big_explosive.xml": {
     "damage": 0.8,
@@ -3090,7 +3730,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_pink_big_slow.xml": {
     "damage": 0.8,
@@ -3099,7 +3741,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_pink_big_super.xml": {
     "damage": 1,
@@ -3108,7 +3752,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 60,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_pink_big_super_shrapnel.xml": {
     "damage": 0.7,
@@ -3117,7 +3763,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 50,
     "speedMax": 50,
-    "bouncesLeft": 1
+    "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_pink_fast.xml": {
     "damage": 0.5,
@@ -3126,7 +3774,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 55,
     "speedMin": 100,
     "speedMax": 190,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_pink_super.xml": {
     "damage": 1.9,
@@ -3135,7 +3785,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 160,
     "speedMax": 200,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_poly.xml": {
     "damage": 0.3,
@@ -3144,7 +3796,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_purple.xml": {
     "damage": 1.2,
@@ -3153,7 +3807,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 25,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_swapper.xml": {
     "damage": 0,
@@ -3162,7 +3818,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_tele.xml": {
     "damage": 0.3,
@@ -3171,7 +3829,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_tiny.xml": {
     "damage": 0.12,
@@ -3180,7 +3840,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 130,
     "speedMin": 50,
     "speedMax": 50,
-    "bouncesLeft": 1
+    "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_twitchy.xml": {
     "damage": 0.3,
@@ -3189,7 +3851,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_weaken.xml": {
     "damage": 0.3,
@@ -3198,7 +3862,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orb_wither.xml": {
     "damage": 0.3,
@@ -3207,7 +3873,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/orbspawner.xml": {
     "damage": 0.1,
@@ -3216,7 +3884,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 200,
     "speedMin": 120,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/orbspawner_blue.xml": {
     "damage": 0.1,
@@ -3225,7 +3895,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 10,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/orbspawner_green.xml": {
     "damage": 0.1,
@@ -3234,7 +3906,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 120,
     "speedMin": 90,
     "speedMax": 90,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/pebble.xml": {
     "damage": 0,
@@ -3243,7 +3917,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 90,
     "speedMin": 240,
     "speedMax": 280,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/pollen.xml": {
     "damage": 0.5,
@@ -3252,7 +3928,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 750,
     "speedMin": 150,
     "speedMax": 250,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/pollen_ball.xml": {
     "damage": 1.2,
@@ -3261,7 +3939,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 500,
     "speedMin": 80,
     "speedMax": 90,
-    "bouncesLeft": 2
+    "bouncesLeft": 2,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/polyorb.xml": {
     "damage": 1,
@@ -3270,7 +3950,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 0,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/polyshot.xml": {
     "damage": 1.5,
@@ -3279,7 +3961,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 330,
     "speedMin": 130,
     "speedMax": 160,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/present.xml": {
     "damage": 0,
@@ -3288,7 +3972,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": -1,
     "speedMin": 150,
     "speedMax": 200,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/propane_tank.xml": {
     "damage": 0,
@@ -3297,7 +3983,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": -1,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/radioactive_blob.xml": {
     "damage": 0.25,
@@ -3306,7 +3994,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 330,
     "speedMin": 90,
     "speedMax": 105,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/radioactive_blob_trail.xml": {
     "damage": 0.25,
@@ -3315,7 +4005,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 330,
     "speedMin": 90,
     "speedMax": 115,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/radioactive_liquid.xml": {
     "damage": 0,
@@ -3324,7 +4016,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 20,
     "speedMin": 200,
     "speedMax": 350,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/rocket_crystal_pink.xml": {
     "damage": 2,
@@ -3333,7 +4027,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 160,
     "speedMin": 70,
     "speedMax": 70,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/rocket_drone.xml": {
     "damage": 0.2,
@@ -3342,7 +4038,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 60,
     "speedMin": 190,
     "speedMax": 220,
-    "bouncesLeft": 1
+    "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/rocket_tank.xml": {
     "damage": 1,
@@ -3351,7 +4049,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 80,
     "speedMax": 80,
-    "bouncesLeft": 1
+    "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/rocket_tiny.xml": {
     "damage": 0.8,
@@ -3360,7 +4060,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 80,
     "speedMax": 80,
-    "bouncesLeft": 1
+    "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/rocket_tiny_particles.xml": {
     "damage": 0.8,
@@ -3369,7 +4071,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 80,
     "speedMax": 80,
-    "bouncesLeft": 1
+    "bouncesLeft": 1,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/rocket_tiny_roll.xml": {
     "damage": 0,
@@ -3378,7 +4082,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 55,
     "speedMin": 80,
     "speedMax": 150,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/sentryshot.xml": {
     "damage": 0,
@@ -3387,7 +4093,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 100,
     "speedMin": 350,
     "speedMax": 350,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/shieldshot.xml": {
     "damage": 0,
@@ -3396,7 +4104,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 200,
     "speedMax": 250,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/shieldshot_small.xml": {
     "damage": 0,
@@ -3405,7 +4115,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/slimeblob.xml": {
     "damage": 0.05,
@@ -3414,7 +4126,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 90,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/slimetrail.xml": {
     "damage": 0,
@@ -3423,7 +4137,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 120,
     "speedMin": 260,
     "speedMax": 270,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/smalltentacle.xml": {
     "damage": 0,
@@ -3433,6 +4149,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 8,
     "speedMax": 8,
     "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false,
     "damageByType": {
       "melee": 1
     }
@@ -3445,6 +4163,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 8,
     "speedMax": 8,
     "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false,
     "damageByType": {
       "melee": 1
     }
@@ -3456,7 +4176,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 50,
     "speedMin": 1450,
     "speedMax": 1650,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/soldiershot.xml": {
     "damage": 0.6,
@@ -3466,6 +4188,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 150,
     "speedMax": 150,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "fire": 0.4,
       "slice": 0.4,
@@ -3479,7 +4203,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 20,
     "speedMin": 360,
     "speedMax": 360,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/summonshine.xml": {
     "damage": 0,
@@ -3488,7 +4214,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 150,
     "speedMin": 100,
     "speedMax": 120,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/tentacle.xml": {
     "damage": 0,
@@ -3498,6 +4226,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 8,
     "speedMax": 8,
     "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false,
     "damageByType": {
       "melee": 1
     }
@@ -3509,7 +4239,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 80,
     "speedMin": 50,
     "speedMax": 50,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false
   },
   "data/entities/projectiles/thunderball.xml": {
     "damage": 0,
@@ -3519,6 +4251,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 100,
     "speedMax": 120,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "electricity": 1.5
     }
@@ -3531,6 +4265,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 100,
     "speedMax": 120,
     "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": true,
     "damageByType": {
       "electricity": 0.8
     }
@@ -3543,6 +4279,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 100,
     "speedMax": 120,
     "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true,
     "damageByType": {
       "electricity": 1.5
     }
@@ -3554,7 +4292,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 2,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/tnt.xml": {
     "damage": 0,
@@ -3563,7 +4303,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 60,
     "speedMin": 0,
     "speedMax": 0,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/tongue.xml": {
     "damage": 0,
@@ -3573,6 +4315,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "speedMin": 8,
     "speedMax": 8,
     "bouncesLeft": 0,
+    "penetrateEntities": true,
+    "diesOnCollision": false,
     "damageByType": {
       "melee": 0.4
     }
@@ -3584,7 +4328,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 1,
     "speedMin": 160,
     "speedMax": 170,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/ultimate_killer_megabomb.xml": {
     "damage": 0,
@@ -3593,7 +4339,9 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 360,
     "speedMin": 123,
     "speedMax": 135,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": true
   },
   "data/entities/projectiles/wraith_glowing_laser.xml": {
     "damage": 0.35,
@@ -3602,6 +4350,8 @@ export const projectileStatsTable: Record<string, ProjectileStats> = {
     "lifetime": 90,
     "speedMin": 800,
     "speedMax": 900,
-    "bouncesLeft": 0
+    "bouncesLeft": 0,
+    "penetrateEntities": false,
+    "diesOnCollision": false
   }
 }

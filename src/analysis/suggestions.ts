@@ -48,7 +48,7 @@ function evalCandidate(wand: Wand, target: Archetype, perks: readonly PerkRef[])
   const ev = evalWand(wand)
   const sd = evaluateSelfDanger(wand, ev.sim.shots, perks)
   return {
-    score: scoreWand(wand, ev)[target].score,
+    score: scoreWand(wand, ev, perks)[target].score,
     unsafe: sd.unsafe,
     dangerHazards: new Set(sd.findings.filter((f) => f.severity === 'danger').map((f) => f.hazard)),
   }
@@ -149,7 +149,10 @@ export function suggestEdits(
     const deltaScore = c.score - base.score
     const removed = [...base.dangerHazards].find((h) => !c.dangerHazards.has(h))
     const rank = deltaScore + (removed ? HAZARD_FIX_BONUS : 0)
-    if (rank <= 0) return [] // only surface edits that actually help
+    // Only surface edits that help — BUT an edit that clears a lethal hazard always surfaces
+    // (a safety fix the player must see), even when the safer spell scores lower. The TTK
+    // scorer's wider score spread can exceed the fixed bonus, so gate the drop on `!removed`.
+    if (rank <= 0 && !removed) return []
 
     const s: Suggestion = { edit, label: labelFor(edit), deltaScore, archetype: target }
     if (removed) s.fixesHazard = removed

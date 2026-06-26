@@ -21,7 +21,14 @@ import {
   MAX_ROUNDS,
   POLISH_POOL_MAX,
 } from './budget'
-import { buildPoolIndex, isUtilitySpell, type PoolIndex } from './poolIndex'
+import {
+  buildPoolIndex,
+  isUtilitySpell,
+  isChargeSpell,
+  isCastSpeedEnabler,
+  castSpeedEnablers,
+  type PoolIndex,
+} from './poolIndex'
 import { countCombinations, enumerateDecks } from './exhaustive'
 import { TEMPLATES, TEMPLATE_ORDER } from './templates'
 import type {
@@ -32,7 +39,35 @@ import type {
   GenerateResult,
   GeneratedBuild,
   PerkAdvice,
+  TemplateId,
 } from './types'
+
+type Seed = { template: TemplateId; deck: string[] }
+
+/** For each damage seed, add a copy with the cheapest OWNED cast-speed enabler PREPENDED (the
+ *  accelerant leads so its cast-delay cut speeds the subsequent casts), capped to capacity. The
+ *  scorer then picks enabler-vs-not — it keeps the enabler only when the speed-up beats the slot it
+ *  costs, and an enabler-only deck reads ~0, so this can never manufacture a junk build. No-op when
+ *  the pool holds no enabler. Grounds the "Luminous Drill belongs in damage wands" meta rule. */
+function withEnablerVariants(
+  seeds: Seed[],
+  ix: PoolIndex,
+  capacity: number,
+  caps: ReadonlyMap<string, number> | undefined,
+): Seed[] {
+  const enabler = castSpeedEnablers(ix).find((id) => (caps?.get(id) ?? Infinity) >= 1)
+  if (!enabler) return seeds
+  // Interleave each enabler variant right AFTER its base seed, so a divided polish budget reaches
+  // the variants too (not all bases first). Prepending at capacity drops the tail; skip a variant
+  // that thereby loses its last damage PAYLOAD (a degenerate deck with nothing for the multicast to
+  // draw) rather than waste a sim on it.
+  return seeds.flatMap((seed) => {
+    if (seed.deck.includes(enabler)) return [seed]
+    const deck = [enabler, ...seed.deck].slice(0, capacity)
+    const hasPayload = deck.some((id) => id !== enabler && ix.projectiles.includes(id))
+    return hasPayload ? [seed, { template: seed.template, deck }] : [seed]
+  })
+}
 
 /** Lay a seed deck onto the chassis: chassis stats + always-cast, new spells[]
  *  padded/truncated to the chassis capacity. */
@@ -48,10 +83,9 @@ function seedWand(chassis: Wand, deck: string[]): Wand {
 function trimPool(ix: PoolIndex, archetype: Archetype, max: number): Set<string> {
   const priority: Record<Archetype, string[][]> = {
     DAMAGE: [ix.nukes, ix.modifiers, ix.triggers, ix.multicasts, ix.projectiles],
-    SPAM: [ix.projectiles, ix.multicasts, ix.modifiers],
     AOE: [ix.nukes, ix.multicasts, ix.modifiers, ix.projectiles],
-    MOBILITY: [ix.diggers, ix.mobility, ix.modifiers, ix.projectiles],
-    DEFENSIVE: [ix.defensive, ix.homing, ix.modifiers, ix.projectiles],
+    SPAM: [ix.projectiles, ix.multicasts, ix.modifiers],
+    DIGGING: [ix.diggers, ix.modifiers, ix.projectiles],
   }
   const out = new Set<string>()
   for (const bucket of priority[archetype]) {
@@ -130,11 +164,8 @@ function noteFor(
       return 'No offensive spells in your pool to build with.'
     }
   }
-  if (archetype === 'MOBILITY' && ix.diggers.length + ix.mobility.length === 0) {
-    return 'No digging or movement spells in your pool.'
-  }
-  if (archetype === 'DEFENSIVE' && ix.defensive.length + ix.homing.length === 0) {
-    return 'No defensive spells in your pool.'
+  if (archetype === 'DIGGING' && ix.diggers.length === 0) {
+    return 'No digging spell in your pool.'
   }
   return 'No build could be assembled from the current pool.'
 }
@@ -154,7 +185,12 @@ function generateForArchetype(
   // seeds clean shots. Digging/teleport live in the MOBILITY (utility) tab.
   const isDamageArchetype = archetype === 'DAMAGE' || archetype === 'SPAM' || archetype === 'AOE'
   const pool0 = trimPool(ix, archetype, POLISH_POOL_MAX)
-  const trimmed = isDamageArchetype ? new Set([...pool0].filter((id) => !isUtilitySpell(id))) : pool0
+  // Damage archetypes drop UTILITY (digging/teleport) from the polish pool — EXCEPT cast-speed
+  // enablers (Luminous Drill / Chainsaw), which belong in damage wands as accelerants. Non-
+  // accelerating utility (teleports, plain diggers) stays out.
+  const trimmed = isDamageArchetype
+    ? new Set([...pool0].filter((id) => !isUtilitySpell(id) || isCastSpeedEnabler(id)))
+    : pool0
   // Each candidate chassis gets a FAIR share of the per-archetype budget, measured
   // from its OWN start offset — so chassis #1 can't starve #2..N. Different-capacity
   // chassis are distinct sim-cache entries (wandKey includes stats), so the delta
@@ -169,7 +205,10 @@ function generateForArchetype(
     const templates = TEMPLATES.filter(
       (t) => t.archetypes.includes(archetype) && !(chassis.stats.shuffle && t.orderDependent),
     )
-    const seeds = templates.flatMap((t) => t.instantiate(ctx).map((deck) => ({ template: t.id, deck })))
+    const baseSeeds = templates.flatMap((t) => t.instantiate(ctx).map((deck) => ({ template: t.id, deck })))
+    // For damage archetypes, also try each seed with a cast-speed enabler prepended (see
+    // withEnablerVariants) so a fast Luminous-Drill / Chainsaw build can surface; the scorer ranks.
+    const seeds = isDamageArchetype ? withEnablerVariants(baseSeeds, ix, chassis.stats.capacity, caps) : baseSeeds
     totalSeeds += seeds.length
     if (seeds.length === 0) continue
 
@@ -295,7 +334,13 @@ function generateExhaustive(
  * "run all options". Otherwise (large pool / theorycraft full-DB) fall back to the bounded
  * template-seed + local-search path. Both rank on the same honest fitness.
  */
-export function generate(req: GenerateRequest): GenerateResult {
+export function generate(reqIn: GenerateRequest): GenerateResult {
+  // Drop charge-limited spells (finite max_uses) from the GENERATION pool unless the player
+  // has the Unlimited Spells perk or opts in — the suggestor shouldn't push a build that runs
+  // dry. Held wands are unaffected (this only filters what we BUILD, not what we score).
+  const allowCharges =
+    reqIn.constraints.allowChargeSpells === true || reqIn.perks.some((p) => p.id === 'UNLIMITED_SPELLS')
+  const req: GenerateRequest = allowCharges ? reqIn : { ...reqIn, pool: reqIn.pool.filter((id) => !isChargeSpell(id)) }
   const ix = buildPoolIndex(req.pool)
   // Owned-copy caps (M5 quantity fix): a Map for O(1) lookups in templates + polish.
   // Absent ⇒ unlimited (theorycraft); never constrains a build to fewer copies.

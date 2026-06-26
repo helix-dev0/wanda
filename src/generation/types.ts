@@ -26,6 +26,10 @@ export interface Constraints {
   mustDig?: boolean
   /** Reject any build that would hurt the player (self-danger unsafe). */
   noSelfDamage?: boolean
+  /** Include charge-limited spells (finite max_uses) in generation. Default false: the
+   *  suggestor won't recommend a build that runs dry — UNLESS the player has the Unlimited
+   *  Spells perk (auto-allowed) or ticks this on to see them anyway. */
+  allowChargeSpells?: boolean
 }
 
 /** One polish step applied to a seed, kept for Teach/Prescribe "what we changed". */

@@ -93,8 +93,8 @@ describe('templates — instantiate seed decks from the pool', () => {
     expect(tpl('cheap-shot-spam').instantiate(ctx(['LIGHT_BULLET'], { archetype: 'SPAM' }))).toEqual([])
   })
 
-  it('feature-fill includes the archetype feature spells', () => {
-    const seeds = tpl('feature-fill').instantiate(ctx(['CHAINSAW', 'LIGHT_BULLET'], { archetype: 'MOBILITY' }))
+  it('feature-fill (digging) includes the pool’s digging spells', () => {
+    const seeds = tpl('feature-fill').instantiate(ctx(['CHAINSAW', 'LIGHT_BULLET'], { archetype: 'DIGGING' }))
     expect(seeds[0]).toContain('CHAINSAW')
   })
 
@@ -141,7 +141,7 @@ describe('templates — respect owned-copy caps (no over-placement)', () => {
   it('feature-fill counts a dual-role spell (digger AND projectile) once under a cap of 1', () => {
     // CHAINSAW is both a digger and a type-0 projectile; owned x1 -> appears once total
     const seeds = tpl('feature-fill').instantiate(
-      ctx(['CHAINSAW'], { capacity: 6, archetype: 'MOBILITY', caps: caps([['CHAINSAW', 1]]) }),
+      ctx(['CHAINSAW'], { capacity: 6, archetype: 'DIGGING', caps: caps([['CHAINSAW', 1]]) }),
     )
     expect(count(seeds[0], 'CHAINSAW')).toBe(1)
   })

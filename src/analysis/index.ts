@@ -8,6 +8,7 @@ import type { WandMetrics } from '../sim/metrics'
 import { evalWand } from './simCache'
 import { wandKey } from './wandKey'
 import { scoreWand, type Archetype, type ArchetypeScore } from './archetypes'
+import { deckFeatureCounts } from './features/spellFeatures'
 import { evaluateSelfDanger, type SelfDangerReport } from './selfDanger'
 
 export interface WandAnalysis {
@@ -18,6 +19,9 @@ export interface WandAnalysis {
   approximate: boolean
   selfDanger: SelfDangerReport
   scores: Record<Archetype, ArchetypeScore>
+  /** MOBILITY demoted to a capability flag (§5.3 — teleport wands are trivial to build,
+   *  not a tiered optimization target): the deck has a teleport/levitation spell. */
+  mobility: boolean
 }
 
 /** Fully analyze one wand relative to the player's acquired perks. */
@@ -28,7 +32,8 @@ export function analyzeWand(wand: Wand, perks: readonly PerkRef[]): WandAnalysis
     metrics: ev.metrics,
     approximate: ev.sim.approximate || ev.metrics.damageApproximate,
     selfDanger: evaluateSelfDanger(wand, ev.sim.shots, perks),
-    scores: scoreWand(wand, ev),
+    scores: scoreWand(wand, ev, perks),
+    mobility: deckFeatureCounts(wand).MOBILITY > 0,
   }
 }
 

@@ -2,23 +2,100 @@
 
 > Living status doc. Companion to [`plan.md`](./plan.md) (the milestone breakdown) and
 > [`../noita-wand-assistant-spec.md`](../noita-wand-assistant-spec.md) (the design).
-> **Last updated: 2026-06-24** · branch `feat/scoring-rebuild`. 378 tests green.
+> **Last updated: 2026-06-26** · branch `scoring-model-v2`. 471 tests green (post-ship polish round, ↓).
 >
-> 🔴 **SCORING NOT YET TRUSTED (maintainer verdict, 2026-06-24).** Many individually-correct, reviewed
-> slice-fixes have shipped (reach-by-weapon-kind, achievable mana-bounded burst, digging-excluded-from-
-> combat-DPS, payload damage, crit, reload-overlap, …) — but the maintainer's holistic judgment is that
-> the **build ranking still does NOT work well.** A per-slice "✅ FIXED" means that specific bug is gone,
-> **NOT** that the scorer is good or that the maintainer is satisfied. Patch-by-patch has hit diminishing
-> returns (each fix correct, overall ranking still off ⇒ a STRUCTURAL problem). On the table: a **complete
-> scoring rebuild + re-think of how we score AND how we use the simulator engine** — next step is a FRESH,
-> interview-grounded SPEC, not more patches.
+> 🟢 **SCORING v2 SHIPPED + live-hardened.** The TTK-grounded rebuild
+> ([`docs/scoring-model-v2-spec.md`](./scoring-model-v2-spec.md)) replaced the patched heuristic scorer
+> in place (S0→S6): DAMAGE/AOE/SPAM are **expected time-to-kill vs cited reference enemies**
+> (Haulikkohiisi 22.5 / Isohiisi 150 / Ylialkemisti 1000), DIGGING is a first-class **capability ×
+> sustainability** archetype, MOBILITY is a capability flag, DEFENSIVE dropped. Validated by the
+> first-class **3-layer corpus harness** (`src/data/corpus/`, Layers A/B/C + the §7.5 ground-truth
+> cases), a **meta-expert sign-off** (PASS-WITH-NOTES → its two material ordering gaps fixed: SPAM
+> overkill-cap, dig-sustainability softening), and a **fresh-context diff review** (3 gaps fixed: DoT
+> bisection-stability, the trigger-connect reliability note, missing regressions) — all green;
+> tier-list UI browser-verified. Pierce came from a projectile-table regen (`penetrate_entities`/
+> `on_collision_die`).
+>
+> 🛠 **Live-hardened on the maintainer's real run (2026-06-26):** fixed DAMAGE=0 for utility-first
+> wands (TTK counts the WHOLE cycle, not just the first cast — a Luminous-Drill-first wand read
+> "can't kill"); **perks now apply to scoring** (Critical Hit + = +10%/stack, in `scoreWand`);
+> **charge-limited builds filtered** out of generation unless the Unlimited Spells perk (+ a "show
+> charge builds" toggle); **TTK hidden from the UI** (cards show DPS; TTK stays the scoring unit);
+> **suggestions no longer reshuffle** when you rearrange spells you already own (`chassisKey` keys
+> regen on chassis+owned-pool, not the deck); always-cast confirmed applied (RECHARGE ~5×'s DPS).
+>
+> **🛠 POST-SHIP POLISH ROUND (2026-06-26, 7 commits, 471 tests) — detailed section below.** Five
+> live-driven fidelity fixes: ✅ **homing now rescues spread** (was the #1 unmodeled gap), ✅
+> **mana-sustainability** (DAMAGE boss anchor = a SUSTAINED fight → a wand that drains its pool in <1s
+> no longer reads S), ✅ **damageModifiers allowlist** (Fire Trail/Homing out of damage builds), ✅
+> **cast-speed enablers** (Luminous Drill/Chainsaw usable in damage wands). 🔴 **OPEN (validated, NOT
+> fixed): RECHARGE reload double-count** — a re-draw (trigger payload / deck-wrap) re-applies RECHARGE's
+> recharge cut → inflated fire rate → a weak spitter-spam reads S ("isn't fast at all"). Needs a careful
+> clickWand walk + #4-safe layer fix; **guardrail: keep the good slot-0 wand S**.
+>
+> **Remaining provisional / flagged (not bugs):** band cutoffs PROVISIONAL; **always-cast is an
+> APPROXIMATION** (prepended, not fired per-cast); the mana penalty assumes CONTINUOUS fire; the
+> trigger-connect is OPTIMISTIC; lobbed/bouncing-projectile accuracy is OVER-credited (a Spitter gets
+> full single-target reach). Open items live in `docs/scoring-v2-test-notes.md`.
+
+## Scoring polish round — 7 live-driven fixes (2026-06-26, `scoring-model-v2`, 471 tests)
+
+Drove the LIVE app on the maintainer's real run; each slice was diagnosed READ-ONLY (file:line + real
+numbers), fixed SIM-GROUNDED (engine untouched, #4), TDD, then fresh-context reviewed.
+
+1. **`feat(scoring): homing rescues spread`** — homing was INVISIBLE to the scorer, so it strictly
+   LOWERED a wand's DAMAGE (mana/draw cost, zero modelled benefit). Now `WandMetrics.homing` (read from
+   the engine's `extra_entities` — works even for an always-cast HOMING_CURSOR) floors the single-target
+   on-target fraction at 0.9: `onTarget = homing ? max(0.9, 20/(20+spread)) : 20/(20+spread)`. A wide
+   scatter+homing connects (HOMING+SCATTER_4 0→14/22); tight wands unchanged. Grounded
+   noita.wiki.gg/wiki/Homing (seeks foes ~150px; "accuracy can suffer" → 0.9 not 1.0). SPAM/AOE
+   untouched. Review: APPROVE.
+2. **`fix(scoring): DAMAGE weights mana sustainability`** — a wand that drained its pool in <1s scored S
+   because the TTK BOSS anchor (1000 HP) was killed during the full-mana BURST phase at the RAW rate, so
+   `effectiveSustainedDps` never entered DAMAGE (SPAM already used it). `ttkAgainst(..., sustained=true)`
+   drops the burst phase for the BOSS (a long fight = the rate you can SUSTAIN); the MID bruiser keeps
+   burst; the one-cast overkill floor is preserved (true one-shots unaffected). GOLDENS-SAFE: a
+   mana-sustainable wand has effective==raw ⇒ sustained==burst (bit-identical; review proved monotonic
+   demotion, no NaN). Live: the mana-hog suggestion S→B; the generator now surfaces mana-STABLE top
+   builds (effective 630, stalls ∞) and scores de-saturate. Review: APPROVE.
+3. **`fix(generation): damageModifiers allowlist`** — was a BLOCKLIST (`ix.modifiers.filter(!SPREAD)`),
+   so Fire Trail / Homing / Bounce got stacked into damage builds (mana cost, 0 damage — "why is Fire
+   Trail here not Damage Plus"). Now `isDamageModifier(id)` probes the real engine ([id, LIGHT_BULLET] →
+   did `damage_projectile_add` / `damage_critical_chance` / `damage_explosion_add` rise?). Live: all
+   top-3 DAMAGE builds carry Damage Plus + Critical Hit, zero Fire Trail.
+4. **`feat(generation): cast-speed enablers in damage wands`** — Luminous Drill / Chainsaw are DIG-tagged
+   (→ `isUtilitySpell` → excluded), but their value in a damage wand is ACCELERATION. `isCastSpeedEnabler(id)`
+   probes whether `[id, LIGHT_BULLET]` cuts `fire_rate_wait` below the wand's NEUTRAL `castDelay`;
+   `withEnablerVariants` seeds an enabler-prepended damage variant and the polish pool admits enablers.
+   HONEST TENSION: on a LOW-regen wand the drill (faster but thirstier) correctly loses to a Mana-Reduce
+   sustainable build — surfaced, not hidden.
+5. **`fix(generation): isCastSpeedEnabler neutral baseline`** — a fresh review (REQUEST CHANGES) caught a
+   CONTAMINATED baseline (`minFireRateWait([LIGHT_BULLET])` = 13, since the bullet sits in its own shot
+   adding +3) that mis-flagged plain DIGGER/POWERDIGGER (+1 frame, mana 0) as enablers → would prepend a
+   useless Digger and re-leak diggers to the polish pool. Fixed: compare vs `PROBE_STATS.castDelay` (the
+   neutral baseline) + regression tests.
+6. **`chore(scoring): review nits`** — dropped dead `ttkVs` (it didn't thread `sustained` — a latent
+   trap); documented two blind spots (big-pool burst-then-dry; enabler↔sustainability tension).
+
+### 🔴 TOP OPEN ITEM — validated, NOT fixed: RECHARGE reload double-count
+A RE-DRAW (a trigger/timer payload like `SPITTER_TIMER`, OR a deck-wrap forced by a trailing modifier
+like `LONG_DISTANCE_CAST`) re-casts RECHARGE, re-applying its `setCurrentReloadTime(−20)` to the SHARED
+reload accumulator: `[RECHARGE, SPITTER]` → reload **15** (correct) but `[RECHARGE, SPITTER, SPITTER_TIMER]`
+→ reload **−5** → floors to 0 recharge → cycle ~4 frames → a WEAK spitter-spam reads ~473 DPS / S, when
+the real wand recharges (~3×/sec / ~105 DPS) — maintainer ground truth: **"isn't fast at all".** BROAD
+(RECHARGE + trigger is a very common combo). Bug class VALIDATED in isolation; full-wand reproduction was
+INCONSISTENT with the live app (computed slot-0 346 DPS vs the app's 5334), so it needs a careful
+READ-ONLY walk of `src/engine/eval/clickWand.ts` (the `StartReload` / `reloadTime = args[0]` path + how
+trigger payloads / deck-wraps re-enter the draw loop) BEFORE any change — fix must be #4-safe (engine
+untouched). **GUARDRAIL: the maintainer's GOOD slot-0 wand shares RECHARGE+SPITTER_TIMER and MUST stay S**
+(its strength is the 64-HP/cast multiplier, not the rate). Full writeup: `docs/scoring-v2-test-notes.md`.
 
 ## Milestone status
 
 | Milestone | Status | Notes |
 |---|---|---|
 | **M0 — Fixtures & schema** | ✅ **COMPLETE** (T1–T5) | App is now buildable against fixtures with zero further game access through M5. |
-| **M1 — Extraction mod + bridge** | 🔶 **in progress** | **Live-validated in-game (2026-06-22):** auto emit-on-change (T1), all carried wands + active flag (T2), chokidar→WS bridge (T5). Pending: real `run_id`=seed (T3), ASI compat (T4), world-scan (T6). |
+| **M1 — Extraction mod + bridge** | 🔶 **in progress** | **Live-validated in-game:** AUTO emit-on-change snapshot — all carried wands + active flag + spell bag + perks (T1/T2), chokidar→WS bridge (T5), and (2026-06-26) **F8 = full spell/perk DB dump** (snapshot is auto-only now, no keypress) + **✅ Advanced Spell Inventory compat (T4)** — reads ASI's `AdvancedSpellInventory_stored_spells` Globals-string storage (confirmed in-game: bag 12→27). Pending: real `run_id`=world-seed (T3), world-scan (T6). |
 | **M2 — Ingestion + store + mirror UI** | ✅ **COMPLETE** (T1–T4) | First **visible** milestone — single-page wand-mirror dashboard, fixture-driven + browser-verified. |
 | **M3 — Simulator integration** | ✅ **COMPLETE** (T1–T4) | Vendored `salinecitrine` `calc/`; sim layer + projectile-damage table + metrics + cast-tree UI. Fixture-driven + browser-verified. |
 | **M4 — Analysis engine** | ✅ **COMPLETE** (T1–T4) | Archetype scoring + self-danger (perk-aware veto, separate **Unsafe** band) + depth-1 local search → **tier list per archetype** for held wands. Fixture-driven + browser-verified. |
@@ -30,7 +107,7 @@
 - **T1** scaffold: Vite 8.0.16 · React 19.2.7 · TS 6.0.3 · Vitest 4.1.9 · Valibot 1.4.1. Commands in [`../CLAUDE.md`](../CLAUDE.md).
 - **T2** snapshot schema (`src/schema/snapshot.ts`) — EZWand-grounded stat keys; structured perks `{id,stacks}` + spell bag `{action_id,uses_remaining}`.
 - **T3** spell + perk DB schemas (`src/schema/spell-db.ts`, `perk-db.ts`) — numeric `type` enum (0–7), `looseObject` to preserve raw-dump keys.
-- **T4** capture mod (`mod/`) + [`capture-manual.md`](./capture-manual.md) — extraction-only; F8 = snapshot, F7 = DB dumps. Vendors EZWand (GPL-3.0). **Confirmed working in-game.**
+- **T4** capture mod (`mod/`) + [`capture-manual.md`](./capture-manual.md) — extraction-only. Vendors EZWand (GPL-3.0). **Confirmed working in-game.** (Hotkeys later changed at M1: snapshot is now AUTO-only; **F8 = DB dump**.)
 - **T5** fixtures frozen (`src/data/fixtures/`) + validated against schemas. Real data fixed one schema bug.
 
 **Verified state:** `npm test` 28 pass · `npm run typecheck` clean · `npm run build` clean · `npm run lint` clean. The app runs entirely on fixtures (no game/live-data dependency).
@@ -352,6 +429,15 @@ damage weapon — it's close range.** So it was a **SCORING-fidelity gap wearing
 the scorer was blind to RANGE and MANA, and the generator was *correct* to keep drills out of damage decks.
 Maintainer chose a full **fitness rebuild + simulator-driven exhaustive search** (transparent grounded
 numbers, not heuristics). Grounded by an 8-dimension multi-agent meta audit → **[`scoring-rebuild-spec.md`](./scoring-rebuild-spec.md)**.
+
+> 📋 **SUPERSEDED — v2 SPEC APPROVED (2026-06-25): [`scoring-model-v2-spec.md`](./scoring-model-v2-spec.md).**
+> The slice-by-slice fidelity rebuild logged below (v1) hit diminishing returns; the maintainer judged the
+> model **structurally** untrusted and chose a full MODEL rebuild via a fresh interview-grounded spec. v2
+> replaces abstract DPS→sat→tier with **expected TTK vs wiki-cited reference enemies**, restructures archetypes
+> (**DAMAGE/AOE/SPAM + first-class DIGGING**, MOBILITY→flag, DEFENSIVE dropped), models **pierce/multi-hit + DoT
+> magnitude**, and makes a **15–20-build corpus harness + meta-expert sign-off** the mandatory trust gate
+> (replace-in-place, harness-first; TS in-process). **The log below is now HISTORICAL context.** Next: a fresh
+> review session, then implement.
 
 - ✅ **Slice 1 — B3 range + B4 mana (`f551e77`).** `metrics.ts` gains `reachWeightedPx` (damage-weighted
   reach) + `effectiveSustainedDps` (= sustainedDps × min(1, regen/drain), mana shortfall DROPS casts per

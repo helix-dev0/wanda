@@ -19,3 +19,17 @@ export function wandKey(w: Wand): string {
   )
   return JSON.stringify({ stats: stableStats, always_cast: w.always_cast, spells: w.spells })
 }
+
+/** A wand's CHASSIS identity — its stats (sans the volatile current mana) + always-casts, but
+ *  NOT its `spells` deck. Generation builds a FRESH deck onto the chassis, so the current deck
+ *  isn't a generation input. This keys regeneration: rearranging spells you already own keeps
+ *  the chassis (and the owned pool) identical, so the suggestions hold still — only acquiring a
+ *  new wand or changing a wand's stats / always-casts changes the chassis. */
+export function chassisKey(w: Wand): string {
+  const stableStats = Object.fromEntries(
+    Object.entries(w.stats)
+      .filter(([k]) => k !== 'mana')
+      .sort(([a], [b]) => a.localeCompare(b)),
+  )
+  return JSON.stringify({ stats: stableStats, always_cast: w.always_cast })
+}

@@ -2,12 +2,12 @@
 //
 // Everything here is computed from clickWand's output (WandShot[] + reloadTime)
 // joined with the wand's snapshot stats and the projectile base-stats table.
-// Damage is honestly APPROXIMATE: raw HP, neutral resistances, single-hit
-// (pierce/bounce not multiplied). It now models: typed damage_by_type (B1),
-// crit on ALL channels — projectile + explosion + AoE blast (B2), trigger
-// payloads (recursive), mana-limited effective DPS (B4), and damage-weighted
-// reach (B3). Velocity/speed damage remains DEFERRED (anti-proxy). See docs/
-// scoring-rebuild-spec.md.
+// Damage is honestly APPROXIMATE: raw HP, neutral resistances, single-target single-hit
+// (pierce/bounce not multiplied INTO per-cast damage). It models: typed damage_by_type,
+// crit on ALL channels — projectile + explosion + AoE blast, trigger payloads (recursive),
+// mana-limited effective DPS, damage-weighted reach, and the v2 TTK ingredients
+// (firstCastSeconds + penetration capability for AOE coverage, S2). Velocity/speed damage
+// remains DEFERRED (anti-proxy). See docs/scoring-model-v2-spec.md.
 
 import type { WandShot } from '../engine/eval/types'
 import type { WandStats } from '../schema/snapshot'
@@ -22,13 +22,17 @@ export interface WandMetrics {
   cycleSeconds: number
   /** Firing portion only (excludes reload), seconds. */
   fireSeconds: number
+  /** Seconds the FIRST cast takes (the first shot's per-shot delay). The TTK overkill
+   *  floor: a wand that one-shots the reference enemy kills in this time, so two
+   *  one-shotters are ordered by cadence, not collapsed to the full cycle. */
+  firstCastSeconds: number
 
   /** Top-level projectiles from the first cast (one click). */
   projectilesPerCast: number
   projectilesPerCycle: number
   projectilesPerSecond: number
 
-  /** Expected HP from one click (raw, single-hit, no crit). */
+  /** Expected HP from one click (raw, single-target single-hit; crit + payloads included). */
   damagePerCast: number
   /** Expected HP across one full cycle. */
   damagePerCycle: number
@@ -67,6 +71,17 @@ export interface WandMetrics {
    *  lethal blast from a harmless digging explosion (same radius, no damage). */
   maxExplosionDamage: number
 
+  /** Penetration capability for AOE coverage (reference-agnostic — the analysis layer
+   *  turns px → mob count via the reference swarm spacing). The farthest a PENETRATING
+   *  projectile (`penetrate_entities`) travels in the cycle (px); 0 if nothing penetrates.
+   *  A penetrating projectile hits one body per mob along this path. */
+  pierceReachPx: number
+  /** The largest per-HIT combat HP among the cycle's penetrating projectiles (incl. the
+   *  shot's damage/crit mods); 0 if nothing penetrates. The scorer gates coverage on this:
+   *  a penetrating projectile that can't kill the reference mob (e.g. Black Hole, 0 dmg)
+   *  clears nothing despite a long path. */
+  pierceHitHP: number
+
   /** Status / damage-over-time the wand APPLIES — a capability flag, not a damage
    *  number. Poison/toxic are material-stain status (not a projectile damage field), so
    *  we can detect *that* a wand applies them but not quantify it from projectile data;
@@ -75,6 +90,17 @@ export interface WandMetrics {
    *  lens. (Grounded: noita.wiki.gg Fire / Toxic Sludge / Damage_types — see
    *  docs/scoring-grounding-spec.md Principle 8.) */
   appliesDot: { fire: boolean; poison: boolean; toxic: boolean }
+  /** The cast tree contains a trigger/timer payload. The damage model ASSUMES the payload
+   *  connects (a trigger is a mini-wand you aim — §5.5), so the scorer surfaces a delivery
+   *  RELIABILITY note for these (and for shuffle wands) rather than a fabricated probability. */
+  hasTrigger: boolean
+  /** The deck applies a HOMING / auto-aim modifier — its projectiles seek the nearest foe
+   *  rather than flying straight. Read straight from the engine's cast output (every homing
+   *  action appends a `.../homing*.xml` entity to the shot's `extra_entities`), not invented.
+   *  The scorer uses it as the single-target accuracy lever: homing "imparts constant force…
+   *  towards your foes" within ~150px (noita.wiki.gg/wiki/Homing), so a wide spread/scatter
+   *  still connects on one target. Default false (goldens-safe). */
+  homing: boolean
 
   /** Engine hit its 10-iteration cap — cycle figures are a truncated lower bound. */
   truncated: boolean
@@ -104,7 +130,7 @@ const TRIGGER_DEPTH_CAP = 16
  *  0% → ×1 (no change, goldens safe), 25% → ×2, 100% → ×5, 200% → ×10. Crit chance is
  *  populated by real actions (crit spells / triggers add it); the ×5 is the game
  *  constant, not stored in the action state. Applies to direct projectile damage. */
-function critMultiplier(critChancePercent: number): number {
+export function critMultiplier(critChancePercent: number): number {
   const c = Math.max(0, critChancePercent) / 100
   return 1 + Math.min(c, 1) * (5 * Math.max(1, c) - 1)
 }
@@ -204,8 +230,12 @@ function shotDamage(shot: WandShot, onMissing: () => void, depth = 0): number {
       // Direct HP = combat damage (untyped + typed slice/electricity/melee/fire/ice/…, B1) MINUS
       // digging (drill / curated digging beams are terrain work, not combat — see combatDamage),
       // plus the shot's damage_projectile_add. Without the typed sum CHAINSAW (slice) read 0; with
-      // the digging exclusion a drill ENABLER no longer counts as offensive damage.
-      hp += Math.max(0, combatDamage(p.entity, st) + projAdd) * DAMAGE_UNIT_HP * critMul
+      // the digging exclusion a drill ENABLER no longer counts as offensive damage. The flat
+      // +projAdd only buffs a projectile that ALREADY deals combat damage — it cannot turn a pure
+      // digging beam into a damage shot, else [Damage Plus ×N, Luminous Drill] reads as a fake
+      // damage build (the digger-inflation bug the digging exclusion exists to prevent).
+      const base = combatDamage(p.entity, st)
+      if (base > 0) hp += Math.max(0, base + projAdd) * DAMAGE_UNIT_HP * critMul
       if (st.explosionDamage > 0 || explAdd > 0) {
         // Crit applies to ALL damage types, not just projectile damage — including the
         // explosion (B2a; noita.wiki.gg/wiki/Critical_hit). ×1 when no crit (goldens safe).
@@ -247,6 +277,7 @@ export function computeMetrics(
     n === 0 ? 0 : Math.max(1, fireFrames - lastShotFrames + Math.max(lastShotFrames, recharge))
   const cycleSeconds = framesToSeconds(cycleFrames)
   const fireSeconds = framesToSeconds(fireFrames)
+  const firstCastSeconds = n > 0 ? framesToSeconds(perShotFrames(shots[0], stats)) : 0
 
   // --- throughput ---
   const projectilesPerCast = shots[0]?.projectiles.length ?? 0
@@ -311,6 +342,13 @@ export function computeMetrics(
   // digging explosion (same radius, 0 damage).
   let maxExplosionRadius = 0
   let maxExplosionDamage = 0
+  // Penetration capability (AOE coverage). Tracked over the whole cycle (incl. trigger
+  // payloads): the farthest a penetrating projectile travels, and the largest per-hit
+  // combat HP among penetrating projectiles. Kept as two independent maxes — the scorer
+  // needs BOTH (a long-reach 0-damage Black Hole clears nothing; a lethal Chain Bolt does).
+  let pierceReachPx = 0
+  let pierceHitHP = 0
+  let hasTrigger = false
   // Damage-weighted range USABILITY: Σ(perProjectileDamage × perProjectileReachFrac) /
   // Σ(perProjectileDamage) over the whole cycle (recursing payloads). Each projectile's reach
   // is clamped to [FLOOR,1] BEFORE weighting, so a deck whose damage is mostly a short-range
@@ -329,9 +367,13 @@ export function computeMetrics(
   // path-matching 'fire' is NOT clean (it would trip `..._friendly_fire`), so we accept
   // the minor false-negative over a brittle curated allowlist.
   const appliesDot = { fire: false, poison: false, toxic: false }
+  // Homing/auto-aim capability — see WandMetrics.homing. Detected from the shot's accumulated
+  // extra_entities (every homing action appends `.../homing*.xml`), recursing trigger payloads.
+  let homing = false
   const scanProjectileTree = (shot: WandShot, depth: number): void => {
     const radiusAdd = shot.castState?.explosion_radius ?? 0
     const explAdd = shot.castState?.damage_explosion_add ?? 0
+    const projAdd = shot.castState?.damage_projectile_add ?? 0
     // Crit scales the blast too (B2b) — a crit nuke's AoE is bigger. ×1 with no crit.
     const critMul = critMultiplier(shot.castState?.damage_critical_chance ?? 0)
     const material = shot.castState?.material ?? ''
@@ -339,6 +381,11 @@ export function computeMetrics(
     if (material === 'fire' || trail.includes('fire')) appliesDot.fire = true
     if (trail.includes('poison')) appliesDot.poison = true
     if (trail.includes('acid')) appliesDot.toxic = true
+    // A homing modifier appends a `.../homing*.xml` entity to extra_entities (HOMING,
+    // HOMING_SHORT/ROTATE/SHOOTER/ACCELERATING/CURSOR/AREA + the homing perk) — one substring
+    // check detects "this shot's projectiles seek enemies". Confirmed live even for an
+    // always-cast HOMING_CURSOR (extra_entities = "data/entities/misc/homing_cursor.xml,…").
+    if ((shot.castState?.extra_entities ?? '').includes('homing')) homing = true
     for (const p of shot.projectiles) {
       const st = getProjectileStats(p.entity)
       if (st) {
@@ -359,9 +406,19 @@ export function computeMetrics(
       const baseExpl = st?.explosionDamage ?? 0
       const dHp = (baseExpl > 0 || explAdd > 0 ? Math.max(0, baseExpl + explAdd) : 0) * DAMAGE_UNIT_HP * critMul
       if (dHp > maxExplosionDamage) maxExplosionDamage = dHp
+      // Penetration: a `penetrate_entities` projectile passes through bodies along its
+      // flight path. Its per-hit combat HP (incl. this shot's projectile-add + crit) gates
+      // whether each pass is lethal. Reach + lethality tracked as independent maxes.
+      if (st?.penetrateEntities) {
+        const reachPx = reachOfStats(st)
+        if (reachPx > pierceReachPx) pierceReachPx = reachPx
+        const hitHP = Math.max(0, combatDamage(p.entity, st) + projAdd) * DAMAGE_UNIT_HP * critMul
+        if (hitHP > pierceHitHP) pierceHitHP = hitHP
+      }
       if ((st?.damageByType?.fire ?? 0) > 0) appliesDot.fire = true
       if (p.entity.includes('poison')) appliesDot.poison = true
       if (p.entity.includes('acid')) appliesDot.toxic = true
+      if (p.trigger) hasTrigger = true
       if (p.trigger && depth < TRIGGER_DEPTH_CAP) scanProjectileTree(p.trigger, depth + 1)
     }
   }
@@ -374,6 +431,7 @@ export function computeMetrics(
     cycleFrames,
     cycleSeconds,
     fireSeconds,
+    firstCastSeconds,
     projectilesPerCast,
     projectilesPerCycle,
     projectilesPerSecond,
@@ -389,7 +447,11 @@ export function computeMetrics(
     reachUsability,
     maxExplosionRadius,
     maxExplosionDamage,
+    pierceReachPx,
+    pierceHitHP,
     appliesDot,
+    hasTrigger,
+    homing,
     truncated: hitIterationLimit,
     damageApproximate,
   }

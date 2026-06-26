@@ -1,17 +1,18 @@
 -- =============================================================================
--- wand_capture - THROWAWAY M0 fixture-capture mod for the Noita wand assistant.
+-- wand_capture - state-extraction mod for the Noita wand assistant.
 --
--- Responsibility: STATE EXTRACTION ONLY (no logic, no UI). On a hotkey it writes
--- a schema-shaped snapshot JSON (held wand + spell bag + acquired perks) and, on
--- another, dumps the spell + perk databases once.
+-- Responsibility: STATE EXTRACTION ONLY (no logic, no UI). It AUTO-SYNCS a
+-- schema-shaped snapshot JSON (all carried wands + spell bag + acquired perks) to
+-- snapshot.json whenever the state changes (~2x/sec) — the live bridge watches that
+-- file, so the app updates with NO keypress. F8 dumps the full spell + perk
+-- databases once (the heavy, occasional export).
 --
 -- THIS CODE CANNOT BE SELF-TESTED - it needs the running game. The human is the
--- test loop (see docs/capture-manual.md). Every API call here is grounded in
--- real source (EZWand, vanilla scripts, the official Lua API); points that could
--- not be fully verified from docs emit a diagnostic to logger.txt so the capture
--- doubles as an in-game probe. DO NOT assume this works until the human confirms.
+-- test loop (see docs/capture-manual.md). Every API call here is grounded in real
+-- source (EZWand, vanilla scripts, the Advanced Spell Inventory mod's own code, the
+-- official Lua API). DO NOT assume this works until the human confirms in-game.
 --
--- Hotkeys:  F8 (scancode 65) = capture snapshot   F7 (scancode 64) = dump DBs
+-- Hotkey:  F8 (scancode 65) = dump spell + perk DBs.  (Snapshot capture is automatic.)
 -- =============================================================================
 
 local MODID = "wand_capture"
@@ -21,7 +22,6 @@ local NULL = json.NULL
 
 local player_entity = nil
 local run_id = "run-unknown"
-local snapshot_count = 0
 local last_emit = nil -- last snapshot.json contents (emit-on-change, sans timestamp)
 
 -- --- file output ------------------------------------------------------------
@@ -107,40 +107,70 @@ local function read_perks()
 end
 
 -- --- loose spell bag --------------------------------------------------------
--- The spell-bag entity is conventionally a player child named "inventory_full",
--- but that name is UNCONFIRMED in real mods - so log every player child name
--- (the human reports these to confirm the bag name for M1).
-local function read_spell_bag(player)
-  local out = json.array({})
-  local children = EntityGetAllChildren(player) -- may be nil
+-- Loose spells live in TWO places, and we UNION both (a spell is in exactly one of
+-- them at a time, so no double-counting):
+--   (1) VANILLA: the player child entity named "inventory_full" holds one child
+--       entity per spell (ItemActionComponent.action_id + ItemComponent.uses_remaining).
+--   (2) ADVANCED SPELL INVENTORY (Workshop 3267869519): this QoL mod's "storage" does
+--       NOT use child entities — it serializes its (expanded, STACKED) bag into a single
+--       Globals STRING and empties inventory_full into it, so a vanilla-only read misses
+--       every stored spell. Source-verified against ASI init.lua (save_stored_spells):
+--         GlobalsGetValue("AdvancedSpellInventory_stored_spells")
+--         = "<stack_size>;<action_id>;<uses_remaining>" per slot, joined by "|", "" for empty.
+--       We expand each stack into <stack_size> entries so the app's owned-counts are correct.
+--   Both reads no-op when their source is absent (no ASI ⇒ the Globals key is ""), so this
+--   is safe with or without ASI. Format coupling is intentional (CLAUDE.md: read ASI
+--   compatibly) and version-flagged: re-verify the key/format if ASI changes its storage.
+local ASI_STORAGE_KEY = "AdvancedSpellInventory_stored_spells"
+
+local function read_vanilla_bag(player, out)
   local bag = nil
-  if children then
-    for _, c in ipairs(children) do
-      -- (the M0 per-child name probe is removed: it would flood logger.txt now
-      --  that the snapshot is built ~2x/sec by the auto emit-on-change loop.)
-      if EntityGetName(c) == "inventory_full" then bag = c end
+  for _, c in ipairs(EntityGetAllChildren(player) or {}) do
+    if EntityGetName(c) == "inventory_full" then
+      bag = c
+      break
     end
   end
-  if not bag then
-    print("[wand_capture] NOTE: no child named 'inventory_full'; spell-bag name UNCONFIRMED (see child list)")
-    return out
+  if not bag then return end
+  for _, item in ipairs(EntityGetAllChildren(bag) or {}) do
+    local iac = EntityGetFirstComponentIncludingDisabled(item, "ItemActionComponent")
+    if iac then
+      local action_id = ComponentGetValue2(iac, "action_id")
+      local uses = NULL
+      local ic = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
+      if ic then
+        local u = ComponentGetValue2(ic, "uses_remaining")
+        if type(u) == "number" then uses = u end
+      end
+      out[#out + 1] = { action_id = action_id, uses_remaining = uses }
+    end
   end
-  local items = EntityGetAllChildren(bag)
-  if items then
-    for _, item in ipairs(items) do
-      local iac = EntityGetFirstComponentIncludingDisabled(item, "ItemActionComponent")
-      if iac then
-        local action_id = ComponentGetValue2(iac, "action_id")
-        local uses = NULL
-        local ic = EntityGetFirstComponentIncludingDisabled(item, "ItemComponent")
-        if ic then
-          local u = ComponentGetValue2(ic, "uses_remaining")
-          if type(u) == "number" then uses = u end
+end
+
+local function read_asi_storage(out)
+  local serialized = GlobalsGetValue(ASI_STORAGE_KEY, "")
+  if serialized == "" then return end -- ASI not installed, or its storage is empty
+  -- Trailing "|" so the final entry is captured by the [^|]* pattern.
+  for entry in (serialized .. "|"):gmatch("([^|]*)|") do
+    if entry ~= "" then
+      local stack, action_id, uses = entry:match("^(%-?%d+);([^;]*);(%-?%d+)$")
+      if action_id and action_id ~= "" then
+        local n = tonumber(stack) or 1
+        local u = tonumber(uses)
+        -- ASI stores -1 (or absent) for unlimited; mirror the vanilla read's NULL for that.
+        local uses_val = (type(u) == "number" and u >= 0) and u or NULL
+        for _ = 1, n do
+          out[#out + 1] = { action_id = action_id, uses_remaining = uses_val }
         end
-        out[#out + 1] = { action_id = action_id, uses_remaining = uses }
       end
     end
   end
+end
+
+local function read_spell_bag(player)
+  local out = json.array({})
+  read_vanilla_bag(player, out)
+  read_asi_storage(out)
   return out
 end
 
@@ -200,33 +230,10 @@ local function build_snapshot()
   }
 end
 
--- Stamp + encode + write. Always (over)writes snapshot.json (the file the live
--- bridge watches); also writes a numbered archival copy when `numbered` is true.
-local function write_snapshot(snap, numbered)
+-- Stamp + encode + (over)write snapshot.json — the single live file the bridge watches.
+local function write_snapshot(snap)
   snap.timestamp = GameGetFrameNum()
-  local encoded = json.encode(snap)
-  if numbered then
-    snapshot_count = snapshot_count + 1
-    write_file("wand_capture_snapshot_" .. snapshot_count .. ".json", encoded)
-  end
-  return write_file("snapshot.json", encoded)
-end
-
--- F8 force-capture: a numbered fixture + snapshot.json, with an on-screen confirm.
-local function capture_snapshot()
-  local snap = build_snapshot()
-  if not snap then
-    GamePrint("[wand_capture] no player entity yet - spawn into a run first")
-    return
-  end
-  local ok = write_snapshot(snap, true)
-  if ok then
-    GamePrint("[wand_capture] captured -> snapshot.json (wands=" .. #snap.wands ..
-      ", perks=" .. #snap.player.perks .. ", bag=" .. #snap.spell_inventory .. ")")
-  else
-    GamePrint("[wand_capture] WRITE FAILED - need unsafe mods + request_no_api_restrictions")
-    print("[wand_capture] WRITE FAILED for snapshot.json - working dir may be read-only")
-  end
+  return write_file("snapshot.json", json.encode(snap))
 end
 
 -- --- DB dumps ---------------------------------------------------------------
@@ -297,24 +304,25 @@ function OnPlayerSpawned(player)
   player_entity = player
   run_id = "run-" .. tostring(GameGetFrameNum()) -- placeholder; real seed at M1-T3
   last_emit = nil -- new run -> force the next emit
-  GamePrint("[wand_capture] live: auto-syncing snapshot.json (F8 = force capture, F7 = dump DBs)")
-  print("[wand_capture] OnPlayerSpawned player=" .. tostring(player) .. " run_id=" .. run_id)
+  GamePrint("[wand_capture] auto-syncing snapshot.json (wands + spells + perks). F8 = dump DBs.")
 end
 
 function OnWorldPostUpdate()
-  if InputIsKeyJustDown(65) then capture_snapshot() end -- F8 force-capture (+ fixture)
-  if InputIsKeyJustDown(64) then dump_databases() end -- F7 dump spell/perk DBs
+  -- F8 = dump the full spell + perk databases (the heavy, occasional export).
+  -- Snapshot capture is AUTOMATIC below — no keypress needed for it.
+  if InputIsKeyJustDown(65) then dump_databases() end
 
-  -- Auto emit-on-change for the live bridge: ~2x/sec, (over)write snapshot.json
-  -- ONLY when the state actually changed (timestamp excluded from the compare),
-  -- so the bridge + app update on their own with no keypress.
-  if player_entity and GameGetFrameNum() % 30 == 0 then
+  -- Auto emit-on-change for the live bridge: every ~30 frames (~2x/sec), rebuild the
+  -- snapshot (build_snapshot re-fetches the player handle itself, even after a respawn)
+  -- and (over)write snapshot.json ONLY when the state actually changed (timestamp is
+  -- stamped at write time, so it doesn't defeat the compare). The app updates on its own.
+  if GameGetFrameNum() % 30 == 0 then
     local snap = build_snapshot()
     if snap then
       local key = json.encode(snap) -- no timestamp yet -> stable across idle frames
       if key ~= last_emit then
         last_emit = key
-        write_snapshot(snap, false) -- snapshot.json only (no numbered spam)
+        write_snapshot(snap)
       end
     end
   end

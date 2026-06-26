@@ -1,20 +1,32 @@
-// M4-T1 — archetype-parameterized scoring. Each archetype is SIGNATURE-DOMINANT:
-// driven mostly by its defining metric, with mana-sustainability a near-gate for
-// the throughput archetypes (a wand that stalls is a poor spammer / sustained
-// dealer). Output is rich PER ARCHETYPE — never one collapsed score.
+// scoring-v2 — archetype scoring grounded in expected time-to-kill (TTK) vs cited
+// reference enemies (docs/scoring-model-v2-spec.md §5). DAMAGE/AOE/SPAM are combat
+// archetypes (overlap is intentional — a great wand legitimately tops several); DIGGING is
+// capability × sustainability. Output is rich PER ARCHETYPE — never one collapsed score.
 //
-// Tiering is ABSOLUTE (fixed reference bands), not relative-within-pool: the pool
-// is 1–3 held wands today and M5 must rank generated builds on the SAME yardstick.
-// The reference constants below are PROVISIONAL / uncalibrated — the only goldens
-// are the three tiny fixtures, and DPS itself is approximate (see metrics.ts).
-// They are the first thing to tune against real wands.
+// Tiering is ABSOLUTE: the band cutoffs come from enemy HP + encounter cadence (ttk.ts),
+// NOT relative-within-pool and NEVER from human wand tiers (#9). The cutoffs are provisional
+// (method fixed, meta-expert tunes the numbers at S6). MOBILITY is a capability flag on the
+// analysis (index.ts), not a tiered archetype; DEFENSIVE was dropped ("not a wand thing").
 
-import type { Wand } from '../schema/snapshot'
-import type { WandMetrics } from '../sim/metrics'
+import type { Wand, PerkRef } from '../schema/snapshot'
+import { critMultiplier, type WandMetrics } from '../sim/metrics'
 import type { WandEval } from './simCache'
-import { deckFeatureCounts, type FeatureCounts } from './features/spellFeatures'
+import {
+  ttkAgainst,
+  aoeClearSeconds,
+  spamKillRate,
+  scoreFromTtk,
+  scoreFromScalar,
+  type FocusFactors,
+  DAMAGE_BANDS_MID,
+  DAMAGE_BANDS_BOSS,
+  AOE_BANDS,
+  SPAM_RATE_BANDS,
+} from './ttk'
+import { REFERENCE_ENEMIES } from './referenceEnemies'
+import { digScore, DIG_BANDS } from './digging'
 
-export const ARCHETYPES = ['DAMAGE', 'SPAM', 'AOE', 'MOBILITY', 'DEFENSIVE'] as const
+export const ARCHETYPES = ['DAMAGE', 'AOE', 'SPAM', 'DIGGING'] as const
 export type Archetype = (typeof ARCHETYPES)[number]
 
 export type Tier = 'S' | 'A' | 'B' | 'C' | 'D'
@@ -29,32 +41,6 @@ export interface ArchetypeScore {
   /** Short human notes (e.g. the mana-gate penalty). */
   reasons: string[]
 }
-
-/** Saturating normalization: 0 → 0, x=ref → ~63, asymptotes to 100. Monotonic,
- *  no hard clip, so "twice as good" keeps moving the needle with diminishing return. */
-function sat(x: number, ref: number): number {
-  return 100 * (1 - Math.exp(-Math.max(0, x) / ref))
-}
-
-/** Reference points where a single signal reaches ~63/100. PROVISIONAL — calibrate
- *  against real captured wands (docs/scoring-grounding-spec.md Tier 2).
- *  `sustainedDps` re-grounded 150→300 (2026-06-22): at 150 the whole 300–2000+ DPS
- *  range collapsed to S (no top-end discrimination). At 300 the saturation puts the
- *  blended-DAMAGE S threshold at ~450 sustained DPS (with proportional burst), so a
- *  merely-good ~300-DPS wand is A and an elite ~700+ wand is S — matching the Noita
- *  power curve (verified: 100→C, 300→A, 700→S, 2000→S). Monotonic
- *  (all rankings preserved); the new band intent is pinned in archetypes.test.ts. */
-const REF = {
-  sustainedDps: 300,
-  burstDps: 400,
-  /** Spread (°) at which single-target on-target fraction halves. A tight BURST (~0°)
-   *  keeps full single-target DPS; a SCATTER (~10–20°) sprays and loses it. */
-  spreadDeg: 20,
-  projPerSec: 8,
-  aoeRadius: 60,
-  aoeDamage: 100, // HP of a strong blast (bomb 125, grenade 47.5, nuke 250)
-  projPerCycle: 12,
-} as const
 
 export function tierForScore(score: number): Tier {
   if (score >= 80) return 'S'
@@ -76,6 +62,30 @@ function mk(
 
 const hp = (n: number) => `${n.toFixed(1)} HP/s`
 
+/** Spread (°) at which the single-target on-target fraction halves — kept from v1 (§5.3:
+ *  the spread→on-target factor stays for single-target accuracy). */
+const SPREAD_HALF_DEG = 20
+
+/** On-target fraction credited to a HOMING wand regardless of spread. Homing "imparts constant
+ *  force… towards your foes" within ~150px (noita.wiki.gg/wiki/Homing), so a wide scatter still
+ *  connects on one target — "strong homing on a scatter shot means the shots home toward an
+ *  enemy" (maintainer). NOT a perfect 1.0: the wiki notes homing trades precision for control
+ *  ("accuracy can suffer greatly"), so it lands ≈ a naturally-tight wand but below a perfectly-
+ *  focused 0° one; weak/short variants are treated the same in v1. PROVISIONAL like the band
+ *  cutoffs / SPREAD_HALF_DEG — grounded in the method, the number tuned by the maintainer. */
+const HOMING_ONTARGET = 0.9
+
+/** Single-target focusing: a tight wand keeps its DPS on one point; a wide / close-range
+ *  one doesn't. Homing rescues a wide spray (its projectiles seek the target), so it floors the
+ *  on-target fraction. AOE/SPAM apply this differently (AOE not at all — §5.3). */
+function focusFactors(m: WandMetrics): FocusFactors {
+  const raw = SPREAD_HALF_DEG / (SPREAD_HALF_DEG + Math.max(0, m.effectiveSpread))
+  return {
+    onTarget: m.homing ? Math.max(HOMING_ONTARGET, raw) : raw,
+    reach: m.reachUsability,
+  }
+}
+
 /** "fire+poison" etc. from the DoT capability flags, or '' if none apply. */
 function dotLabel(d: WandMetrics['appliesDot']): string {
   const parts: string[] = []
@@ -85,41 +95,41 @@ function dotLabel(d: WandMetrics['appliesDot']): string {
   return parts.join('+')
 }
 
+/** DAMAGE — single tough target. Expected TTK vs the mid bruiser (Isohiisi 150) AND the
+ *  boss (Ylialkemisti 1000); the boss anchor discriminates the top end (most strong wands
+ *  one-shot the mid bruiser). Burst folds into TTK (a fast kill = low TTK), so there is no
+ *  separate inflatable burst term. */
 function scoreDamage(m: WandMetrics): ArchetypeScore {
-  // Single-target DPS only lands if the shots hit ONE point. Spread fans them out, so a
-  // wide wand loses single-target damage while a tight one keeps it — model an effective
-  // "fraction on target" that decays with spread (this is what lets the scorer prefer a
-  // tight BURST over a wide SCATTER at equal raw DPS). No penalty at ≤0° (a focused wand),
-  // so low-spread goldens are byte-identical. Crowd/AoE is scored separately and pays
-  // nothing here — spread helps there. (noita.wiki.gg: Spread randomizes projectile angle.)
-  const onTarget = REF.spreadDeg / (REF.spreadDeg + Math.max(0, m.effectiveSpread))
-  // Single-target DPS only counts if it reaches the target. A close-range tool (luminous
-  // drill, chainsaw) delivers its DPS only in melee, so it is not a ranged damage wand —
-  // discount by the fraction of its damage that actually reaches (1 for a ranged wand).
-  const reach = m.reachUsability
-  const reasons: string[] = []
-  // Sustained term uses the MANA-HONEST effectiveSustainedDps (B4): a wand that out-drains
-  // its regen can't keep that DPS up. `burstDps` is now the mana+recharge-bounded ACHIEVABLE
-  // peak (metrics.ts) — not a fictional nova rate — and is provably ≥ effectiveSustainedDps,
-  // so the 0.3 weight is a bounded UPSIDE that can't flip a sustained deficit. Both gated by
-  // reach + on-target.
+  const f = focusFactors(m)
+  // Mid bruiser = a SHORT fight: bursting it down off a full mana pool is fair (burst phase on).
+  // Boss sponge = a LONG fight: scored at the rate the wand can SUSTAIN (mana-honest), so a wand
+  // that instantly depletes its mana can't read elite here — it "starts firing poorly" mid-fight
+  // (maintainer-confirmed). A TRUE one-shot still wins via the overkill floor. This is what lets a
+  // constant-fire, mana-stable wand out-rank a higher-PEAK wand that drains its pool in <1s.
+  const ttkMid = ttkAgainst(m, REFERENCE_ENEMIES.midBruiser.hp, f)
+  const ttkBoss = ttkAgainst(m, REFERENCE_ENEMIES.bossSponge.hp, f, true)
   const score =
-    0.7 * sat(m.effectiveSustainedDps * onTarget * reach, REF.sustainedDps) +
-    0.3 * sat(m.burstDps * onTarget * reach, REF.burstDps)
-  if (reach < 0.9 && m.sustainedDps > 0) {
-    reasons.push(`close range — only ~${Math.round(reach * 100)}% of its damage reaches a ranged target`)
+    0.4 * scoreFromTtk(ttkMid, DAMAGE_BANDS_MID) + 0.6 * scoreFromTtk(ttkBoss, DAMAGE_BANDS_BOSS)
+  const reasons: string[] = []
+  if (f.reach < 0.9 && m.sustainedDps > 0) {
+    reasons.push(`close range — only ~${Math.round(f.reach * 100)}% of its damage reaches a ranged target`)
   }
-  if (m.effectiveSpread > 8) {
+  if (m.homing) {
+    reasons.push(
+      m.effectiveSpread > 8
+        ? `homing — curves its spread (${m.effectiveSpread.toFixed(0)}°) onto the target, so the spray still connects (best within ~150px)`
+        : 'homing — projectiles seek the target',
+    )
+  } else if (m.effectiveSpread > 8) {
     reasons.push(`wide spread (${m.effectiveSpread.toFixed(0)}°) — sprays off a single target`)
   }
   if (m.effectiveSustainedDps < m.sustainedDps - 1) {
     reasons.push(`mana-limited — sustains ~${m.effectiveSustainedDps.toFixed(0)} of ${m.sustainedDps.toFixed(0)} HP/s under continuous fire`)
   }
-  // DoT is %-max-HP (~2%/s), so it shines vs tanky / boss targets a raw-HP model can't
-  // see. We can detect the capability but not quantify it (poison/toxic is material stain,
-  // not a damage field) — so surface it as a note, NOT a score change (no fabricated number).
   const dot = dotLabel(m.appliesDot)
-  if (dot) reasons.push(`applies ${dot} DoT — extra vs tanky / boss targets`)
+  if (dot) reasons.push(`applies ${dot} DoT — softens tanky / boss targets`)
+  // TTK (vs the reference enemies) is the SCORING unit but is kept out of the UI — the
+  // displayed metrics are the familiar DPS the player reasons about.
   return mk(
     'DAMAGE',
     score,
@@ -131,20 +141,34 @@ function scoreDamage(m: WandMetrics): ArchetypeScore {
   )
 }
 
+/** AOE — clear a swarm. Time to clear a reference swarm of weak mobs (Haulikkohiisi 22.5):
+ *  one cast clears explosion-radius mobs + penetrating-projectile mobs + per-projectile
+ *  direct kills. Spread/range do NOT gate AOE (a blast clears a cluster regardless). */
+function scoreAoe(m: WandMetrics): ArchetypeScore {
+  const clear = aoeClearSeconds(m)
+  const score = scoreFromTtk(clear, AOE_BANDS)
+  const reasons: string[] = []
+  if (m.pierceHitHP > 0 && m.pierceReachPx > 0) {
+    reasons.push('penetrates — one shot hits several enemies along its path')
+  }
+  if (m.maxExplosionDamage > 0) reasons.push(`explosive blast (${m.maxExplosionDamage.toFixed(0)} HP)`)
+  return mk(
+    'AOE',
+    score,
+    [
+      { label: 'Blast damage', value: m.maxExplosionDamage > 0 ? hp(m.maxExplosionDamage) : '—' },
+      { label: 'Blast radius', value: m.maxExplosionRadius > 0 ? `${Math.round(m.maxExplosionRadius)} px` : '—' },
+    ],
+    reasons,
+  )
+}
+
+/** SPAM — sustained, mana-holdable. The sustainable weak-mob kill-rate (mobs/sec you can
+ *  fire indefinitely); hard-gated by mana (effectiveSustainedDps self-throttles a wand that
+ *  can't pay for its fire). "DAMAGE you can hold forever, spread-tolerant." */
 function scoreSpam(m: WandMetrics): ArchetypeScore {
-  // A spammer = sustained EFFECTIVE damage you can fire continuously (meta: "high
-  // projectiles/sec alone is insufficient"). Base on sustained DPS so a 0-damage
-  // CHAINSAW can't win on rate alone (the headline bug); modulate by fire rate (the
-  // spam identity, as a gentle 0.6–1.0 factor so damage leads); and HARD-gate on mana
-  // sustain (a spammer that stalls is a poor spammer). REFs/penalty provisional.
-  // rate ∈ [0.6, 1.0] — sat() returns 0–100, so normalize to a fraction.
-  const rate = 0.6 + 0.4 * (sat(m.projectilesPerSecond, REF.projPerSec) / 100)
-  // A spammer also has to REACH what it sprays — a close-range beam isn't a ranged spammer.
-  const reach = m.reachUsability
-  // effectiveSustainedDps (B4) folds the mana limit in CONTINUOUSLY — a spammer that can't
-  // pay for its fire rate self-throttles, which is exactly the spam failure mode. So the old
-  // hard ×0.2 mana gate is gone: the smooth ratio is the honest equivalent.
-  const score = sat(m.effectiveSustainedDps * reach, REF.sustainedDps) * rate
+  const rate = spamKillRate(m)
+  const score = scoreFromScalar(rate, SPAM_RATE_BANDS)
   const reasons: string[] = []
   if (m.effectiveSustainedDps < m.sustainedDps - 1) {
     reasons.push('mana-limited — a spammer must fire continuously; output drops once mana runs dry')
@@ -156,81 +180,92 @@ function scoreSpam(m: WandMetrics): ArchetypeScore {
     score,
     [
       { label: 'Sustained DPS', value: hp(m.effectiveSustainedDps) },
-      { label: 'Projectiles/s', value: m.projectilesPerSecond.toFixed(1) },
       { label: 'Mana', value: m.manaSustainable ? 'sustainable' : 'stalls' },
     ],
     reasons,
   )
 }
 
-function scoreAoe(m: WandMetrics): ArchetypeScore {
-  // Crowd clear = blast DAMAGE first (a harmless digging explosion of the same radius
-  // is not AoE), blast radius second, many projectiles third. Damage + radius both
-  // descend trigger payloads (a trigger→bomb's blast lives in the payload).
-  const score =
-    0.6 * sat(m.maxExplosionDamage, REF.aoeDamage) +
-    0.25 * sat(m.maxExplosionRadius, REF.aoeRadius) +
-    0.15 * sat(m.projectilesPerCycle, REF.projPerCycle)
-  return mk(
-    'AOE',
-    score,
-    [
-      {
-        label: 'Blast damage',
-        value: m.maxExplosionDamage > 0 ? hp(m.maxExplosionDamage) : '—',
-      },
-      {
-        label: 'Blast radius',
-        value: m.maxExplosionRadius > 0 ? `${Math.round(m.maxExplosionRadius)} px` : '—',
-      },
-    ],
-    [],
-  )
-}
-
-function scoreMobility(feat: FeatureCounts): ArchetypeScore {
-  // Digging OR movement is most of the value; having both → top tier.
-  const score = 60 * Math.min(1, feat.DIG) + 60 * Math.min(1, feat.MOBILITY)
+/** DIGGING — capability (max durability tier the deck breaks, 0–14) × sustainability (can
+ *  it dig continuously). The good complex diggers (Black Hole) are exactly the hard-to-
+ *  sustain ones. Gold-preservation is a displayed caveat, never scored. */
+function scoreDigging(wand: Wand, m: WandMetrics): ArchetypeScore {
+  const ds = digScore(wand, m)
+  const score = scoreFromScalar(ds.scalar, DIG_BANDS)
   const reasons: string[] = []
-  if (feat.DIG) reasons.push(`digs (${feat.DIG} spell${feat.DIG > 1 ? 's' : ''})`)
-  if (feat.MOBILITY) reasons.push(`mobility (${feat.MOBILITY})`)
-  if (!feat.DIG && !feat.MOBILITY) reasons.push('no digging or movement spells')
-  return mk(
-    'MOBILITY',
-    score,
-    [
-      { label: 'Digging', value: feat.DIG ? `yes (${feat.DIG})` : 'no' },
-      { label: 'Movement', value: feat.MOBILITY ? `yes (${feat.MOBILITY})` : 'no' },
-    ],
-    reasons,
-  )
-}
-
-function scoreDefensive(feat: FeatureCounts): ArchetypeScore {
-  const score = 70 * Math.min(1, feat.DEFENSIVE) + 30 * Math.min(1, feat.HOMING)
-  const reasons: string[] = []
-  if (feat.DEFENSIVE) reasons.push(`defensive (${feat.DEFENSIVE})`)
-  if (!feat.DEFENSIVE) reasons.push('no shields or protective fields')
-  return mk(
-    'DEFENSIVE',
-    score,
-    [
-      { label: 'Defensive spells', value: String(feat.DEFENSIVE) },
-      { label: 'Homing', value: feat.HOMING ? 'yes' : 'no' },
-    ],
-    reasons,
-  )
-}
-
-/** Score one wand across every archetype (rich per-archetype, never collapsed). */
-export function scoreWand(wand: Wand, ev: WandEval): Record<Archetype, ArchetypeScore> {
-  const m = ev.metrics
-  const feat = deckFeatureCounts(wand)
-  return {
-    DAMAGE: scoreDamage(m),
-    SPAM: scoreSpam(m),
-    AOE: scoreAoe(m),
-    MOBILITY: scoreMobility(feat),
-    DEFENSIVE: scoreDefensive(feat),
+  if (ds.capability === 0) {
+    reasons.push('no digging spell')
+  } else {
+    if (!m.manaSustainable) reasons.push('high mana cost — can’t dig continuously without a refresh loop')
+    reasons.push('note: drilling / explosions may destroy gold')
   }
+  return mk(
+    'DIGGING',
+    score,
+    [
+      { label: 'Dig tier', value: ds.capability > 0 ? `${ds.capability}/14` : '—' },
+      { label: 'Sustain', value: ds.capability > 0 ? (m.manaSustainable ? 'continuous' : 'limited') : '—' },
+    ],
+    reasons,
+  )
+}
+
+/** Trigger-connect is ASSUMED (a trigger is a miniature wand you aim — §5.5), so we surface a
+ *  delivery RELIABILITY note rather than fabricating a connect-probability number. Shuffle wands
+ *  also break cast order. Returns '' when delivery is straightforward. */
+function reliabilityNote(wand: Wand, m: WandMetrics): string {
+  if (wand.stats.shuffle && m.hasTrigger) {
+    return 'shuffle wand — cast order isn’t guaranteed, so trigger/payload delivery is unreliable'
+  }
+  if (wand.stats.shuffle) return 'shuffle wand — cast order isn’t guaranteed'
+  if (m.hasTrigger) return 'assumes the trigger payload connects (optimistic — a trigger is a mini-wand you aim)'
+  return ''
+}
+
+/** The player's global PERK damage multiplier — the sim scores a wand in isolation, so a
+ *  damage perk is applied here. Today: Critical Hit + = +10% flat crit chance per stack (cited
+ *  noita.wiki.gg/wiki/Critical_Hit_+), crit = ×5. Exact for a no-in-deck-crit wand; for a
+ *  crit-STACKED deck it slightly compounds (a rare overlap — acceptable, flagged). */
+function perkDamageMultiplier(perks: readonly PerkRef[]): number {
+  const crit = perks.find((p) => p.id === 'CRITICAL_HIT')
+  return crit ? critMultiplier((crit.stacks ?? 1) * 10) : 1
+}
+
+/** Score one wand across every archetype (rich per-archetype, never collapsed). Perks the
+ *  player holds (e.g. Critical Hit +) scale the damage the scorer reads. */
+export function scoreWand(
+  wand: Wand,
+  ev: WandEval,
+  perks: readonly PerkRef[] = [],
+): Record<Archetype, ArchetypeScore> {
+  const m0 = ev.metrics
+  // Apply the perk damage multiplier to the damage the COMBAT archetypes read (digging is
+  // unaffected by crit, so it keeps the raw metrics).
+  const mul = perkDamageMultiplier(perks)
+  const m: WandMetrics =
+    mul === 1
+      ? m0
+      : {
+          ...m0,
+          damagePerCast: m0.damagePerCast * mul,
+          damagePerCycle: m0.damagePerCycle * mul,
+          sustainedDps: m0.sustainedDps * mul,
+          effectiveSustainedDps: m0.effectiveSustainedDps * mul,
+          burstDps: m0.burstDps * mul,
+          maxExplosionDamage: m0.maxExplosionDamage * mul,
+          pierceHitHP: m0.pierceHitHP * mul,
+        }
+  const scores: Record<Archetype, ArchetypeScore> = {
+    DAMAGE: scoreDamage(m),
+    AOE: scoreAoe(m),
+    SPAM: scoreSpam(m),
+    DIGGING: scoreDigging(wand, m0),
+  }
+  // Surface the delivery-reliability note on the payload-delivery archetypes (DAMAGE/AOE).
+  const note = reliabilityNote(wand, m0)
+  if (note) {
+    scores.DAMAGE.reasons.push(note)
+    scores.AOE.reasons.push(note)
+  }
+  return scores
 }

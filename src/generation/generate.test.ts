@@ -122,10 +122,25 @@ describe('generate — template-seeded + polished builds', () => {
     expect(usesModifier).toBe(true)
   })
 
-  it('explains an archetype it cannot build (no defensive spells in pool)', () => {
-    const r = generate(req())
-    expect(r.DEFENSIVE.builds).toEqual([])
-    expect(r.DEFENSIVE.note).toMatch(/defensive/i)
+  it('explains an archetype it cannot build (no digging spells in pool)', () => {
+    const r = generate(req({ pool: ['LIGHT_BULLET', 'DAMAGE'], archetypes: ['DIGGING'] }))
+    expect(r.DIGGING.builds).toEqual([])
+    expect(r.DIGGING.note).toMatch(/dig/i)
+  })
+
+  it('suggests a cast-speed enabler (Luminous Drill) in a DAMAGE build when it speeds the wand', () => {
+    // A slow-casting chassis the drill (fire_rate_wait -35) accelerates; theorycraft forces the
+    // TEMPLATE path — the one that previously excluded the enabler as "utility" (the maintainer's
+    // "Luminous Drill never shows up in damage wands" gap). The scorer ranks enabler+payload high.
+    const r = generate(
+      req({
+        pool: ['LUMINOUS_DRILL', 'DAMAGE', 'CRITICAL_HIT', 'BURST_2', 'LIGHT_BULLET'],
+        chassis: [chassis({ castDelay: 25, rechargeTime: 30, capacity: 9 })],
+        archetypes: ['DAMAGE'],
+        theorycraft: true,
+      }),
+    )
+    expect(r.DAMAGE.builds.some((b) => b.wand.spells.includes('LUMINOUS_DRILL'))).toBe(true)
   })
 })
 
@@ -335,5 +350,49 @@ describe('generate — multi-chassis owned (build on ALL your wands, not just th
         expect(n, `${b.archetype}/${b.template} used ${id} x${n} but own ${own}`).toBeLessThanOrEqual(own)
       }
     }
+  })
+})
+
+describe('generate — DIGGING is generation-first (sustainable high-tier)', () => {
+  it('surfaces a high-tier dig combo and scores it as a real, sustainable digger', () => {
+    // LUMINOUS_DRILL (tier 14, 10 mana, −cast-delay → sustains) alongside DIGGER (tier 8):
+    // the top DIGGING build picks the highest sustainable tier.
+    const r = generate(req({ pool: ['LUMINOUS_DRILL', 'DIGGER', 'LIGHT_BULLET'], archetypes: ['DIGGING'] }))
+    expect(r.DIGGING.builds.length).toBeGreaterThan(0)
+    const top = r.DIGGING.builds[0]
+    expect(top.wand.spells).toContain('LUMINOUS_DRILL')
+    expect(top.analysis.scores.DIGGING.score).toBeGreaterThan(60) // a genuine sustainable digger, not a token
+  })
+
+  it('ranks a sustainable top-tier digger above an unsustainable one on a tight chassis', () => {
+    // A mana-tight chassis: Luminous Drill (10 mana) still sustains; Black Hole (180 mana) stalls.
+    const tight = chassis({ manaMax: 120, mana: 120, manaChargeSpeed: 30, capacity: 4 })
+    const r = generate(req({ pool: ['LUMINOUS_DRILL', 'BLACK_HOLE'], chassis: [tight], archetypes: ['DIGGING'] }))
+    expect(r.DIGGING.builds.length).toBeGreaterThan(0)
+    expect(r.DIGGING.builds[0].wand.spells).toContain('LUMINOUS_DRILL')
+  })
+
+  it('a damage build never wastes a slot on a digger (digging stays the DIGGING tab)', () => {
+    const r = generate(req({ pool: ['LIGHT_BULLET', 'DAMAGE', 'LUMINOUS_DRILL', 'DIGGER'], archetypes: ['DAMAGE'] }))
+    expect(r.DAMAGE.builds.length).toBeGreaterThan(0)
+    for (const b of r.DAMAGE.builds) {
+      expect(deckHasDig(b.wand), `DAMAGE build [${b.wand.spells.filter(Boolean).join(',')}] should not dig`).toBe(false)
+    }
+  })
+})
+
+describe('generate — charge-limited spells gated on the Unlimited Spells perk', () => {
+  const chargePool = ['LIGHT_BULLET', 'DAMAGE', 'GRENADE_TIER_3'] // GRENADE_TIER_3 has max_uses=20
+  const usesGrenade = (r: ReturnType<typeof generate>) =>
+    allBuilds(r).some((b) => b.wand.spells.includes('GRENADE_TIER_3'))
+
+  it('excludes charge spells from generation by default (no Unlimited Spells perk)', () => {
+    expect(usesGrenade(generate(req({ pool: chargePool })))).toBe(false)
+  })
+  it('includes them when the player has the Unlimited Spells perk', () => {
+    expect(usesGrenade(generate(req({ pool: chargePool, perks: [{ id: 'UNLIMITED_SPELLS', stacks: 1 }] })))).toBe(true)
+  })
+  it('includes them when the player opts in via "show charge builds"', () => {
+    expect(usesGrenade(generate(req({ pool: chargePool, constraints: { allowChargeSpells: true } })))).toBe(true)
   })
 })
