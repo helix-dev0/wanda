@@ -53,6 +53,27 @@ describe('projectileStats table — known game values', () => {
   })
 })
 
+describe('projectileStats — pierce / collision flags (S1 prerequisite for AOE coverage)', () => {
+  // penetrate_entities = passes through enemy bodies (innate, not modifier-added);
+  // on_collision_die = dies on terrain contact. Both verified against the game XMLs.
+  it('penetrating projectiles read penetrateEntities=true', () => {
+    expect(getProjectileStats(`${P}deck/chain_bolt.xml`)!.penetrateEntities).toBe(true)
+    expect(getProjectileStats(`${P}deck/black_hole.xml`)!.penetrateEntities).toBe(true)
+  })
+
+  it('a normal projectile is non-penetrating and dies on collision', () => {
+    const rb = getProjectileStats(`${P}deck/rubber_ball.xml`)!
+    expect(rb.penetrateEntities).toBe(false) // penetrate_entities absent → default false
+    expect(rb.diesOnCollision).toBe(true) // on_collision_die="1"
+  })
+
+  it('black hole does not die on collision (on_collision_die=0) yet penetrates', () => {
+    const bh = getProjectileStats(`${P}deck/black_hole.xml`)!
+    expect(bh.diesOnCollision).toBe(false)
+    expect(bh.penetrateEntities).toBe(true)
+  })
+})
+
 describe('projectileStats lookup', () => {
   it('is a non-trivial table', () => {
     expect(Object.keys(projectileStatsTable).length).toBeGreaterThan(300)

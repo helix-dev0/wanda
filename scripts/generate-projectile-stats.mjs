@@ -41,6 +41,13 @@ const num = (v, dflt) => {
   const n = Number.parseFloat(String(v).trim())
   return Number.isNaN(n) ? dflt : n
 }
+// Noita XML booleans are "1"/"0" strings (the parser keeps attrs as strings). An
+// ABSENT attribute falls back to the engine default passed in `dflt`.
+const boolAttr = (v, dflt) => {
+  if (v == null) return dflt
+  const s = String(v).trim()
+  return s !== '0' && s !== 'false' && s !== ''
+}
 
 /** All `@_`-prefixed attributes of a parsed element → { name: value } (prefix stripped). */
 function attrsOf(node) {
@@ -150,6 +157,11 @@ for (const abs of files) {
     speedMin: num(a.speed_min, 0),
     speedMax: num(a.speed_max, 0),
     bouncesLeft: num(a.bounces_left, 0),
+    // Pierce/collision flags (scoring-v2 S1): penetrate_entities = passes through
+    // enemy BODIES (innate, modifier-uncreatable) → AOE coverage; on_collision_die
+    // (engine default 1) = dies on terrain. Both are ProjectileComponent attrs.
+    penetrateEntities: boolAttr(a.penetrate_entities, false),
+    diesOnCollision: boolAttr(a.on_collision_die, true),
   }
   if (eff.damageByType) {
     const dbt = {}
