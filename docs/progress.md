@@ -2,26 +2,41 @@
 
 > Living status doc. Companion to [`plan.md`](./plan.md) (the milestone breakdown) and
 > [`../noita-wand-assistant-spec.md`](../noita-wand-assistant-spec.md) (the design).
-> **Last updated: 2026-06-25** · branch `scoring-model-v2`. 438 tests green.
+> **Last updated: 2026-06-26** · branch `scoring-model-v2`. 451 tests green.
 >
-> 🟡 **SCORING v2 IMPLEMENTED — pending the final trust gate.** The TTK-grounded rebuild
+> 🟢 **SCORING v2 SHIPPED + live-hardened.** The TTK-grounded rebuild
 > ([`docs/scoring-model-v2-spec.md`](./scoring-model-v2-spec.md)) replaced the patched heuristic scorer
-> in place (S0→S6): DAMAGE/AOE/SPAM are now **expected time-to-kill vs cited reference enemies**
-> (Isohiisi 150 / Ylialkemisti 1000 / Haulikkohiisi 22.5), DIGGING is a first-class **capability ×
-> sustainability** archetype, MOBILITY is a capability flag, DEFENSIVE is dropped. Validated by the
-> first-class **3-layer corpus harness** (`src/data/corpus/`) — Layer A fidelity, Layer B routing,
-> Layer C cited orderings, plus the §7.5 maintainer ground-truth cases — all green; tier-list UI
-> browser-verified. The pierce/penetration data prerequisite was met by regenerating the projectile
-> table (`penetrate_entities`/`on_collision_die`). **Band cutoffs are PROVISIONAL** (method fixed, #9
-> grounding) — the §7 trust gate's **meta-expert sign-off** tunes the exact numbers and confirms
-> soundness before the maintainer calls the scorer TRUSTED.
+> in place (S0→S6): DAMAGE/AOE/SPAM are **expected time-to-kill vs cited reference enemies**
+> (Haulikkohiisi 22.5 / Isohiisi 150 / Ylialkemisti 1000), DIGGING is a first-class **capability ×
+> sustainability** archetype, MOBILITY is a capability flag, DEFENSIVE dropped. Validated by the
+> first-class **3-layer corpus harness** (`src/data/corpus/`, Layers A/B/C + the §7.5 ground-truth
+> cases), a **meta-expert sign-off** (PASS-WITH-NOTES → its two material ordering gaps fixed: SPAM
+> overkill-cap, dig-sustainability softening), and a **fresh-context diff review** (3 gaps fixed: DoT
+> bisection-stability, the trigger-connect reliability note, missing regressions) — all green;
+> tier-list UI browser-verified. Pierce came from a projectile-table regen (`penetrate_entities`/
+> `on_collision_die`).
+>
+> 🛠 **Live-hardened on the maintainer's real run (2026-06-26):** fixed DAMAGE=0 for utility-first
+> wands (TTK counts the WHOLE cycle, not just the first cast — a Luminous-Drill-first wand read
+> "can't kill"); **perks now apply to scoring** (Critical Hit + = +10%/stack, in `scoreWand`);
+> **charge-limited builds filtered** out of generation unless the Unlimited Spells perk (+ a "show
+> charge builds" toggle); **TTK hidden from the UI** (cards show DPS; TTK stays the scoring unit);
+> **suggestions no longer reshuffle** when you rearrange spells you already own (`chassisKey` keys
+> regen on chassis+owned-pool, not the deck); always-cast confirmed applied (RECHARGE ~5×'s DPS).
+>
+> **Known scorer blind spots (provisional / flagged — not bugs):** band cutoffs are PROVISIONAL
+> (#9-grounded method; the meta-expert tunes the numbers); **homing/accuracy is unmodeled** (both the
+> meta-expert and the maintainer's homing wand flagged it — the top remaining gap, and it would also
+> correctly penalize wide-spread spray builds); **always-cast is an APPROXIMATION** (prepended to the
+> deck, not fired per-cast); the mana penalty assumes CONTINUOUS fire (over-penalizes tap-fire). Open
+> items live in `docs/scoring-v2-test-notes.md`.
 
 ## Milestone status
 
 | Milestone | Status | Notes |
 |---|---|---|
 | **M0 — Fixtures & schema** | ✅ **COMPLETE** (T1–T5) | App is now buildable against fixtures with zero further game access through M5. |
-| **M1 — Extraction mod + bridge** | 🔶 **in progress** | **Live-validated in-game (2026-06-22):** auto emit-on-change (T1), all carried wands + active flag (T2), chokidar→WS bridge (T5). Pending: real `run_id`=seed (T3), ASI compat (T4), world-scan (T6). |
+| **M1 — Extraction mod + bridge** | 🔶 **in progress** | **Live-validated in-game:** AUTO emit-on-change snapshot — all carried wands + active flag + spell bag + perks (T1/T2), chokidar→WS bridge (T5), and (2026-06-26) **F8 = full spell/perk DB dump** (snapshot is auto-only now, no keypress) + **✅ Advanced Spell Inventory compat (T4)** — reads ASI's `AdvancedSpellInventory_stored_spells` Globals-string storage (confirmed in-game: bag 12→27). Pending: real `run_id`=world-seed (T3), world-scan (T6). |
 | **M2 — Ingestion + store + mirror UI** | ✅ **COMPLETE** (T1–T4) | First **visible** milestone — single-page wand-mirror dashboard, fixture-driven + browser-verified. |
 | **M3 — Simulator integration** | ✅ **COMPLETE** (T1–T4) | Vendored `salinecitrine` `calc/`; sim layer + projectile-damage table + metrics + cast-tree UI. Fixture-driven + browser-verified. |
 | **M4 — Analysis engine** | ✅ **COMPLETE** (T1–T4) | Archetype scoring + self-danger (perk-aware veto, separate **Unsafe** band) + depth-1 local search → **tier list per archetype** for held wands. Fixture-driven + browser-verified. |
@@ -33,7 +48,7 @@
 - **T1** scaffold: Vite 8.0.16 · React 19.2.7 · TS 6.0.3 · Vitest 4.1.9 · Valibot 1.4.1. Commands in [`../CLAUDE.md`](../CLAUDE.md).
 - **T2** snapshot schema (`src/schema/snapshot.ts`) — EZWand-grounded stat keys; structured perks `{id,stacks}` + spell bag `{action_id,uses_remaining}`.
 - **T3** spell + perk DB schemas (`src/schema/spell-db.ts`, `perk-db.ts`) — numeric `type` enum (0–7), `looseObject` to preserve raw-dump keys.
-- **T4** capture mod (`mod/`) + [`capture-manual.md`](./capture-manual.md) — extraction-only; F8 = snapshot, F7 = DB dumps. Vendors EZWand (GPL-3.0). **Confirmed working in-game.**
+- **T4** capture mod (`mod/`) + [`capture-manual.md`](./capture-manual.md) — extraction-only. Vendors EZWand (GPL-3.0). **Confirmed working in-game.** (Hotkeys later changed at M1: snapshot is now AUTO-only; **F8 = DB dump**.)
 - **T5** fixtures frozen (`src/data/fixtures/`) + validated against schemas. Real data fixed one schema bug.
 
 **Verified state:** `npm test` 28 pass · `npm run typecheck` clean · `npm run build` clean · `npm run lint` clean. The app runs entirely on fixtures (no game/live-data dependency).
