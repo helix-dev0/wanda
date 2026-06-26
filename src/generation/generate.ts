@@ -48,10 +48,9 @@ function seedWand(chassis: Wand, deck: string[]): Wand {
 function trimPool(ix: PoolIndex, archetype: Archetype, max: number): Set<string> {
   const priority: Record<Archetype, string[][]> = {
     DAMAGE: [ix.nukes, ix.modifiers, ix.triggers, ix.multicasts, ix.projectiles],
-    SPAM: [ix.projectiles, ix.multicasts, ix.modifiers],
     AOE: [ix.nukes, ix.multicasts, ix.modifiers, ix.projectiles],
-    MOBILITY: [ix.diggers, ix.mobility, ix.modifiers, ix.projectiles],
-    DEFENSIVE: [ix.defensive, ix.homing, ix.modifiers, ix.projectiles],
+    SPAM: [ix.projectiles, ix.multicasts, ix.modifiers],
+    DIGGING: [ix.diggers, ix.modifiers, ix.projectiles],
   }
   const out = new Set<string>()
   for (const bucket of priority[archetype]) {
@@ -130,11 +129,8 @@ function noteFor(
       return 'No offensive spells in your pool to build with.'
     }
   }
-  if (archetype === 'MOBILITY' && ix.diggers.length + ix.mobility.length === 0) {
-    return 'No digging or movement spells in your pool.'
-  }
-  if (archetype === 'DEFENSIVE' && ix.defensive.length + ix.homing.length === 0) {
-    return 'No defensive spells in your pool.'
+  if (archetype === 'DIGGING' && ix.diggers.length === 0) {
+    return 'No digging spell in your pool.'
   }
   return 'No build could be assembled from the current pool.'
 }

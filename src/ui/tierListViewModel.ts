@@ -25,10 +25,9 @@ const BAND_ORDER: readonly BandKey[] = ['S', 'A', 'B', 'C', 'D', 'UNSAFE']
 
 const ARCHETYPE_LABEL: Record<Archetype, string> = {
   DAMAGE: 'Damage',
-  SPAM: 'Spam',
   AOE: 'AoE',
-  MOBILITY: 'Mobility',
-  DEFENSIVE: 'Defensive',
+  SPAM: 'Spam',
+  DIGGING: 'Digging',
 }
 
 const TEMPLATE_LABEL: Record<TemplateId, string> = {
@@ -38,7 +37,7 @@ const TEMPLATE_LABEL: Record<TemplateId, string> = {
   'multiplicative-stack': 'Multiplier build',
   'cheap-shot-spam': 'Modifier-spam build',
   spammer: 'Spam build',
-  'feature-fill': 'Utility build',
+  'feature-fill': 'Digging build',
   exhaustive: 'Best from your spells',
 }
 

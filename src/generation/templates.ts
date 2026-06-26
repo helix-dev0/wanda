@@ -34,7 +34,6 @@ export interface Template {
 }
 
 const truncate = (deck: string[], capacity: number): string[] => deck.slice(0, Math.max(0, capacity))
-const unique = (ids: string[]): string[] => [...new Set(ids)]
 
 type Caps = ReadonlyMap<string, number> | undefined
 
@@ -228,29 +227,24 @@ const spammer: Template = {
   },
 }
 
-/** The relevant feature spells for MOBILITY/DEFENSIVE (whose scores are purely
- *  feature-count), padded with cheap projectiles so the wand still attacks. */
-const featureFill: Template = {
+/** The pool's digging spells, padded with cheap projectiles so the wand still attacks.
+ *  DIGGING is generation-first (§5.3): S5 refines this to prefer the highest SUSTAINABLE
+ *  dig tier; for now it surfaces every owned digger so the scorer ranks them. */
+const diggingFill: Template = {
   id: 'feature-fill',
   orderDependent: false,
-  archetypes: ['MOBILITY', 'DEFENSIVE'],
-  instantiate({ index, capacity, archetype, caps }) {
-    const wanted =
-      archetype === 'MOBILITY'
-        ? unique([...index.diggers, ...index.mobility])
-        : archetype === 'DEFENSIVE'
-          ? unique([...index.defensive, ...index.homing])
-          : []
-    if (wanted.length === 0 || capacity < 1) return []
+  archetypes: ['DIGGING'],
+  instantiate({ index, capacity, caps }) {
+    if (index.diggers.length === 0 || capacity < 1) return []
     const used = new Map<string, number>()
     const deck: string[] = []
-    for (const id of wanted) {
+    for (const id of index.diggers) {
       if (deck.length >= capacity) break
       if (place(caps, used, id)) deck.push(id)
     }
     // Pad with cheap projectiles so the wand still attacks — charged against the SAME
     // `used`, so a dual-role spell (e.g. CHAINSAW: digger AND projectile) already
-    // placed as a feature spell can't reappear as filler beyond its owned count.
+    // placed as a digger can't reappear as filler beyond its owned count.
     deck.push(...draftFill(projectilesByMana(index), capacity - deck.length, caps, used))
     return deck.length > 0 ? [truncate(deck, capacity)] : []
   },
@@ -263,7 +257,7 @@ export const TEMPLATES: readonly Template[] = [
   multicastStack,
   cheapShotSpam,
   spammer,
-  featureFill,
+  diggingFill,
 ]
 
 /** Stable priority for tie-breaking equally-scored builds (earlier = preferred). New

@@ -43,13 +43,7 @@ describe('tierListView', () => {
 
   it('produces one column per archetype, in order, each with the S–D ladder', () => {
     const v = tierListView([safe], [], pool)
-    expect(v.columns.map((c) => c.archetype)).toEqual([
-      'DAMAGE',
-      'SPAM',
-      'AOE',
-      'MOBILITY',
-      'DEFENSIVE',
-    ])
+    expect(v.columns.map((c) => c.archetype)).toEqual(['DAMAGE', 'AOE', 'SPAM', 'DIGGING'])
     const ladder = v.columns[0].bands.map((b) => b.band)
     expect(ladder).toEqual(['S', 'A', 'B', 'C', 'D']) // no UNSAFE band when all safe
   })
@@ -154,9 +148,9 @@ describe('tierListView — dial + generated builds (M5)', () => {
 
   it('surfaces a generation note for an archetype it cannot build', () => {
     const v = tierListView([held0], [], pool, { generated: genResult(), rung: 'suggest' })
-    const defensive = v.columns.find((c) => c.archetype === 'DEFENSIVE')
-    expect(defensive?.note).toBeTruthy() // no defensive spells in the gen pool
-    expect(defensive?.bands.every((b) => b.entries.every((e) => e.source !== 'generated'))).toBe(true)
+    const digging = v.columns.find((c) => c.archetype === 'DIGGING')
+    expect(digging?.note).toBeTruthy() // no digging spells in the offensive-only gen pool
+    expect(digging?.bands.every((b) => b.entries.every((e) => e.source !== 'generated'))).toBe(true)
   })
 
   it('with no opts, behaves exactly as the M4 held-wand view (Suggest default)', () => {
@@ -195,7 +189,7 @@ describe('tierListView — dial + generated builds (M5)', () => {
     })
     const empty = { builds: [] }
     const result: GenerateResult = {
-      DAMAGE: empty, AOE: empty, MOBILITY: empty, DEFENSIVE: empty,
+      DAMAGE: empty, AOE: empty, DIGGING: empty,
       SPAM: { builds: [mk(held, 'spammer'), mk(nuke, 'single-nuke')] },
     }
     const gens = entriesOf(tierListView([held], [], pool, { generated: result, rung: 'suggest' })).filter(

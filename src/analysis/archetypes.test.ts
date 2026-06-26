@@ -36,9 +36,7 @@ const makeWand = (over: Partial<Wand> = {}): Wand => ({
 
 const scoreOf = (wand: Wand) => scoreWand(wand, evalWand(wand))
 
-/** A WandMetrics with neutral defaults; override only what a test exercises. Lets the
- *  calibration + mana-gate tests probe scoring at a controlled DPS / mana-sustain —
- *  robust to REF calibration, unlike the near-zero fixtures. */
+/** A WandMetrics with neutral defaults; override only what a test exercises. */
 const synthMetrics = (over: Partial<WandMetrics> = {}): WandMetrics => {
   const base: WandMetrics = {
     shotsUntilReload: 1, cycleFrames: 30, cycleSeconds: 0.5, fireSeconds: 0.3,
@@ -51,13 +49,22 @@ const synthMetrics = (over: Partial<WandMetrics> = {}): WandMetrics => {
     truncated: false, damageApproximate: false,
   }
   const merged = { ...base, ...over }
-  // effectiveSustainedDps defaults to the (possibly-overridden) sustainedDps — mirrors
-  // metrics.ts's identity-when-sustainable. Mana tests set it explicitly to throttle.
   if (over.effectiveSustainedDps === undefined) merged.effectiveSustainedDps = merged.sustainedDps
   return merged
 }
 const scoreSynth = (over: Partial<WandMetrics>) =>
   scoreWand(makeWand(), { metrics: synthMetrics(over) } as unknown as WandEval)
+
+/** Coherent damage metrics for the TTK scorer: a wand doing `sustainedDps` with one shot per
+ *  cycle, so damagePerCast/Cycle + firstCastSeconds line up with the rate (the new model reads
+ *  damagePerCast for the one-shot floor, not just sustainedDps). */
+const dmgScore = (sustainedDps: number, over: Partial<WandMetrics> = {}) => {
+  const cycleSeconds = over.cycleSeconds ?? 0.5
+  const damagePerCast = over.damagePerCast ?? sustainedDps * cycleSeconds
+  return scoreSynth({
+    sustainedDps, cycleSeconds, damagePerCast, damagePerCycle: damagePerCast, firstCastSeconds: cycleSeconds, ...over,
+  })
+}
 
 describe('tierForScore — absolute band boundaries', () => {
   it('maps scores to S/A/B/C/D at 80/60/40/20', () => {
@@ -72,65 +79,59 @@ describe('tierForScore — absolute band boundaries', () => {
 })
 
 describe('scoreWand — DAMAGE/SPAM scale by range usability (close-range ≠ ranged DPS)', () => {
-  // reachUsability ∈ [0,1] is the damage-weighted fraction of damage that reaches a ranged
-  // target (computed in metrics per-projectile). A fully-ranged wand = 1 (no penalty); a
-  // close-range tool used as a "damage" wand is low. Grounded: docs/scoring-rebuild-spec.md §2.
+  // reachUsability ∈ [0,1] is the fraction of damage that reaches a ranged target. The TTK
+  // scorer folds it into the focus factor, so a close-range tool kills slower → scores lower.
   it('penalizes a close-range deck vs a fully-ranged deck at equal DPS', () => {
-    const ranged = scoreSynth({ sustainedDps: 300, burstDps: 300, projectilesPerSecond: 8, reachUsability: 1 })
-    const close = scoreSynth({ sustainedDps: 300, burstDps: 300, projectilesPerSecond: 8, reachUsability: 0.19 }) // luminous drill ~47px
+    const ranged = dmgScore(300, { reachUsability: 1 })
+    const close = dmgScore(300, { reachUsability: 0.19 }) // luminous drill ~47px
     expect(close.DAMAGE.score).toBeLessThan(ranged.DAMAGE.score - 15)
     expect(close.SPAM.score).toBeLessThan(ranged.SPAM.score - 10)
   })
   it('scales the score monotonically with usability (full > partial > floor)', () => {
-    const score = (u: number) => scoreSynth({ sustainedDps: 300, burstDps: 300, reachUsability: u }).DAMAGE.score
+    const score = (u: number) => dmgScore(300, { reachUsability: u }).DAMAGE.score
     expect(score(1)).toBeGreaterThan(score(0.5))
     expect(score(0.5)).toBeGreaterThan(score(0.1))
   })
   it('a 0-damage deck stays 0 DAMAGE regardless of usability (no spurious change)', () => {
-    expect(scoreSynth({ sustainedDps: 0, burstDps: 0, reachUsability: 1 }).DAMAGE.score).toBe(0)
+    expect(dmgScore(0, { reachUsability: 1 }).DAMAGE.score).toBe(0)
   })
 })
 
-describe('scoreWand — DAMAGE bands track the Noita power curve (calibration)', () => {
-  // The saturation reference (REF.sustainedDps) is a PRODUCT calibration: S is reserved
-  // for ELITE DPS (blended-DAMAGE crosses 80 at ~450 sustained), so a ~300-DPS wand is A,
-  // not S, and
-  // the top end stays discriminable — a 300-DPS wand and a 2000-DPS wand are NOT both S.
-  // Magnitudes are provisional (no labeled real-wand corpus yet); the monotonic ORDERING
-  // is the hard invariant, the bands an explicit intent pinned here so a future re-tune is
-  // a deliberate, reviewed change rather than silent drift.
-  const dmg = (sustainedDps: number) =>
-    scoreSynth({ sustainedDps, burstDps: sustainedDps * 1.6 }).DAMAGE
+describe('scoreWand — DAMAGE TTK bands track the Noita power curve (calibration)', () => {
+  // The bands come from TTK vs the cited reference enemies (Isohiisi 150 + Ylialkemisti 1000),
+  // not an abstract REF. Magnitudes are PROVISIONAL (meta-expert tunes at S6); the monotonic
+  // ORDERING + the boss-anchor discrimination (300 ≠ S, 2000 = S) are the hard invariants.
+  const dmg = (sustainedDps: number) => dmgScore(sustainedDps).DAMAGE
 
-  it('S is elite: 100 → C, 300 → A (not S), 700 → S', () => {
-    expect(dmg(100).tier).toBe('C')
-    expect(dmg(300).tier).toBe('A')
-    expect(dmg(700).tier).toBe('S')
+  it('higher sustained DPS ⇒ strictly higher DAMAGE (monotonic across the curve)', () => {
+    expect(dmg(100).score).toBeLessThan(dmg(300).score)
+    expect(dmg(300).score).toBeLessThan(dmg(700).score)
+    expect(dmg(700).score).toBeLessThanOrEqual(dmg(2000).score)
   })
 
-  it('top end stays discriminable — a 300-DPS and a 2000-DPS wand are not both S', () => {
+  it('the boss anchor discriminates the top — a 300-DPS wand is not S, a 2000-DPS one is', () => {
     expect(dmg(2000).score).toBeGreaterThan(dmg(300).score)
     expect(dmg(300).tier).not.toBe('S')
     expect(dmg(2000).tier).toBe('S')
   })
 
   it('DAMAGE penalizes wide spread — a tight BURST beats a wide SCATTER at equal raw DPS', () => {
-    // The "engine can't tell BURST from SCATTER" bug: identical DPS, but a wide wand
-    // sprays off a single target, so its effective single-target damage is lower.
-    const tight = scoreSynth({ sustainedDps: 300, burstDps: 480, effectiveSpread: 0 }).DAMAGE
-    const wide = scoreSynth({ sustainedDps: 300, burstDps: 480, effectiveSpread: 18 }).DAMAGE
+    const tight = dmgScore(300, { effectiveSpread: 0 }).DAMAGE
+    const wide = dmgScore(300, { effectiveSpread: 18 }).DAMAGE
     expect(tight.score).toBeGreaterThan(wide.score)
     expect(wide.reasons.join(' ')).toMatch(/spread/i)
-    // A FOCUSED wand (spread ≤ 0) pays no penalty — so low-spread goldens are unchanged.
-    expect(scoreSynth({ sustainedDps: 300, burstDps: 480, effectiveSpread: -3 }).DAMAGE.score).toBe(
-      scoreSynth({ sustainedDps: 300, burstDps: 480, effectiveSpread: 0 }).DAMAGE.score,
+    // A FOCUSED wand (spread ≤ 0) pays no penalty.
+    expect(dmgScore(300, { effectiveSpread: -3 }).DAMAGE.score).toBe(
+      dmgScore(300, { effectiveSpread: 0 }).DAMAGE.score,
     )
   })
 
-  it('DAMAGE surfaces a DoT capability note (boss/tank lens) without changing the score', () => {
-    const plain = scoreSynth({ sustainedDps: 300, burstDps: 480 }).DAMAGE
-    const withDot = scoreSynth({ sustainedDps: 300, burstDps: 480, appliesDot: { fire: true, poison: true, toxic: false } }).DAMAGE
-    expect(withDot.score).toBe(plain.score) // capability is informational, never a fabricated number
+  it('DoT now IMPROVES boss DAMAGE (it softens a high-HP target) and surfaces a note', () => {
+    // The v2 inversion: DoT is a real damage stream (2%/s of max HP, capped at the floor), so
+    // it lowers the boss TTK rather than being a score-neutral note. It shines vs tanky targets.
+    const plain = dmgScore(120).DAMAGE
+    const withDot = dmgScore(120, { appliesDot: { fire: true, poison: true, toxic: false } }).DAMAGE
+    expect(withDot.score).toBeGreaterThan(plain.score)
     expect(withDot.reasons.join(' ')).toMatch(/fire\+poison/)
     expect(withDot.reasons.join(' ')).toMatch(/boss/i)
     expect(plain.reasons.join(' ')).not.toMatch(/DoT/)
@@ -144,17 +145,14 @@ describe('scoreWand — fixture orderings (signature-dominant)', () => {
     const g = scoreOf(heldWand('snapshot_02.json')).DAMAGE.score // GRENADE
     const b = scoreOf(heldWand('snapshot_03.json')).DAMAGE.score // BUBBLESHOT
     const r = scoreOf(heldWand('snapshot_01.json')).DAMAGE.score // RUBBER_BALL
-    expect(g).toBeGreaterThan(b)
-    expect(b).toBeGreaterThan(r)
+    expect(g).toBeGreaterThanOrEqual(b)
+    expect(b).toBeGreaterThanOrEqual(r)
+    expect(g).toBeGreaterThan(r)
   })
 
-  it('SPAM mana-throttle: at equal RAW DPS+rate the sustainable wand beats the mana-starved one', () => {
-    // B4: stalling is now modeled CONTINUOUSLY — a wand that out-drains its regen can only
-    // fire as often as regen pays for, captured by a throttled effectiveSustainedDps (NOT a
-    // hard ×0.2 gate). Identical raw sustained DPS + fire rate; the staller's effective DPS
-    // is throttled (200→40 = pays for ~20% of its fire), so it scores strictly lower.
-    const sustainable = scoreSynth({ sustainedDps: 200, effectiveSustainedDps: 200, burstDps: 320 }).SPAM
-    const stalling = scoreSynth({ sustainedDps: 200, effectiveSustainedDps: 40, burstDps: 320, manaSustainable: false, secondsUntilStall: 3 }).SPAM
+  it('SPAM mana-throttle: at equal RAW DPS the sustainable wand beats the mana-starved one', () => {
+    const sustainable = scoreSynth({ sustainedDps: 200, effectiveSustainedDps: 200 }).SPAM
+    const stalling = scoreSynth({ sustainedDps: 200, effectiveSustainedDps: 40, manaSustainable: false, secondsUntilStall: 3 }).SPAM
     expect(sustainable.score).toBeGreaterThan(stalling.score)
     expect(stalling.reasons.join(' ')).toMatch(/mana/i)
   })
@@ -166,11 +164,9 @@ describe('scoreWand — fixture orderings (signature-dominant)', () => {
     expect(bubble.topMetrics.find((t) => t.label === 'Mana')?.value).toBe('sustainable')
   })
 
-  it('held fixtures have no mobility/defensive content', () => {
+  it('held fixtures have no digging content → DIGGING scores 0', () => {
     for (const s of ['snapshot_01.json', 'snapshot_02.json', 'snapshot_03.json']) {
-      const sc = scoreOf(heldWand(s))
-      expect(sc.MOBILITY.score).toBe(0)
-      expect(sc.DEFENSIVE.score).toBe(0)
+      expect(scoreOf(heldWand(s)).DIGGING.score).toBe(0)
     }
   })
 })
@@ -178,31 +174,14 @@ describe('scoreWand — fixture orderings (signature-dominant)', () => {
 describe('scoreWand — SPAM rewards effective damage, not raw projectile count (Tier 0)', () => {
   beforeEach(() => clearSimCache())
 
-  // The exact stats of the maintainer's real held wand (cap-5, sustainable).
   const RUN_STATS = {
-    shuffle: false,
-    spellsPerCast: 1,
-    castDelay: 7,
-    rechargeTime: 21,
-    manaMax: 83,
-    mana: 83,
-    manaChargeSpeed: 255,
-    capacity: 5,
-    spread: 1,
-    speedMultiplier: 1.13,
+    shuffle: false, spellsPerCast: 1, castDelay: 7, rechargeTime: 21,
+    manaMax: 83, mana: 83, manaChargeSpeed: 255, capacity: 5, spread: 1, speedMultiplier: 1.13,
   }
 
   it('the real held wand out-spams the chainsaw build that wrongly beat it', () => {
-    // THE reported bug: on the old formula (projectiles/sec only) the chainsaw deck
-    // (more, weaker shots) scored SPAM 99 vs the held wand's 93 despite ~⅓ the DPS.
-    const held = makeWand({
-      spells: ['MANA_REDUCE', 'BURST_3', 'DAMAGE', 'BUCKSHOT', 'CHAINSAW'],
-      stats: RUN_STATS,
-    })
-    const chainsaw = makeWand({
-      spells: ['BUCKSHOT', 'CHAINSAW', 'CHAINSAW', 'CHAINSAW', 'SPITTER'],
-      stats: RUN_STATS,
-    })
+    const held = makeWand({ spells: ['MANA_REDUCE', 'BURST_3', 'DAMAGE', 'BUCKSHOT', 'CHAINSAW'], stats: RUN_STATS })
+    const chainsaw = makeWand({ spells: ['BUCKSHOT', 'CHAINSAW', 'CHAINSAW', 'CHAINSAW', 'SPITTER'], stats: RUN_STATS })
     expect(scoreOf(held).SPAM.score).toBeGreaterThan(scoreOf(chainsaw).SPAM.score)
   })
 
@@ -210,7 +189,6 @@ describe('scoreWand — SPAM rewards effective damage, not raw projectile count 
     const sustainable = { manaMax: 2000, mana: 2000, manaChargeSpeed: 1000, capacity: 6 }
     const plain = makeWand({ spells: ['SPITTER', 'SPITTER'], stats: { ...makeWand().stats, ...sustainable } })
     const boosted = makeWand({ spells: ['DAMAGE', 'SPITTER', 'SPITTER'], stats: { ...makeWand().stats, ...sustainable } })
-    // same shots, more damage each → a better spammer (was identical under proj/sec-only)
     expect(scoreOf(boosted).SPAM.score).toBeGreaterThan(scoreOf(plain).SPAM.score)
   })
 })
@@ -220,33 +198,36 @@ describe('scoreWand — AoE responds to real blast size', () => {
 
   it('a 60px bomb scores far higher AoE than a 7px grenade', () => {
     const bomb = makeWand({ spells: ['BOMB'] })
-    expect(evalWand(bomb).metrics.maxExplosionRadius).toBeGreaterThan(30) // sanity: it simulates big
+    expect(evalWand(bomb).metrics.maxExplosionRadius).toBeGreaterThan(30)
     const bombAoe = scoreOf(bomb).AOE
     const grenadeAoe = scoreOf(heldWand('snapshot_02.json')).AOE
     expect(bombAoe.score).toBeGreaterThan(grenadeAoe.score)
-    expect(['S', 'A', 'B']).toContain(bombAoe.tier) // reaches a meaningful tier
+    expect(['S', 'A', 'B']).toContain(bombAoe.tier)
   })
 })
 
-describe('scoreWand — feature archetypes (deck content)', () => {
+describe('scoreWand — DIGGING (capability × sustainability)', () => {
   beforeEach(() => clearSimCache())
 
-  it('digging + movement → top-tier Mobility', () => {
-    const sc = scoreOf(makeWand({ spells: ['DIGGER', 'TELEPORT_CAST'] }))
-    expect(sc.MOBILITY.score).toBe(100)
-    expect(sc.MOBILITY.tier).toBe('S')
+  it('a top-tier digger outranks a low-tier one, and a non-digger scores 0', () => {
+    const luminous = scoreOf(makeWand({ spells: ['LUMINOUS_DRILL'] })).DIGGING
+    const digger = scoreOf(makeWand({ spells: ['DIGGER'] })).DIGGING
+    const none = scoreOf(makeWand({ spells: ['LIGHT_BULLET'] })).DIGGING
+    expect(luminous.score).toBeGreaterThan(digger.score)
+    expect(digger.score).toBeGreaterThan(none.score)
+    expect(none.score).toBe(0)
   })
 
-  it('digging alone → A-tier Mobility', () => {
-    const sc = scoreOf(makeWand({ spells: ['DIGGER'] }))
-    expect(sc.MOBILITY.score).toBe(60)
-    expect(sc.MOBILITY.tier).toBe('A')
+  it('a sustainable digger outranks an unsustainable higher-capability one (§7.5)', () => {
+    // Luminous Drill (tier 14, 10 mana, sustains) vs Black Hole (tier 13, 180 mana, stalls).
+    const luminous = scoreOf(makeWand({ spells: ['LUMINOUS_DRILL'] })).DIGGING
+    const blackHole = scoreOf(makeWand({ spells: ['BLACK_HOLE'] })).DIGGING
+    expect(luminous.score).toBeGreaterThan(blackHole.score)
   })
 
-  it('a shield → A-tier Defensive; shield + homing → S', () => {
-    expect(scoreOf(makeWand({ spells: ['MAGIC_SHIELD'] })).DEFENSIVE.tier).toBe('A')
-    const both = scoreOf(makeWand({ spells: ['MAGIC_SHIELD', 'HOMING'] })).DEFENSIVE
-    expect(both.score).toBe(100)
-    expect(both.tier).toBe('S')
+  it('a pure digger is demoted on combat (DAMAGE near zero, DIGGING high)', () => {
+    const sc = scoreOf(makeWand({ spells: ['LUMINOUS_DRILL'] }))
+    expect(sc.DAMAGE.score).toBeLessThan(20) // ~0 combat — a digging beam, not a damage wand
+    expect(sc.DIGGING.score).toBeGreaterThan(sc.DAMAGE.score)
   })
 })

@@ -8,25 +8,25 @@
 
 import type { Wand } from '../schema/snapshot'
 import type { WandMetrics } from '../sim/metrics'
+import { spellFeatures } from './features/spellFeatures'
 import { scoreFromScalar, type ScalarBands } from './ttk'
 
 /**
- * Spell id → the max material durability TIER (0–14) the spell can break. Cited
- * noita.wiki.gg/wiki/Digging. The exact mids are PROVISIONAL (the meta-expert confirms);
- * the top/bottom anchors are firm: Luminous Drill / Giga black hole break everything
- * (incl. Cursed Rock); a chainsaw only soft terrain.
+ * Spell id → the max material durability TIER (0–14) the spell can break, for the DEDICATED
+ * diggers (the SPELL_FEATURES `DIG` set). Cited noita.wiki.gg/wiki/Digging; the exact mids are
+ * PROVISIONAL (the meta-expert confirms), the anchors firm: Luminous Drill / Giga black hole
+ * break everything (incl. Cursed Rock), a chainsaw only soft terrain. NUKE etc. can break rock
+ * too, but a nuke is NOT a digging build — only `DIG`-tagged spells count (see digCapability).
  */
 export const DIG_TIER: Record<string, number> = {
   // Top tier — dig-strength 14, breaks everything incl. Cursed Rock.
   LUMINOUS_DRILL: 14,
   LASER_LUMINOUS_DRILL: 14,
   BLACK_HOLE_GIGA: 14,
-  // High — digs Cursed Rock via field / large explosion.
+  // High — digs Cursed Rock via field.
   BLACK_HOLE: 13,
   BLACK_HOLE_BIG: 13,
-  NUKE: 12,
   MATTER_EATER: 11,
-  TNTBOX_BIG: 10,
   // Mid — strong digging bolts / blasts.
   POWERDIGGER: 10,
   TNTBOX: 9,
@@ -35,11 +35,16 @@ export const DIG_TIER: Record<string, number> = {
   CHAINSAW: 6,
 }
 
-/** The maximum material durability tier the wand's spells can break (0 = no dig spell). */
+/** The maximum material durability tier the wand's DEDICATED dig spells can break (0 = none).
+ *  Gated on the `DIG` feature tag so an offensive spell that incidentally breaks terrain
+ *  (a nuke, a drilling laser) never routes the wand to the DIGGING archetype. */
 export function digCapability(wand: Wand): number {
   const ids = [...wand.spells.filter((s): s is string => s !== null), ...wand.always_cast]
   let best = 0
-  for (const id of ids) best = Math.max(best, DIG_TIER[id] ?? 0)
+  for (const id of ids) {
+    if (!spellFeatures(id).includes('DIG')) continue
+    best = Math.max(best, DIG_TIER[id] ?? 0)
+  }
   return best
 }
 

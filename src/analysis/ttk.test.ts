@@ -74,15 +74,15 @@ describe('ttkAgainst', () => {
 })
 
 describe('aoeClearSeconds', () => {
-  it('a big lethal blast clears the whole swarm in one cast', () => {
+  it('a big lethal blast clears the whole swarm in one cast (= the first cast)', () => {
     const nuke = metrics({ maxExplosionDamage: 250, maxExplosionRadius: 250, cycleSeconds: 2, firstCastSeconds: 0.5 })
-    expect(aoeClearSeconds(nuke, 8)).toBeCloseTo(2.0) // 1 cast × 2s
+    expect(aoeClearSeconds(nuke, 8)).toBeCloseTo(0.5) // radius/24 ≈ 10 ⇒ coverage 8 ⇒ 1 cast
   })
 
   it('a lethal penetrating bolt clears mobs along its path (partial coverage ⇒ several casts)', () => {
     const chain = metrics({ pierceHitHP: 25, pierceReachPx: 29.33, damagePerCast: 25, cycleSeconds: 0.3, firstCastSeconds: 0.1 })
-    // coverage ≈ max(1 direct, 29.33/24 = 1.22) ⇒ ceil(8/1.22)=7 casts × 0.3s
-    expect(aoeClearSeconds(chain, 8)).toBeCloseTo(2.1)
+    // coverage ≈ max(1 direct, 29.33/24 = 1.22) ⇒ ceil(8/1.22)=7 casts ⇒ 0.1 + 6×0.3
+    expect(aoeClearSeconds(chain, 8)).toBeCloseTo(1.9)
   })
 
   it('a penetrating projectile that deals no damage clears nothing (Black Hole ⇒ Infinity)', () => {
@@ -90,11 +90,15 @@ describe('aoeClearSeconds', () => {
     expect(aoeClearSeconds(bh, 8)).toBe(Infinity)
   })
 
-  it('a weak single-target wand still clears a swarm, just slowly', () => {
-    const weak = metrics({ damagePerCast: 3, cycleSeconds: 0.3 })
-    const t = aoeClearSeconds(weak, 8)
-    expect(Number.isFinite(t)).toBe(true)
-    expect(t).toBeGreaterThan(10) // ~60 casts × 0.3s
+  it('a single-projectile wand is NOT an AOE wand (no area/line/spread ⇒ Infinity)', () => {
+    const single = metrics({ damagePerCast: 100, projectilesPerCast: 1, cycleSeconds: 0.3 })
+    expect(aoeClearSeconds(single, 8)).toBe(Infinity)
+  })
+
+  it('a multicast of lethal projectiles clears via spread (finite, several casts)', () => {
+    const multi = metrics({ damagePerCast: 90, projectilesPerCast: 3, cycleSeconds: 0.3, firstCastSeconds: 0.1 })
+    // 3 projectiles × 30HP each ≥ 22.5 ⇒ 3 mobs/cast ⇒ ceil(8/3)=3 casts ⇒ 0.1 + 2×0.3
+    expect(aoeClearSeconds(multi, 8)).toBeCloseTo(0.7)
   })
 })
 

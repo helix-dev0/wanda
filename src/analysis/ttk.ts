@@ -81,15 +81,25 @@ export function ttkVs(m: WandMetrics, enemy: keyof typeof REFERENCE_ENEMIES, f: 
  */
 export function aoeClearSeconds(m: WandMetrics, count: number = REFERENCE_SWARM): number {
   const mobHP = REFERENCE_ENEMIES.weakMob.hp
+  // An explosion clears a 2D AREA — mobs in a cluster within its radius ≈ (radius/spacing)²
+  // (a 60px bomb engulfs a whole pack; a 7px grenade barely more than its direct target).
   const explosionMobs =
-    m.maxExplosionDamage >= mobHP ? Math.min(REFERENCE_SWARM, m.maxExplosionRadius / MOB_SPACING_PX) : 0
+    m.maxExplosionDamage >= mobHP ? Math.min(REFERENCE_SWARM, (m.maxExplosionRadius / MOB_SPACING_PX) ** 2) : 0
+  // Penetration is a LINE through bodies — linear in path length, not area.
   const pierceMobs =
     m.pierceHitHP >= mobHP ? Math.min(REFERENCE_SWARM, m.pierceReachPx / MOB_SPACING_PX) : 0
-  const directMobs = Math.min(1, m.damagePerCast / mobHP) // single-target kills ≤1/cast (overkill wasted)
-  const coverage = Math.max(directMobs, explosionMobs + pierceMobs)
+  // MULTIPLE projectiles spread across a cluster (a multicast / shotgun hits several mobs at
+  // once). A SINGLE projectile is single-target — it contributes NO AOE (clearing a swarm
+  // one-by-one is the SPAM/DAMAGE job, not crowd-clear), so AOE comes only from area
+  // (explosion), a penetrating line, or genuine multi-projectile spread.
+  const perProjectileHP = m.projectilesPerCast > 0 ? m.damagePerCast / m.projectilesPerCast : 0
+  const spreadMobs =
+    m.projectilesPerCast > 1 ? Math.min(REFERENCE_SWARM, m.projectilesPerCast * Math.min(1, perProjectileHP / mobHP)) : 0
+  const coverage = explosionMobs + pierceMobs + spreadMobs
   if (coverage <= 0) return Infinity
   const casts = Math.ceil(count / coverage)
-  return Math.max(m.firstCastSeconds, casts * m.cycleSeconds)
+  // Clearing the swarm in front of you = the first cast now, then a cycle per extra cast.
+  return m.firstCastSeconds + (casts - 1) * m.cycleSeconds
 }
 
 /** Sustainable weak-mobs killed per second — the SPAM scalar. Mana-honest
@@ -161,9 +171,11 @@ export function scoreFromScalar(x: number, b: ScalarBands): number {
 // Grounded in "to avoid being overwhelmed you must kill enemy X every ≤ t seconds".
 /** vs Isohiisi (150) — the mid bruiser; most strong wands beat the C band easily. */
 export const DAMAGE_BANDS_MID: TtkBands = { S: 0.6, A: 1.5, B: 3.5, C: 8 }
-/** vs Ylialkemisti (1000) — the boss sponge; where top-end damage discriminates. */
-export const DAMAGE_BANDS_BOSS: TtkBands = { S: 4, A: 10, B: 25, C: 60 }
+/** vs Ylialkemisti (1000) — the boss sponge; where top-end damage discriminates. S at
+ *  1.5s ≈ 670 sustained DPS, so a mid-game ~300-DPS wand lands A/B here (not S) — the
+ *  boss anchor is what keeps 300 and 2000 DPS from both reading S. */
+export const DAMAGE_BANDS_BOSS: TtkBands = { S: 1.5, A: 4, B: 10, C: 25 }
 /** clear a swarm of weak mobs. */
-export const AOE_BANDS: TtkBands = { S: 1.5, A: 3.5, B: 7, C: 15 }
+export const AOE_BANDS: TtkBands = { S: 1, A: 3, B: 7, C: 15 }
 /** sustainable weak-mobs/sec (rapid-fire guide: a strong early spammer kills many/sec). */
 export const SPAM_RATE_BANDS: ScalarBands = { C: 1, B: 3, A: 6, S: 12 }

@@ -122,10 +122,10 @@ describe('generate — template-seeded + polished builds', () => {
     expect(usesModifier).toBe(true)
   })
 
-  it('explains an archetype it cannot build (no defensive spells in pool)', () => {
-    const r = generate(req())
-    expect(r.DEFENSIVE.builds).toEqual([])
-    expect(r.DEFENSIVE.note).toMatch(/defensive/i)
+  it('explains an archetype it cannot build (no digging spells in pool)', () => {
+    const r = generate(req({ pool: ['LIGHT_BULLET', 'DAMAGE'], archetypes: ['DIGGING'] }))
+    expect(r.DIGGING.builds).toEqual([])
+    expect(r.DIGGING.note).toMatch(/dig/i)
   })
 })
 

@@ -1,16 +1,18 @@
-// S0 — the validation harness, Layer A (sim fidelity) + the archetype-stable Layer C
-// orderings, locked on TODAY's scorer as a regression net (docs/scoring-model-v2-spec.md
-// §7, §8). The DIGGING-routing (Layer B) and TTK-dependent orderings co-land with the
-// scorer rebuild (S4) — they can't typecheck until the new archetype/metrics exist.
+// The 3-layer validation harness (docs/scoring-model-v2-spec.md §7) — the ground-truth loop
+// v1 never had. Layer A = sim fidelity; Layer B = archetype routing; Layer C = cited
+// mechanical orderings; plus the §7.5 maintainer ground-truth cases. Layer A + the
+// archetype-stable orderings landed at S0; the DIGGING/TTK-dependent assertions activate
+// here at S4 (they couldn't typecheck until the new archetype/metrics existed).
 //
 // #9: every assertion is a sim-derived truth or a cited mechanical ordering. No tier labels.
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { simulateWand } from '../../sim/simulateWand'
 import { computeMetrics, type WandMetrics } from '../../sim/metrics'
-import { analyzeWand } from '../../analysis'
+import { analyzeWand, ARCHETYPES, type Archetype } from '../../analysis'
 import { clearSimCache } from '../../analysis/simCache'
 import type { WandShot } from '../../engine/eval/types'
+import type { Wand, WandStats } from '../../schema/snapshot'
 import { CORPUS, type CorpusBuild } from './builds'
 import { buildWandFromSpellIds } from './buildWand'
 
@@ -33,9 +35,24 @@ const metricsOf = (b: CorpusBuild): WandMetrics => {
 const treeHasTrigger = (shots: readonly WandShot[]): boolean =>
   shots.some((shot) => shot.projectiles.some((p) => p.trigger != null))
 
-/** DAMAGE/SPAM/AOE score of a build on the CURRENT scorer (perks: none). */
-const scoreOf = (id: string, archetype: 'DAMAGE' | 'SPAM' | 'AOE'): number =>
-  analyzeWand(buildWandFromSpellIds(byId(id)), []).scores[archetype].score
+const scoresOf = (id: string) => analyzeWand(buildWandFromSpellIds(byId(id)), []).scores
+/** One archetype's score for a corpus build (perks: none). */
+const scoreOf = (id: string, archetype: Archetype): number => scoresOf(id)[archetype].score
+/** The archetype a build scores highest on. */
+const topArchetype = (id: string): Archetype => {
+  const s = scoresOf(id)
+  return ARCHETYPES.reduce((best, k) => (s[k].score > s[best].score ? k : best), ARCHETYPES[0])
+}
+
+/** An inline wand on the corpus roomy chassis — for §7.5 cases that need a control twin. */
+const inlineWand = (spells: string[], statsOver: Partial<WandStats> = {}): Wand => ({
+  slot: 0, active: true, always_cast: [], spells,
+  stats: {
+    shuffle: false, spellsPerCast: 1, castDelay: 10, rechargeTime: 20,
+    manaMax: 1000, mana: 1000, manaChargeSpeed: 100, capacity: 10, spread: 0, speedMultiplier: 1, ...statsOver,
+  },
+})
+const damageOf = (w: Wand): number => analyzeWand(w, []).scores.DAMAGE.score
 
 describe('corpus — Layer A: the sim faithfully reproduces each build', () => {
   it('has a spec-sized corpus (15–20 builds) with unique ids', () => {
@@ -83,7 +100,35 @@ describe('corpus — Layer A: the sim faithfully reproduces each build', () => {
   })
 })
 
-describe('corpus — Layer C: cited mechanical orderings (regression locks on the current scorer)', () => {
+// Builds with an UNAMBIGUOUS meta purpose route to that archetype (argmax). The combat
+// overlaps (damage-broadcast / bomb-trigger-fan / boss-killer legitimately top several of
+// DAMAGE/AOE/SPAM — §5.3 "overlap is intentional") and the Layer-C foils (wide-scatter,
+// chainsaw-plus-payload) are validated by the orderings below, not by a unique argmax.
+const ROUTING_EXEMPLARS: Record<string, Archetype> = {
+  'bare-light-bullet': 'SPAM',
+  'trigger-heavy-payload': 'DAMAGE',
+  'nested-trigger-chain': 'DAMAGE',
+  'crit-stack': 'DAMAGE',
+  'sustainable-spammer': 'SPAM',
+  'starved-spammer': 'SPAM',
+  'nuke-aoe': 'AOE',
+  'chain-bolt-penetrating': 'AOE',
+  'luminous-drill-digger': 'DIGGING',
+  'black-hole-digger': 'DIGGING',
+  'drill-only-no-combat': 'DIGGING',
+  'chainsaw-only': 'DIGGING',
+}
+
+describe('corpus — Layer B: each build routes to its documented archetype', () => {
+  for (const [id, arch] of Object.entries(ROUTING_EXEMPLARS)) {
+    it(`${id} → ${arch}`, () => {
+      expect(byId(id).documentedArchetype).toBe(arch) // the corpus oracle and the test agree
+      expect(topArchetype(id)).toBe(arch)
+    })
+  }
+})
+
+describe('corpus — Layer C: cited mechanical orderings (the v2 TTK scorer)', () => {
   it('trigger→heavy payload > bare carrier (DAMAGE) — payload delivery', () => {
     expect(scoreOf('trigger-heavy-payload', 'DAMAGE')).toBeGreaterThan(scoreOf('bare-light-bullet', 'DAMAGE'))
   })
@@ -93,11 +138,49 @@ describe('corpus — Layer C: cited mechanical orderings (regression locks on th
   })
 
   it('tight burst > wide scatter (DAMAGE single-target) — spread costs the on-target fraction', () => {
-    // wide-scatter even reads a HIGHER raw sustained DPS, yet loses single-target DAMAGE to spread.
     expect(scoreOf('tight-burst', 'DAMAGE')).toBeGreaterThan(scoreOf('wide-scatter', 'DAMAGE'))
+  })
+
+  it('crit-stacked > un-crit at the same projectile (DAMAGE) — multiplicative crit', () => {
+    const uncrit = damageOf(inlineWand(['HEAVY_BULLET']))
+    expect(scoreOf('crit-stack', 'DAMAGE')).toBeGreaterThan(uncrit)
+  })
+
+  it('enabler + ranged payload > enabler-only (DAMAGE) — the reach/chainsaw case', () => {
+    expect(scoreOf('chainsaw-plus-ranged-payload', 'DAMAGE')).toBeGreaterThan(scoreOf('chainsaw-only', 'DAMAGE'))
   })
 
   it('mana-sustainable spammer > identical mana-starved one (SPAM) — mana is a hard gate', () => {
     expect(scoreOf('sustainable-spammer', 'SPAM')).toBeGreaterThan(scoreOf('starved-spammer', 'SPAM'))
+  })
+
+  it('sustainable high-tier digger > unsustainable higher-capability one (DIGGING)', () => {
+    expect(scoreOf('luminous-drill-digger', 'DIGGING')).toBeGreaterThan(scoreOf('black-hole-digger', 'DIGGING'))
+  })
+})
+
+describe('corpus — §7.5 maintainer ground-truth mechanic cases', () => {
+  it('Chain Bolt reads an honest TTK — modest DAMAGE, routes AOE via penetration', () => {
+    expect(topArchetype('chain-bolt-penetrating')).toBe('AOE')
+    expect(scoreOf('chain-bolt-penetrating', 'DAMAGE')).toBeLessThan(40) // low-but-correct, not inflated
+  })
+
+  it('drill-only and chainsaw-only are demoted on combat (DAMAGE near zero, DIGGING higher)', () => {
+    for (const id of ['drill-only-no-combat', 'chainsaw-only']) {
+      const s = scoresOf(id)
+      expect(s.DAMAGE.score).toBeLessThan(20)
+      expect(s.DIGGING.score).toBeGreaterThan(s.DAMAGE.score)
+    }
+  })
+
+  it('a sustainable damage wand ≥ its unsustainable nova twin (mana is a hard gate)', () => {
+    const sustainable = damageOf(inlineWand(['HEAVY_BULLET', 'HEAVY_BULLET'], { manaMax: 1000, mana: 1000, manaChargeSpeed: 400 }))
+    const nova = damageOf(inlineWand(['HEAVY_BULLET', 'HEAVY_BULLET'], { manaMax: 50, mana: 50, manaChargeSpeed: 5 }))
+    expect(sustainable).toBeGreaterThan(nova)
+  })
+
+  it('a sustainable top-tier digger tops the corpus DIGGING ranking', () => {
+    const best = Math.max(...CORPUS.map((b) => scoresOf(b.id).DIGGING.score))
+    expect(scoresOf('luminous-drill-digger').DIGGING.score).toBe(best)
   })
 })
