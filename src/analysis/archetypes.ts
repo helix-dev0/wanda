@@ -61,7 +61,6 @@ function mk(
 }
 
 const hp = (n: number) => `${n.toFixed(1)} HP/s`
-const secs = (n: number) => (Number.isFinite(n) ? `${n.toFixed(1)}s` : '∞')
 
 /** Spread (°) at which the single-target on-target fraction halves — kept from v1 (§5.3:
  *  the spread→on-target factor stays for single-target accuracy). */
@@ -107,12 +106,14 @@ function scoreDamage(m: WandMetrics): ArchetypeScore {
   }
   const dot = dotLabel(m.appliesDot)
   if (dot) reasons.push(`applies ${dot} DoT — softens tanky / boss targets`)
+  // TTK (vs the reference enemies) is the SCORING unit but is kept out of the UI — the
+  // displayed metrics are the familiar DPS the player reasons about.
   return mk(
     'DAMAGE',
     score,
     [
-      { label: 'Kill · Big Hiisi', value: secs(ttkMid) },
-      { label: 'Kill · boss', value: secs(ttkBoss) },
+      { label: 'Sustained DPS', value: hp(m.effectiveSustainedDps) },
+      { label: 'Burst DPS', value: hp(m.burstDps) },
     ],
     reasons,
   )
@@ -133,8 +134,8 @@ function scoreAoe(m: WandMetrics): ArchetypeScore {
     'AOE',
     score,
     [
-      { label: 'Clear a swarm', value: secs(clear) },
-      { label: 'Blast', value: m.maxExplosionDamage > 0 ? hp(m.maxExplosionDamage) : '—' },
+      { label: 'Blast damage', value: m.maxExplosionDamage > 0 ? hp(m.maxExplosionDamage) : '—' },
+      { label: 'Blast radius', value: m.maxExplosionRadius > 0 ? `${Math.round(m.maxExplosionRadius)} px` : '—' },
     ],
     reasons,
   )
@@ -156,7 +157,7 @@ function scoreSpam(m: WandMetrics): ArchetypeScore {
     'SPAM',
     score,
     [
-      { label: 'Kills/s · weak mob', value: rate.toFixed(1) },
+      { label: 'Sustained DPS', value: hp(m.effectiveSustainedDps) },
       { label: 'Mana', value: m.manaSustainable ? 'sustainable' : 'stalls' },
     ],
     reasons,
