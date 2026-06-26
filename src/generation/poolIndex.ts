@@ -151,3 +151,45 @@ export function isDamageModifier(id: string): boolean {
 export function damageModifiers(ix: PoolIndex): string[] {
   return ix.modifiers.filter((id) => isDamageModifier(id) && !SPREAD_MODIFIERS.has(id))
 }
+
+let probeBaseFireRate: number | undefined
+const castSpeedEnablerCache = new Map<string, boolean>()
+
+/** The smallest per-shot fire_rate_wait (cast delay, frames) any shot of `spells` reaches in the
+ *  real engine. Lower = faster casting; can go negative (the engine allows it). */
+function minFireRateWait(spells: string[]): number {
+  const wand: Wand = { slot: 0, active: true, always_cast: [], spells, stats: PROBE_STATS }
+  let min = Infinity
+  for (const s of simulateWand(wand).shots) {
+    const f = s.castState?.fire_rate_wait
+    if (typeof f === 'number' && f < min) min = f
+  }
+  return min
+}
+
+/** Is `id` a CAST-SPEED ENABLER — a card whose value in a damage wand is ACCELERATION, not its own
+ *  (zero) combat damage? Luminous Drill (fire_rate_wait −35) and Chainsaw (→ ~0) cut cast delay and
+ *  so speed the whole cycle; the meta puts them in damage wands as accelerants, and the honest
+ *  scorer then ranks enabler+payload high, enabler-only ~0 (verified: a Luminous-Drill damage wand
+ *  ~tripled its sustained DPS). Grounded in the engine — probe whether [id, LIGHT_BULLET] drives
+ *  fire_rate_wait BELOW a bare bullet — so it catches modded accelerants, nothing hand-listed.
+ *  Memoized; engine-deterministic. */
+export function isCastSpeedEnabler(id: string): boolean {
+  const hit = castSpeedEnablerCache.get(id)
+  if (hit !== undefined) return hit
+  if (probeBaseFireRate === undefined) probeBaseFireRate = minFireRateWait([PROBE_PROJECTILE])
+  const enabler = minFireRateWait([id, PROBE_PROJECTILE]) < probeBaseFireRate
+  castSpeedEnablerCache.set(id, enabler)
+  return enabler
+}
+
+/** Pool cast-speed enablers (Luminous Drill / Chainsaw …), cheapest-mana first — the accelerant a
+ *  damage template prepends so a fast enabler+payload build can surface (the maintainer's "Luminous
+ *  Drill isn't suggested in damage wands" gap). Scoped to the DIG-tagged spells: the enablers worth
+ *  RE-ADMITTING are exactly the digging tools otherwise excluded from damage builds (a teleport
+ *  doesn't accelerate; a non-digger accelerant isn't excluded in the first place), and probing only
+ *  diggers keeps this O(few) instead of O(whole-DB). isCastSpeedEnabler still gates out a plain
+ *  Digger that doesn't cut cast delay. Excluded from the payload source (enabler-only reads ~0). */
+export function castSpeedEnablers(ix: PoolIndex): string[] {
+  return ix.diggers.filter(isCastSpeedEnabler).sort((a, b) => spellMana(a) - spellMana(b))
+}

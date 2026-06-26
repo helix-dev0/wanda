@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { buildPoolIndex, projectilesByMana, spellMana, isDamageModifier, damageModifiers } from './poolIndex'
+import {
+  buildPoolIndex,
+  projectilesByMana,
+  spellMana,
+  isDamageModifier,
+  damageModifiers,
+  isCastSpeedEnabler,
+  castSpeedEnablers,
+} from './poolIndex'
 
 describe('buildPoolIndex — bucket pool spells by role', () => {
   it('buckets by feature tag + DB type', () => {
@@ -64,5 +72,25 @@ describe('damageModifiers — sim-grounded allowlist (not a blocklist)', () => {
     expect(dm).toContain('DAMAGE')
     expect(dm).not.toContain('BURN_TRAIL')
     expect(dm).not.toContain('HOMING')
+  })
+})
+
+describe('castSpeedEnablers — sim-grounded accelerants for damage wands', () => {
+  it('isCastSpeedEnabler TRUE for cards that cut cast delay', () => {
+    expect(isCastSpeedEnabler('LUMINOUS_DRILL')).toBe(true) // fire_rate_wait -= 35
+    expect(isCastSpeedEnabler('CHAINSAW')).toBe(true) // chainsaw drives fire_rate_wait → ~0
+  })
+
+  it('isCastSpeedEnabler FALSE for plain payloads and for damage modifiers (no speed-up)', () => {
+    expect(isCastSpeedEnabler('LIGHT_BULLET')).toBe(false)
+    expect(isCastSpeedEnabler('DAMAGE')).toBe(false) // Damage Plus SLOWS (fire_rate_wait += 5)
+  })
+
+  it('castSpeedEnablers lists only the pool enablers', () => {
+    const ix = buildPoolIndex(['LIGHT_BULLET', 'DAMAGE', 'LUMINOUS_DRILL', 'CHAINSAW'])
+    const e = castSpeedEnablers(ix)
+    expect(e).toEqual(expect.arrayContaining(['LUMINOUS_DRILL', 'CHAINSAW']))
+    expect(e).not.toContain('LIGHT_BULLET')
+    expect(e).not.toContain('DAMAGE')
   })
 })

@@ -127,6 +127,21 @@ describe('generate — template-seeded + polished builds', () => {
     expect(r.DIGGING.builds).toEqual([])
     expect(r.DIGGING.note).toMatch(/dig/i)
   })
+
+  it('suggests a cast-speed enabler (Luminous Drill) in a DAMAGE build when it speeds the wand', () => {
+    // A slow-casting chassis the drill (fire_rate_wait -35) accelerates; theorycraft forces the
+    // TEMPLATE path — the one that previously excluded the enabler as "utility" (the maintainer's
+    // "Luminous Drill never shows up in damage wands" gap). The scorer ranks enabler+payload high.
+    const r = generate(
+      req({
+        pool: ['LUMINOUS_DRILL', 'DAMAGE', 'CRITICAL_HIT', 'BURST_2', 'LIGHT_BULLET'],
+        chassis: [chassis({ castDelay: 25, rechargeTime: 30, capacity: 9 })],
+        archetypes: ['DAMAGE'],
+        theorycraft: true,
+      }),
+    )
+    expect(r.DAMAGE.builds.some((b) => b.wand.spells.includes('LUMINOUS_DRILL'))).toBe(true)
+  })
 })
 
 describe('generate — exhaustive survey covers every chassis', () => {

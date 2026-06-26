@@ -21,7 +21,14 @@ import {
   MAX_ROUNDS,
   POLISH_POOL_MAX,
 } from './budget'
-import { buildPoolIndex, isUtilitySpell, isChargeSpell, type PoolIndex } from './poolIndex'
+import {
+  buildPoolIndex,
+  isUtilitySpell,
+  isChargeSpell,
+  isCastSpeedEnabler,
+  castSpeedEnablers,
+  type PoolIndex,
+} from './poolIndex'
 import { countCombinations, enumerateDecks } from './exhaustive'
 import { TEMPLATES, TEMPLATE_ORDER } from './templates'
 import type {
@@ -32,7 +39,29 @@ import type {
   GenerateResult,
   GeneratedBuild,
   PerkAdvice,
+  TemplateId,
 } from './types'
+
+type Seed = { template: TemplateId; deck: string[] }
+
+/** For each damage seed, add a copy with the cheapest OWNED cast-speed enabler PREPENDED (the
+ *  accelerant leads so its cast-delay cut speeds the subsequent casts), capped to capacity. The
+ *  scorer then picks enabler-vs-not — it keeps the enabler only when the speed-up beats the slot it
+ *  costs, and an enabler-only deck reads ~0, so this can never manufacture a junk build. No-op when
+ *  the pool holds no enabler. Grounds the "Luminous Drill belongs in damage wands" meta rule. */
+function withEnablerVariants(
+  seeds: Seed[],
+  ix: PoolIndex,
+  capacity: number,
+  caps: ReadonlyMap<string, number> | undefined,
+): Seed[] {
+  const enabler = castSpeedEnablers(ix).find((id) => (caps?.get(id) ?? Infinity) >= 1)
+  if (!enabler) return seeds
+  const variants = seeds
+    .filter(({ deck }) => !deck.includes(enabler))
+    .map(({ template, deck }) => ({ template, deck: [enabler, ...deck].slice(0, capacity) }))
+  return seeds.concat(variants)
+}
 
 /** Lay a seed deck onto the chassis: chassis stats + always-cast, new spells[]
  *  padded/truncated to the chassis capacity. */
@@ -150,7 +179,12 @@ function generateForArchetype(
   // seeds clean shots. Digging/teleport live in the MOBILITY (utility) tab.
   const isDamageArchetype = archetype === 'DAMAGE' || archetype === 'SPAM' || archetype === 'AOE'
   const pool0 = trimPool(ix, archetype, POLISH_POOL_MAX)
-  const trimmed = isDamageArchetype ? new Set([...pool0].filter((id) => !isUtilitySpell(id))) : pool0
+  // Damage archetypes drop UTILITY (digging/teleport) from the polish pool — EXCEPT cast-speed
+  // enablers (Luminous Drill / Chainsaw), which belong in damage wands as accelerants. Non-
+  // accelerating utility (teleports, plain diggers) stays out.
+  const trimmed = isDamageArchetype
+    ? new Set([...pool0].filter((id) => !isUtilitySpell(id) || isCastSpeedEnabler(id)))
+    : pool0
   // Each candidate chassis gets a FAIR share of the per-archetype budget, measured
   // from its OWN start offset — so chassis #1 can't starve #2..N. Different-capacity
   // chassis are distinct sim-cache entries (wandKey includes stats), so the delta
@@ -165,7 +199,10 @@ function generateForArchetype(
     const templates = TEMPLATES.filter(
       (t) => t.archetypes.includes(archetype) && !(chassis.stats.shuffle && t.orderDependent),
     )
-    const seeds = templates.flatMap((t) => t.instantiate(ctx).map((deck) => ({ template: t.id, deck })))
+    const baseSeeds = templates.flatMap((t) => t.instantiate(ctx).map((deck) => ({ template: t.id, deck })))
+    // For damage archetypes, also try each seed with a cast-speed enabler prepended (see
+    // withEnablerVariants) so a fast Luminous-Drill / Chainsaw build can surface; the scorer ranks.
+    const seeds = isDamageArchetype ? withEnablerVariants(baseSeeds, ix, chassis.stats.capacity, caps) : baseSeeds
     totalSeeds += seeds.length
     if (seeds.length === 0) continue
 
