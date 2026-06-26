@@ -412,4 +412,19 @@ describe('computeMetrics — TTK ingredients (S2, additive)', () => {
     expect(bh.pierceReachPx).toBeCloseTo((40 * 120) / 60) // 80px — it does penetrate
     expect(bh.pierceHitHP).toBe(0) // …but 0 combat damage, so it kills no mob
   })
+
+  it('a flat +damage modifier cannot inflate a pure digging beam into a damage shot', () => {
+    // [Damage Plus, Luminous Drill]: the drill is 0 combat (the digging exclusion), and the
+    // shot's projectile-add must NOT turn it into a damage shot (the 'S-tier digger' bug).
+    expect(metricsForDeck(['DAMAGE', 'LUMINOUS_DRILL']).damagePerCast).toBe(0)
+    // sanity: the same modifier DOES buff a real projectile.
+    expect(metricsForDeck(['DAMAGE', 'LIGHT_BULLET']).damagePerCast).toBeGreaterThan(
+      metricsForDeck(['LIGHT_BULLET']).damagePerCast,
+    )
+  })
+
+  it('detects a trigger payload in the cast tree (drives the reliability note)', () => {
+    expect(metricsForDeck(['ADD_TRIGGER', 'LIGHT_BULLET', 'HEAVY_BULLET']).hasTrigger).toBe(true)
+    expect(metricsForDeck(['LIGHT_BULLET']).hasTrigger).toBe(false)
+  })
 })

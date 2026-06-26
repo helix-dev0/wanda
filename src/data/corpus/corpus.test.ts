@@ -183,4 +183,13 @@ describe('corpus — §7.5 maintainer ground-truth mechanic cases', () => {
     const best = Math.max(...CORPUS.map((b) => scoresOf(b.id).DIGGING.score))
     expect(scoresOf('luminous-drill-digger').DIGGING.score).toBe(best)
   })
+
+  it('trigger-connect stays assume-connect + a reliability NOTE (§5.5), never a fabricated number', () => {
+    // The trigger build's DAMAGE/AOE carry a connect-reliability note; a non-trigger build doesn't.
+    expect(scoresOf('trigger-heavy-payload').DAMAGE.reasons.join(' ')).toMatch(/connect/i)
+    expect(scoresOf('boss-killer-heavy').DAMAGE.reasons.join(' ')).not.toMatch(/connect|shuffle/i)
+    // A shuffle wand's cast order isn't guaranteed → its own reliability note.
+    const shuffleTrigger = analyzeWand(inlineWand(['ADD_TRIGGER', 'LIGHT_BULLET', 'HEAVY_BULLET'], { shuffle: true }), [])
+    expect(shuffleTrigger.scores.DAMAGE.reasons.join(' ')).toMatch(/shuffle/i)
+  })
 })

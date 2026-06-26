@@ -187,13 +187,32 @@ function scoreDigging(wand: Wand, m: WandMetrics): ArchetypeScore {
   )
 }
 
+/** Trigger-connect is ASSUMED (a trigger is a miniature wand you aim — §5.5), so we surface a
+ *  delivery RELIABILITY note rather than fabricating a connect-probability number. Shuffle wands
+ *  also break cast order. Returns '' when delivery is straightforward. */
+function reliabilityNote(wand: Wand, m: WandMetrics): string {
+  if (wand.stats.shuffle && m.hasTrigger) {
+    return 'shuffle wand — cast order isn’t guaranteed, so trigger/payload delivery is unreliable'
+  }
+  if (wand.stats.shuffle) return 'shuffle wand — cast order isn’t guaranteed'
+  if (m.hasTrigger) return 'assumes the trigger payload connects (optimistic — a trigger is a mini-wand you aim)'
+  return ''
+}
+
 /** Score one wand across every archetype (rich per-archetype, never collapsed). */
 export function scoreWand(wand: Wand, ev: WandEval): Record<Archetype, ArchetypeScore> {
   const m = ev.metrics
-  return {
+  const scores: Record<Archetype, ArchetypeScore> = {
     DAMAGE: scoreDamage(m),
     AOE: scoreAoe(m),
     SPAM: scoreSpam(m),
     DIGGING: scoreDigging(wand, m),
   }
+  // Surface the delivery-reliability note on the payload-delivery archetypes (DAMAGE/AOE).
+  const note = reliabilityNote(wand, m)
+  if (note) {
+    scores.DAMAGE.reasons.push(note)
+    scores.AOE.reasons.push(note)
+  }
+  return scores
 }

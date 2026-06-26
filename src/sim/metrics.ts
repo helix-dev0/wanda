@@ -32,7 +32,7 @@ export interface WandMetrics {
   projectilesPerCycle: number
   projectilesPerSecond: number
 
-  /** Expected HP from one click (raw, single-hit, no crit). */
+  /** Expected HP from one click (raw, single-target single-hit; crit + payloads included). */
   damagePerCast: number
   /** Expected HP across one full cycle. */
   damagePerCycle: number
@@ -90,6 +90,10 @@ export interface WandMetrics {
    *  lens. (Grounded: noita.wiki.gg Fire / Toxic Sludge / Damage_types — see
    *  docs/scoring-grounding-spec.md Principle 8.) */
   appliesDot: { fire: boolean; poison: boolean; toxic: boolean }
+  /** The cast tree contains a trigger/timer payload. The damage model ASSUMES the payload
+   *  connects (a trigger is a mini-wand you aim — §5.5), so the scorer surfaces a delivery
+   *  RELIABILITY note for these (and for shuffle wands) rather than a fabricated probability. */
+  hasTrigger: boolean
 
   /** Engine hit its 10-iteration cap — cycle figures are a truncated lower bound. */
   truncated: boolean
@@ -337,6 +341,7 @@ export function computeMetrics(
   // needs BOTH (a long-reach 0-damage Black Hole clears nothing; a lethal Chain Bolt does).
   let pierceReachPx = 0
   let pierceHitHP = 0
+  let hasTrigger = false
   // Damage-weighted range USABILITY: Σ(perProjectileDamage × perProjectileReachFrac) /
   // Σ(perProjectileDamage) over the whole cycle (recursing payloads). Each projectile's reach
   // is clamped to [FLOOR,1] BEFORE weighting, so a deck whose damage is mostly a short-range
@@ -398,6 +403,7 @@ export function computeMetrics(
       if ((st?.damageByType?.fire ?? 0) > 0) appliesDot.fire = true
       if (p.entity.includes('poison')) appliesDot.poison = true
       if (p.entity.includes('acid')) appliesDot.toxic = true
+      if (p.trigger) hasTrigger = true
       if (p.trigger && depth < TRIGGER_DEPTH_CAP) scanProjectileTree(p.trigger, depth + 1)
     }
   }
@@ -429,6 +435,7 @@ export function computeMetrics(
     pierceReachPx,
     pierceHitHP,
     appliesDot,
+    hasTrigger,
     truncated: hitIterationLimit,
     damageApproximate,
   }

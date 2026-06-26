@@ -43,6 +43,17 @@ function projectileKillSeconds(m: WandMetrics, f: FocusFactors, hp: number): num
   return burstSeconds + (hp - hpInBurst) / throttRate
 }
 
+/** HP the projectiles deliver BY time `t` — the inverse of projectileKillSeconds, two-phase
+ *  (full-mana until it stalls, then throttled). Monotonic non-decreasing in t. */
+function projectileHpByTime(m: WandMetrics, f: FocusFactors, t: number): number {
+  if (t <= 0) return 0
+  const fullRate = m.sustainedDps * f.onTarget * f.reach
+  const burstSeconds = m.secondsUntilStall ?? Infinity
+  if (t <= burstSeconds) return fullRate * t
+  const throttRate = m.effectiveSustainedDps * f.onTarget * f.reach
+  return fullRate * burstSeconds + throttRate * (t - burstSeconds)
+}
+
 /**
  * Expected seconds to kill an enemy of `hp`, focused by spread/reach, with DoT a parallel
  * softener (2%/s of MAX HP, capped at the ~2%-HP floor so it can't finish) and a one-cast
@@ -54,18 +65,25 @@ export function ttkAgainst(m: WandMetrics, hp: number, f: FocusFactors): number 
   if (focusedPerCast <= 0) return Infinity
   if (focusedPerCast >= hp) return m.firstCastSeconds // overkill floor: one cast kills it
 
+  const noDot = projectileKillSeconds(m, f, hp)
   const dotRate = dotTypeCount(m.appliesDot) * DOT_RATE_PER_SEC * hp // HP/s the stains tick
-  const dotCap = (1 - DOT_FLOOR_FRACTION) * hp // DoT removes at most this; projectiles do the rest
-  let t = projectileKillSeconds(m, f, hp)
-  if (dotRate > 0 && Number.isFinite(t)) {
-    // DoT lowers the HP the projectiles must deliver. Fixed-point: the softening DoT
-    // achieves over the fight depends on the fight length, which depends on the softening.
-    for (let i = 0; i < 4; i++) {
-      const dotHP = Math.min(dotCap, dotRate * t)
-      t = projectileKillSeconds(m, f, hp - dotHP)
-    }
+  if (dotRate <= 0 || !Number.isFinite(noDot)) return Math.max(noDot, m.firstCastSeconds)
+
+  // Projectiles + DoT deliver in PARALLEL from t=0; DoT is capped at the stain floor.
+  // delivered(t) = projectileHpByTime(t) + min(dotCap, dotRate·t) is monotonic, and DoT only
+  // SPEEDS the kill, so the no-DoT time is an upper bound. Bisect for delivered(t)=hp — robust
+  // and exact-to-tolerance (the old fixed-point iteration oscillated for dotRate ≥ projRate,
+  // returning a parity-dependent, far-too-pessimistic value).
+  const dotCap = (1 - DOT_FLOOR_FRACTION) * hp
+  const delivered = (t: number) => projectileHpByTime(m, f, t) + Math.min(dotCap, dotRate * t)
+  let lo = 0
+  let hi = noDot
+  for (let i = 0; i < 50; i++) {
+    const mid = (lo + hi) / 2
+    if (delivered(mid) >= hp) hi = mid
+    else lo = mid
   }
-  return Math.max(t, m.firstCastSeconds)
+  return Math.max(hi, m.firstCastSeconds)
 }
 
 /** Convenience: TTK vs a named reference enemy. */

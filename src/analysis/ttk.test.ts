@@ -20,7 +20,7 @@ const metrics = (over: Partial<WandMetrics> = {}): WandMetrics => {
     pierceReachPx: 0, pierceHitHP: 0,
     manaPerCycle: 0, manaSustainable: true, secondsUntilStall: null,
     effectiveSpread: 0, reachUsability: 1, maxExplosionRadius: 0, maxExplosionDamage: 0,
-    appliesDot: { fire: false, poison: false, toxic: false },
+    appliesDot: { fire: false, poison: false, toxic: false }, hasTrigger: false,
     truncated: false, damageApproximate: false,
   }
   const m = { ...base, ...over }
@@ -70,6 +70,15 @@ describe('ttkAgainst', () => {
   it('DoT alone cannot finish (it floors at ~2% HP): no projectile damage ⇒ Infinity', () => {
     const dotOnly = metrics({ damagePerCast: 0, appliesDot: { fire: true, poison: true, toxic: false } })
     expect(ttkAgainst(dotOnly, 1000, NO_FOCUS)).toBe(Infinity)
+  })
+
+  it('DoT runs in PARALLEL and stays numerically stable when DoT rate ≥ projectile rate', () => {
+    // fullRate 15 HP/s vs boss 1000 + 1 DoT (2%/s = 20 HP/s): parallel ⇒ ~1000/(15+20) ≈ 28.6s.
+    // (The old fixed-point iteration oscillated to a parity-dependent ~65s in this regime.)
+    const withDot = metrics({ damagePerCast: 50, sustainedDps: 15, appliesDot: { fire: true, poison: false, toxic: false }, firstCastSeconds: 0.2 })
+    const noDot = metrics({ damagePerCast: 50, sustainedDps: 15, firstCastSeconds: 0.2 })
+    expect(ttkAgainst(withDot, 1000, NO_FOCUS)).toBeCloseTo(28.6, 0)
+    expect(ttkAgainst(noDot, 1000, NO_FOCUS)).toBeCloseTo(1000 / 15, 0) // ~66.7s, no DoT help
   })
 })
 

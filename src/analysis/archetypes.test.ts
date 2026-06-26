@@ -45,7 +45,7 @@ const synthMetrics = (over: Partial<WandMetrics> = {}): WandMetrics => {
     firstCastSeconds: 0.5, pierceReachPx: 0, pierceHitHP: 0,
     manaPerCycle: 0, manaSustainable: true, secondsUntilStall: null,
     effectiveSpread: 0, reachUsability: 1, maxExplosionRadius: 0, maxExplosionDamage: 0,
-    appliesDot: { fire: false, poison: false, toxic: false },
+    appliesDot: { fire: false, poison: false, toxic: false }, hasTrigger: false,
     truncated: false, damageApproximate: false,
   }
   const merged = { ...base, ...over }
