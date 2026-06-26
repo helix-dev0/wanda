@@ -61,10 +61,16 @@ function projectileHpByTime(m: WandMetrics, f: FocusFactors, t: number): number 
  * Monotonic non-increasing in damage. Infinity ⇒ cannot kill (e.g. a pure digger).
  */
 export function ttkAgainst(m: WandMetrics, hp: number, f: FocusFactors): number {
+  // One-cast overkill floor: a single cast one-shots the enemy (best possible TTK for it).
   const focusedPerCast = m.damagePerCast * f.onTarget * f.reach
-  if (focusedPerCast <= 0) return Infinity
-  if (focusedPerCast >= hp) return m.firstCastSeconds // overkill floor: one cast kills it
+  if (focusedPerCast > 0 && focusedPerCast >= hp) return m.firstCastSeconds
 
+  // Otherwise the kill comes from the SUSTAINED CYCLE rate, which counts the damage of EVERY
+  // shot in the cycle — NOT just the first. This matters when the first cast is a 0-damage
+  // utility shot (e.g. a Luminous Drill / digging beam fired before the damage spells): the
+  // wand still deals real damage on its later casts, so it must NOT read as Infinity just
+  // because damagePerCast (the first shot) is 0. projectileKillSeconds returns Infinity iff the
+  // wand deals NO cycle damage at all (sustainedDps == 0) — the genuine "can't kill" case.
   const noDot = projectileKillSeconds(m, f, hp)
   const dotRate = dotTypeCount(m.appliesDot) * DOT_RATE_PER_SEC * hp // HP/s the stains tick
   if (dotRate <= 0 || !Number.isFinite(noDot)) return Math.max(noDot, m.firstCastSeconds)

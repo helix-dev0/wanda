@@ -39,8 +39,19 @@ describe('ttkAgainst', () => {
     expect(ttkAgainst(m, 150, NO_FOCUS)).toBeCloseTo(1.0)
   })
 
-  it('a wand that deals no focused damage cannot kill (Infinity)', () => {
-    expect(ttkAgainst(metrics({ damagePerCast: 0 }), 150, NO_FOCUS)).toBe(Infinity)
+  it('a wand that deals no damage at all cannot kill (Infinity)', () => {
+    // sustainedDps 0 (a pure digger) — genuinely can't kill.
+    expect(ttkAgainst(metrics({ damagePerCast: 0, sustainedDps: 0 }), 150, NO_FOCUS)).toBe(Infinity)
+  })
+
+  it('a wand whose FIRST cast is a 0-damage utility shot still scores on its later damage', () => {
+    // [Luminous Drill, …, Bullet]: damagePerCast (shot 0 = the digging beam) is 0, but the
+    // cycle deals real damage (sustainedDps > 0). Must NOT read as Infinity — that was the
+    // "real combat wand scores DAMAGE 0 / Kill ∞" bug the maintainer's live wand exposed.
+    const m = metrics({ damagePerCast: 0, damagePerCycle: 100, sustainedDps: 200 })
+    const ttk = ttkAgainst(m, 150, NO_FOCUS)
+    expect(Number.isFinite(ttk)).toBe(true)
+    expect(ttk).toBeCloseTo(150 / 200, 2) // 150 HP at the sustainable 200 HP/s rate
   })
 
   it('focus factors scale the kill: spread/close-range raise TTK', () => {
