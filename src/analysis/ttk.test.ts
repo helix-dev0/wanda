@@ -20,7 +20,7 @@ const metrics = (over: Partial<WandMetrics> = {}): WandMetrics => {
     pierceReachPx: 0, pierceHitHP: 0,
     manaPerCycle: 0, manaSustainable: true, secondsUntilStall: null,
     effectiveSpread: 0, reachUsability: 1, maxExplosionRadius: 0, maxExplosionDamage: 0,
-    appliesDot: { fire: false, poison: false, toxic: false }, hasTrigger: false,
+    appliesDot: { fire: false, poison: false, toxic: false }, hasTrigger: false, homing: false,
     truncated: false, damageApproximate: false,
   }
   const m = { ...base, ...over }

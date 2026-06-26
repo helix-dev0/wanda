@@ -66,11 +66,22 @@ const hp = (n: number) => `${n.toFixed(1)} HP/s`
  *  the spread→on-target factor stays for single-target accuracy). */
 const SPREAD_HALF_DEG = 20
 
+/** On-target fraction credited to a HOMING wand regardless of spread. Homing "imparts constant
+ *  force… towards your foes" within ~150px (noita.wiki.gg/wiki/Homing), so a wide scatter still
+ *  connects on one target — "strong homing on a scatter shot means the shots home toward an
+ *  enemy" (maintainer). NOT a perfect 1.0: the wiki notes homing trades precision for control
+ *  ("accuracy can suffer greatly"), so it lands ≈ a naturally-tight wand but below a perfectly-
+ *  focused 0° one; weak/short variants are treated the same in v1. PROVISIONAL like the band
+ *  cutoffs / SPREAD_HALF_DEG — grounded in the method, the number tuned by the maintainer. */
+const HOMING_ONTARGET = 0.9
+
 /** Single-target focusing: a tight wand keeps its DPS on one point; a wide / close-range
- *  one doesn't. AOE/SPAM apply this differently (AOE not at all — §5.3). */
+ *  one doesn't. Homing rescues a wide spray (its projectiles seek the target), so it floors the
+ *  on-target fraction. AOE/SPAM apply this differently (AOE not at all — §5.3). */
 function focusFactors(m: WandMetrics): FocusFactors {
+  const raw = SPREAD_HALF_DEG / (SPREAD_HALF_DEG + Math.max(0, m.effectiveSpread))
   return {
-    onTarget: SPREAD_HALF_DEG / (SPREAD_HALF_DEG + Math.max(0, m.effectiveSpread)),
+    onTarget: m.homing ? Math.max(HOMING_ONTARGET, raw) : raw,
     reach: m.reachUsability,
   }
 }
@@ -98,7 +109,13 @@ function scoreDamage(m: WandMetrics): ArchetypeScore {
   if (f.reach < 0.9 && m.sustainedDps > 0) {
     reasons.push(`close range — only ~${Math.round(f.reach * 100)}% of its damage reaches a ranged target`)
   }
-  if (m.effectiveSpread > 8) {
+  if (m.homing) {
+    reasons.push(
+      m.effectiveSpread > 8
+        ? `homing — curves its spread (${m.effectiveSpread.toFixed(0)}°) onto the target, so the spray still connects (best within ~150px)`
+        : 'homing — projectiles seek the target',
+    )
+  } else if (m.effectiveSpread > 8) {
     reasons.push(`wide spread (${m.effectiveSpread.toFixed(0)}°) — sprays off a single target`)
   }
   if (m.effectiveSustainedDps < m.sustainedDps - 1) {

@@ -94,6 +94,13 @@ export interface WandMetrics {
    *  connects (a trigger is a mini-wand you aim — §5.5), so the scorer surfaces a delivery
    *  RELIABILITY note for these (and for shuffle wands) rather than a fabricated probability. */
   hasTrigger: boolean
+  /** The deck applies a HOMING / auto-aim modifier — its projectiles seek the nearest foe
+   *  rather than flying straight. Read straight from the engine's cast output (every homing
+   *  action appends a `.../homing*.xml` entity to the shot's `extra_entities`), not invented.
+   *  The scorer uses it as the single-target accuracy lever: homing "imparts constant force…
+   *  towards your foes" within ~150px (noita.wiki.gg/wiki/Homing), so a wide spread/scatter
+   *  still connects on one target. Default false (goldens-safe). */
+  homing: boolean
 
   /** Engine hit its 10-iteration cap — cycle figures are a truncated lower bound. */
   truncated: boolean
@@ -360,6 +367,9 @@ export function computeMetrics(
   // path-matching 'fire' is NOT clean (it would trip `..._friendly_fire`), so we accept
   // the minor false-negative over a brittle curated allowlist.
   const appliesDot = { fire: false, poison: false, toxic: false }
+  // Homing/auto-aim capability — see WandMetrics.homing. Detected from the shot's accumulated
+  // extra_entities (every homing action appends `.../homing*.xml`), recursing trigger payloads.
+  let homing = false
   const scanProjectileTree = (shot: WandShot, depth: number): void => {
     const radiusAdd = shot.castState?.explosion_radius ?? 0
     const explAdd = shot.castState?.damage_explosion_add ?? 0
@@ -371,6 +381,11 @@ export function computeMetrics(
     if (material === 'fire' || trail.includes('fire')) appliesDot.fire = true
     if (trail.includes('poison')) appliesDot.poison = true
     if (trail.includes('acid')) appliesDot.toxic = true
+    // A homing modifier appends a `.../homing*.xml` entity to extra_entities (HOMING,
+    // HOMING_SHORT/ROTATE/SHOOTER/ACCELERATING/CURSOR/AREA + the homing perk) — one substring
+    // check detects "this shot's projectiles seek enemies". Confirmed live even for an
+    // always-cast HOMING_CURSOR (extra_entities = "data/entities/misc/homing_cursor.xml,…").
+    if ((shot.castState?.extra_entities ?? '').includes('homing')) homing = true
     for (const p of shot.projectiles) {
       const st = getProjectileStats(p.entity)
       if (st) {
@@ -436,6 +451,7 @@ export function computeMetrics(
     pierceHitHP,
     appliesDot,
     hasTrigger,
+    homing,
     truncated: hitIterationLimit,
     damageApproximate,
   }

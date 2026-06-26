@@ -45,7 +45,7 @@ const synthMetrics = (over: Partial<WandMetrics> = {}): WandMetrics => {
     firstCastSeconds: 0.5, pierceReachPx: 0, pierceHitHP: 0,
     manaPerCycle: 0, manaSustainable: true, secondsUntilStall: null,
     effectiveSpread: 0, reachUsability: 1, maxExplosionRadius: 0, maxExplosionDamage: 0,
-    appliesDot: { fire: false, poison: false, toxic: false }, hasTrigger: false,
+    appliesDot: { fire: false, poison: false, toxic: false }, hasTrigger: false, homing: false,
     truncated: false, damageApproximate: false,
   }
   const merged = { ...base, ...over }
@@ -124,6 +124,39 @@ describe('scoreWand — DAMAGE TTK bands track the Noita power curve (calibratio
     expect(dmgScore(300, { effectiveSpread: -3 }).DAMAGE.score).toBe(
       dmgScore(300, { effectiveSpread: 0 }).DAMAGE.score,
     )
+  })
+})
+
+describe('scoreWand — homing rescues spread (single-target accuracy)', () => {
+  // Grounded: homing "imparts constant force… towards your foes" within ~150px
+  // (noita.wiki.gg/wiki/Homing), so a wide scatter still connects — but it trades precision
+  // for control ("accuracy can suffer"), so it lands ≈ a tight wand, not a perfect one.
+  it('detects homing from the REAL cast tree (incl. an always-cast HOMING_CURSOR)', () => {
+    clearSimCache()
+    expect(evalWand(makeWand({ spells: ['HOMING', 'SCATTER_4', 'BULLET'] })).metrics.homing).toBe(true)
+    expect(evalWand(makeWand({ spells: ['SCATTER_4', 'BULLET'] })).metrics.homing).toBe(false)
+    expect(evalWand(makeWand({ spells: ['BULLET'], always_cast: ['HOMING_CURSOR'] })).metrics.homing).toBe(true)
+  })
+
+  it('a wide spray with homing scores FAR above the bare spray, and ≈ a tight wand', () => {
+    const wide = dmgScore(300, { effectiveSpread: 42 }).DAMAGE.score
+    const homingWide = dmgScore(300, { effectiveSpread: 42, homing: true }).DAMAGE.score
+    const tight = dmgScore(300, { effectiveSpread: 0 }).DAMAGE.score
+    expect(homingWide).toBeGreaterThan(wide + 10) // the rescue: spray no longer sprays off
+    expect(homingWide).toBeLessThanOrEqual(tight) // but never beats a perfectly-focused wand
+    expect(homingWide).toBeGreaterThan(tight * 0.8) // lands close to tight (floor 0.9 vs 1.0)
+  })
+
+  it('homing does NOT reduce an already-tight wand (max(floor, raw))', () => {
+    expect(dmgScore(300, { effectiveSpread: 0, homing: true }).DAMAGE.score).toBe(
+      dmgScore(300, { effectiveSpread: 0 }).DAMAGE.score,
+    )
+  })
+
+  it('surfaces a homing reason and suppresses the "sprays off target" warning', () => {
+    const r = dmgScore(300, { effectiveSpread: 42, homing: true }).DAMAGE.reasons.join(' ')
+    expect(r).toMatch(/homing/i)
+    expect(r).not.toMatch(/sprays off/i)
   })
 
   it('DoT now IMPROVES boss DAMAGE (it softens a high-HP target) and surfaces a note', () => {
