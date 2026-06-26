@@ -8,8 +8,8 @@
 // (method fixed, meta-expert tunes the numbers at S6). MOBILITY is a capability flag on the
 // analysis (index.ts), not a tiered archetype; DEFENSIVE was dropped ("not a wand thing").
 
-import type { Wand } from '../schema/snapshot'
-import type { WandMetrics } from '../sim/metrics'
+import type { Wand, PerkRef } from '../schema/snapshot'
+import { critMultiplier, type WandMetrics } from '../sim/metrics'
 import type { WandEval } from './simCache'
 import {
   ttkAgainst,
@@ -200,17 +200,47 @@ function reliabilityNote(wand: Wand, m: WandMetrics): string {
   return ''
 }
 
-/** Score one wand across every archetype (rich per-archetype, never collapsed). */
-export function scoreWand(wand: Wand, ev: WandEval): Record<Archetype, ArchetypeScore> {
-  const m = ev.metrics
+/** The player's global PERK damage multiplier — the sim scores a wand in isolation, so a
+ *  damage perk is applied here. Today: Critical Hit + = +10% flat crit chance per stack (cited
+ *  noita.wiki.gg/wiki/Critical_Hit_+), crit = ×5. Exact for a no-in-deck-crit wand; for a
+ *  crit-STACKED deck it slightly compounds (a rare overlap — acceptable, flagged). */
+function perkDamageMultiplier(perks: readonly PerkRef[]): number {
+  const crit = perks.find((p) => p.id === 'CRITICAL_HIT')
+  return crit ? critMultiplier((crit.stacks ?? 1) * 10) : 1
+}
+
+/** Score one wand across every archetype (rich per-archetype, never collapsed). Perks the
+ *  player holds (e.g. Critical Hit +) scale the damage the scorer reads. */
+export function scoreWand(
+  wand: Wand,
+  ev: WandEval,
+  perks: readonly PerkRef[] = [],
+): Record<Archetype, ArchetypeScore> {
+  const m0 = ev.metrics
+  // Apply the perk damage multiplier to the damage the COMBAT archetypes read (digging is
+  // unaffected by crit, so it keeps the raw metrics).
+  const mul = perkDamageMultiplier(perks)
+  const m: WandMetrics =
+    mul === 1
+      ? m0
+      : {
+          ...m0,
+          damagePerCast: m0.damagePerCast * mul,
+          damagePerCycle: m0.damagePerCycle * mul,
+          sustainedDps: m0.sustainedDps * mul,
+          effectiveSustainedDps: m0.effectiveSustainedDps * mul,
+          burstDps: m0.burstDps * mul,
+          maxExplosionDamage: m0.maxExplosionDamage * mul,
+          pierceHitHP: m0.pierceHitHP * mul,
+        }
   const scores: Record<Archetype, ArchetypeScore> = {
     DAMAGE: scoreDamage(m),
     AOE: scoreAoe(m),
     SPAM: scoreSpam(m),
-    DIGGING: scoreDigging(wand, m),
+    DIGGING: scoreDigging(wand, m0),
   }
   // Surface the delivery-reliability note on the payload-delivery archetypes (DAMAGE/AOE).
-  const note = reliabilityNote(wand, m)
+  const note = reliabilityNote(wand, m0)
   if (note) {
     scores.DAMAGE.reasons.push(note)
     scores.AOE.reasons.push(note)

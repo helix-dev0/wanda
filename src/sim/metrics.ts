@@ -123,7 +123,7 @@ const TRIGGER_DEPTH_CAP = 16
  *  0% → ×1 (no change, goldens safe), 25% → ×2, 100% → ×5, 200% → ×10. Crit chance is
  *  populated by real actions (crit spells / triggers add it); the ×5 is the game
  *  constant, not stored in the action state. Applies to direct projectile damage. */
-function critMultiplier(critChancePercent: number): number {
+export function critMultiplier(critChancePercent: number): number {
   const c = Math.max(0, critChancePercent) / 100
   return 1 + Math.min(c, 1) * (5 * Math.max(1, c) - 1)
 }

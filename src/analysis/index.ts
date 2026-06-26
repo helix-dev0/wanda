@@ -32,7 +32,7 @@ export function analyzeWand(wand: Wand, perks: readonly PerkRef[]): WandAnalysis
     metrics: ev.metrics,
     approximate: ev.sim.approximate || ev.metrics.damageApproximate,
     selfDanger: evaluateSelfDanger(wand, ev.sim.shots, perks),
-    scores: scoreWand(wand, ev),
+    scores: scoreWand(wand, ev, perks),
     mobility: deckFeatureCounts(wand).MOBILITY > 0,
   }
 }

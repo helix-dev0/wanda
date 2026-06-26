@@ -48,7 +48,7 @@ function evalCandidate(wand: Wand, target: Archetype, perks: readonly PerkRef[])
   const ev = evalWand(wand)
   const sd = evaluateSelfDanger(wand, ev.sim.shots, perks)
   return {
-    score: scoreWand(wand, ev)[target].score,
+    score: scoreWand(wand, ev, perks)[target].score,
     unsafe: sd.unsafe,
     dangerHazards: new Set(sd.findings.filter((f) => f.severity === 'danger').map((f) => f.hazard)),
   }
