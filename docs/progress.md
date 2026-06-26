@@ -2,16 +2,18 @@
 
 > Living status doc. Companion to [`plan.md`](./plan.md) (the milestone breakdown) and
 > [`../noita-wand-assistant-spec.md`](../noita-wand-assistant-spec.md) (the design).
-> **Last updated: 2026-06-24** · branch `feat/scoring-rebuild`. 378 tests green.
+> **Last updated: 2026-06-25** · branch `feat/scoring-rebuild`. 378 tests green.
 >
 > 🔴 **SCORING NOT YET TRUSTED (maintainer verdict, 2026-06-24).** Many individually-correct, reviewed
 > slice-fixes have shipped (reach-by-weapon-kind, achievable mana-bounded burst, digging-excluded-from-
 > combat-DPS, payload damage, crit, reload-overlap, …) — but the maintainer's holistic judgment is that
 > the **build ranking still does NOT work well.** A per-slice "✅ FIXED" means that specific bug is gone,
 > **NOT** that the scorer is good or that the maintainer is satisfied. Patch-by-patch has hit diminishing
-> returns (each fix correct, overall ranking still off ⇒ a STRUCTURAL problem). On the table: a **complete
-> scoring rebuild + re-think of how we score AND how we use the simulator engine** — next step is a FRESH,
-> interview-grounded SPEC, not more patches.
+> returns (each fix correct, overall ranking still off ⇒ a STRUCTURAL problem). **✅ The interview-grounded
+> rebuild SPEC is now APPROVED (2026-06-25): [`docs/scoring-model-v2-spec.md`](./scoring-model-v2-spec.md)** —
+> TTK-vs-reference-enemies, 7 locked decisions, a mandatory corpus-validation gate (replace-in-place,
+> harness-first). **Next step = IMPLEMENT it** (fresh review → harness-first TDD build), NOT more patches.
+> The scorer stays UNTRUSTED until that lands.
 
 ## Milestone status
 
@@ -352,6 +354,15 @@ damage weapon — it's close range.** So it was a **SCORING-fidelity gap wearing
 the scorer was blind to RANGE and MANA, and the generator was *correct* to keep drills out of damage decks.
 Maintainer chose a full **fitness rebuild + simulator-driven exhaustive search** (transparent grounded
 numbers, not heuristics). Grounded by an 8-dimension multi-agent meta audit → **[`scoring-rebuild-spec.md`](./scoring-rebuild-spec.md)**.
+
+> 📋 **SUPERSEDED — v2 SPEC APPROVED (2026-06-25): [`scoring-model-v2-spec.md`](./scoring-model-v2-spec.md).**
+> The slice-by-slice fidelity rebuild logged below (v1) hit diminishing returns; the maintainer judged the
+> model **structurally** untrusted and chose a full MODEL rebuild via a fresh interview-grounded spec. v2
+> replaces abstract DPS→sat→tier with **expected TTK vs wiki-cited reference enemies**, restructures archetypes
+> (**DAMAGE/AOE/SPAM + first-class DIGGING**, MOBILITY→flag, DEFENSIVE dropped), models **pierce/multi-hit + DoT
+> magnitude**, and makes a **15–20-build corpus harness + meta-expert sign-off** the mandatory trust gate
+> (replace-in-place, harness-first; TS in-process). **The log below is now HISTORICAL context.** Next: a fresh
+> review session, then implement.
 
 - ✅ **Slice 1 — B3 range + B4 mana (`f551e77`).** `metrics.ts` gains `reachWeightedPx` (damage-weighted
   reach) + `effectiveSustainedDps` (= sustainedDps × min(1, regen/drain), mana shortfall DROPS casts per

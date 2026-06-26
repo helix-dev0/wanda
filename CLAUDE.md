@@ -8,7 +8,10 @@ A live assistant for the game **Noita** that mirrors the player's current run, s
 what their wands actually do, analyzes them, and generates strong builds. Full design lives
 in [`noita-wand-assistant-spec.md`](./noita-wand-assistant-spec.md) — read it before any
 planning. Milestones run M0 (fixtures/schema) → M6 (in-game overlay).
-**Current status + what's next: [`docs/progress.md`](./docs/progress.md)** (M0 ✅ complete).
+**Current status + what's next: [`docs/progress.md`](./docs/progress.md)** (M0 + M2–M5 shipped; M1 mod
+in progress, M6 overlay pending). **The scoring engine is mid-rebuild** — the patched heuristic scorer is
+NOT trusted; the canonical direction is the approved [`docs/scoring-model-v2-spec.md`](./docs/scoring-model-v2-spec.md)
+(TTK-grounded, 2026-06-25), pending implementation.
 
 ## NON-NEGOTIABLE invariants (already decided — do NOT re-litigate or "improve")
 
@@ -49,7 +52,10 @@ planning. Milestones run M0 (fixtures/schema) → M6 (in-game overlay).
    multiplicative-stacking math), and the engine is validated by checking its OUTPUT against meta KNOWLEDGE
    (a meta-expert reasoning from the wiki) — not by fitting to labels. The simulator stays vendored TS
    (invariant #4), so the scorer lives next to it; "use a different backend/API" doesn't change this —
-   correctness comes from the model + meta grounding, not the language.
+   correctness comes from the model + meta grounding, not the language. **Canonical realization (approved
+   2026-06-25): [`docs/scoring-model-v2-spec.md`](./docs/scoring-model-v2-spec.md) — expected TTK vs wiki-cited
+   reference enemies replaces the abstract REF blend, validated by a corpus harness + meta-expert sign-off; it
+   supersedes `docs/scoring-rebuild-spec.md` (v1).**
 
 ## Testing discipline (this is the heart of the project)
 
