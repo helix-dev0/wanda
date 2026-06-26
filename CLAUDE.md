@@ -12,8 +12,13 @@ planning. Milestones run M0 (fixtures/schema) → M6 (in-game overlay).
 in progress, M6 overlay pending). **The scoring engine was REBUILT** to the TTK-grounded
 [`docs/scoring-model-v2-spec.md`](./docs/scoring-model-v2-spec.md) (shipped + live-hardened 2026-06-26;
 replaced the untrusted heuristic scorer in place) — DAMAGE/AOE/SPAM = expected TTK vs cited reference
-enemies, DIGGING first-class, MOBILITY→flag, DEFENSIVE dropped. Band cutoffs stay provisional and a few
-blind spots remain (homing unmodeled, always-cast approximate) — see progress.md + `docs/scoring-v2-test-notes.md`.
+enemies, DIGGING first-class, MOBILITY→flag, DEFENSIVE dropped. **A 7-commit live-driven POLISH ROUND
+(2026-06-26, 471 tests) added: homing-rescues-spread, DAMAGE mana-sustainability (boss = sustained fight),
+damageModifiers/enabler generation allowlists — see progress.md.** Band cutoffs stay provisional; the
+**TOP OPEN BUG is the RECHARGE reload double-count** (a re-draw re-applies RECHARGE's recharge cut →
+inflated fire rate → weak builds read S; validated, not yet fixed — guardrail: keep the good slot-0 wand
+S). Other flagged gaps: always-cast approximate, trigger-connect optimistic, lobbed-projectile accuracy
+over-credited — see progress.md + `docs/scoring-v2-test-notes.md`.
 
 ## NON-NEGOTIABLE invariants (already decided — do NOT re-litigate or "improve")
 

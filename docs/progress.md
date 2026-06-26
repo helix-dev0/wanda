@@ -2,7 +2,7 @@
 
 > Living status doc. Companion to [`plan.md`](./plan.md) (the milestone breakdown) and
 > [`../noita-wand-assistant-spec.md`](../noita-wand-assistant-spec.md) (the design).
-> **Last updated: 2026-06-26** · branch `scoring-model-v2`. 451 tests green.
+> **Last updated: 2026-06-26** · branch `scoring-model-v2`. 471 tests green (post-ship polish round, ↓).
 >
 > 🟢 **SCORING v2 SHIPPED + live-hardened.** The TTK-grounded rebuild
 > ([`docs/scoring-model-v2-spec.md`](./scoring-model-v2-spec.md)) replaced the patched heuristic scorer
@@ -24,12 +24,71 @@
 > **suggestions no longer reshuffle** when you rearrange spells you already own (`chassisKey` keys
 > regen on chassis+owned-pool, not the deck); always-cast confirmed applied (RECHARGE ~5×'s DPS).
 >
-> **Known scorer blind spots (provisional / flagged — not bugs):** band cutoffs are PROVISIONAL
-> (#9-grounded method; the meta-expert tunes the numbers); **homing/accuracy is unmodeled** (both the
-> meta-expert and the maintainer's homing wand flagged it — the top remaining gap, and it would also
-> correctly penalize wide-spread spray builds); **always-cast is an APPROXIMATION** (prepended to the
-> deck, not fired per-cast); the mana penalty assumes CONTINUOUS fire (over-penalizes tap-fire). Open
-> items live in `docs/scoring-v2-test-notes.md`.
+> **🛠 POST-SHIP POLISH ROUND (2026-06-26, 7 commits, 471 tests) — detailed section below.** Five
+> live-driven fidelity fixes: ✅ **homing now rescues spread** (was the #1 unmodeled gap), ✅
+> **mana-sustainability** (DAMAGE boss anchor = a SUSTAINED fight → a wand that drains its pool in <1s
+> no longer reads S), ✅ **damageModifiers allowlist** (Fire Trail/Homing out of damage builds), ✅
+> **cast-speed enablers** (Luminous Drill/Chainsaw usable in damage wands). 🔴 **OPEN (validated, NOT
+> fixed): RECHARGE reload double-count** — a re-draw (trigger payload / deck-wrap) re-applies RECHARGE's
+> recharge cut → inflated fire rate → a weak spitter-spam reads S ("isn't fast at all"). Needs a careful
+> clickWand walk + #4-safe layer fix; **guardrail: keep the good slot-0 wand S**.
+>
+> **Remaining provisional / flagged (not bugs):** band cutoffs PROVISIONAL; **always-cast is an
+> APPROXIMATION** (prepended, not fired per-cast); the mana penalty assumes CONTINUOUS fire; the
+> trigger-connect is OPTIMISTIC; lobbed/bouncing-projectile accuracy is OVER-credited (a Spitter gets
+> full single-target reach). Open items live in `docs/scoring-v2-test-notes.md`.
+
+## Scoring polish round — 7 live-driven fixes (2026-06-26, `scoring-model-v2`, 471 tests)
+
+Drove the LIVE app on the maintainer's real run; each slice was diagnosed READ-ONLY (file:line + real
+numbers), fixed SIM-GROUNDED (engine untouched, #4), TDD, then fresh-context reviewed.
+
+1. **`feat(scoring): homing rescues spread`** — homing was INVISIBLE to the scorer, so it strictly
+   LOWERED a wand's DAMAGE (mana/draw cost, zero modelled benefit). Now `WandMetrics.homing` (read from
+   the engine's `extra_entities` — works even for an always-cast HOMING_CURSOR) floors the single-target
+   on-target fraction at 0.9: `onTarget = homing ? max(0.9, 20/(20+spread)) : 20/(20+spread)`. A wide
+   scatter+homing connects (HOMING+SCATTER_4 0→14/22); tight wands unchanged. Grounded
+   noita.wiki.gg/wiki/Homing (seeks foes ~150px; "accuracy can suffer" → 0.9 not 1.0). SPAM/AOE
+   untouched. Review: APPROVE.
+2. **`fix(scoring): DAMAGE weights mana sustainability`** — a wand that drained its pool in <1s scored S
+   because the TTK BOSS anchor (1000 HP) was killed during the full-mana BURST phase at the RAW rate, so
+   `effectiveSustainedDps` never entered DAMAGE (SPAM already used it). `ttkAgainst(..., sustained=true)`
+   drops the burst phase for the BOSS (a long fight = the rate you can SUSTAIN); the MID bruiser keeps
+   burst; the one-cast overkill floor is preserved (true one-shots unaffected). GOLDENS-SAFE: a
+   mana-sustainable wand has effective==raw ⇒ sustained==burst (bit-identical; review proved monotonic
+   demotion, no NaN). Live: the mana-hog suggestion S→B; the generator now surfaces mana-STABLE top
+   builds (effective 630, stalls ∞) and scores de-saturate. Review: APPROVE.
+3. **`fix(generation): damageModifiers allowlist`** — was a BLOCKLIST (`ix.modifiers.filter(!SPREAD)`),
+   so Fire Trail / Homing / Bounce got stacked into damage builds (mana cost, 0 damage — "why is Fire
+   Trail here not Damage Plus"). Now `isDamageModifier(id)` probes the real engine ([id, LIGHT_BULLET] →
+   did `damage_projectile_add` / `damage_critical_chance` / `damage_explosion_add` rise?). Live: all
+   top-3 DAMAGE builds carry Damage Plus + Critical Hit, zero Fire Trail.
+4. **`feat(generation): cast-speed enablers in damage wands`** — Luminous Drill / Chainsaw are DIG-tagged
+   (→ `isUtilitySpell` → excluded), but their value in a damage wand is ACCELERATION. `isCastSpeedEnabler(id)`
+   probes whether `[id, LIGHT_BULLET]` cuts `fire_rate_wait` below the wand's NEUTRAL `castDelay`;
+   `withEnablerVariants` seeds an enabler-prepended damage variant and the polish pool admits enablers.
+   HONEST TENSION: on a LOW-regen wand the drill (faster but thirstier) correctly loses to a Mana-Reduce
+   sustainable build — surfaced, not hidden.
+5. **`fix(generation): isCastSpeedEnabler neutral baseline`** — a fresh review (REQUEST CHANGES) caught a
+   CONTAMINATED baseline (`minFireRateWait([LIGHT_BULLET])` = 13, since the bullet sits in its own shot
+   adding +3) that mis-flagged plain DIGGER/POWERDIGGER (+1 frame, mana 0) as enablers → would prepend a
+   useless Digger and re-leak diggers to the polish pool. Fixed: compare vs `PROBE_STATS.castDelay` (the
+   neutral baseline) + regression tests.
+6. **`chore(scoring): review nits`** — dropped dead `ttkVs` (it didn't thread `sustained` — a latent
+   trap); documented two blind spots (big-pool burst-then-dry; enabler↔sustainability tension).
+
+### 🔴 TOP OPEN ITEM — validated, NOT fixed: RECHARGE reload double-count
+A RE-DRAW (a trigger/timer payload like `SPITTER_TIMER`, OR a deck-wrap forced by a trailing modifier
+like `LONG_DISTANCE_CAST`) re-casts RECHARGE, re-applying its `setCurrentReloadTime(−20)` to the SHARED
+reload accumulator: `[RECHARGE, SPITTER]` → reload **15** (correct) but `[RECHARGE, SPITTER, SPITTER_TIMER]`
+→ reload **−5** → floors to 0 recharge → cycle ~4 frames → a WEAK spitter-spam reads ~473 DPS / S, when
+the real wand recharges (~3×/sec / ~105 DPS) — maintainer ground truth: **"isn't fast at all".** BROAD
+(RECHARGE + trigger is a very common combo). Bug class VALIDATED in isolation; full-wand reproduction was
+INCONSISTENT with the live app (computed slot-0 346 DPS vs the app's 5334), so it needs a careful
+READ-ONLY walk of `src/engine/eval/clickWand.ts` (the `StartReload` / `reloadTime = args[0]` path + how
+trigger payloads / deck-wraps re-enter the draw loop) BEFORE any change — fix must be #4-safe (engine
+untouched). **GUARDRAIL: the maintainer's GOOD slot-0 wand shares RECHARGE+SPITTER_TIMER and MUST stay S**
+(its strength is the 64-HP/cast multiplier, not the rate). Full writeup: `docs/scoring-v2-test-notes.md`.
 
 ## Milestone status
 
