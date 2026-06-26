@@ -337,3 +337,31 @@ describe('generate — multi-chassis owned (build on ALL your wands, not just th
     }
   })
 })
+
+describe('generate — DIGGING is generation-first (sustainable high-tier)', () => {
+  it('surfaces a high-tier dig combo and scores it as a real, sustainable digger', () => {
+    // LUMINOUS_DRILL (tier 14, 10 mana, −cast-delay → sustains) alongside DIGGER (tier 8):
+    // the top DIGGING build picks the highest sustainable tier.
+    const r = generate(req({ pool: ['LUMINOUS_DRILL', 'DIGGER', 'LIGHT_BULLET'], archetypes: ['DIGGING'] }))
+    expect(r.DIGGING.builds.length).toBeGreaterThan(0)
+    const top = r.DIGGING.builds[0]
+    expect(top.wand.spells).toContain('LUMINOUS_DRILL')
+    expect(top.analysis.scores.DIGGING.score).toBeGreaterThan(60) // a genuine sustainable digger, not a token
+  })
+
+  it('ranks a sustainable top-tier digger above an unsustainable one on a tight chassis', () => {
+    // A mana-tight chassis: Luminous Drill (10 mana) still sustains; Black Hole (180 mana) stalls.
+    const tight = chassis({ manaMax: 120, mana: 120, manaChargeSpeed: 30, capacity: 4 })
+    const r = generate(req({ pool: ['LUMINOUS_DRILL', 'BLACK_HOLE'], chassis: [tight], archetypes: ['DIGGING'] }))
+    expect(r.DIGGING.builds.length).toBeGreaterThan(0)
+    expect(r.DIGGING.builds[0].wand.spells).toContain('LUMINOUS_DRILL')
+  })
+
+  it('a damage build never wastes a slot on a digger (digging stays the DIGGING tab)', () => {
+    const r = generate(req({ pool: ['LIGHT_BULLET', 'DAMAGE', 'LUMINOUS_DRILL', 'DIGGER'], archetypes: ['DAMAGE'] }))
+    expect(r.DAMAGE.builds.length).toBeGreaterThan(0)
+    for (const b of r.DAMAGE.builds) {
+      expect(deckHasDig(b.wand), `DAMAGE build [${b.wand.spells.filter(Boolean).join(',')}] should not dig`).toBe(false)
+    }
+  })
+})

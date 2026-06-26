@@ -219,8 +219,12 @@ function shotDamage(shot: WandShot, onMissing: () => void, depth = 0): number {
       // Direct HP = combat damage (untyped + typed slice/electricity/melee/fire/ice/…, B1) MINUS
       // digging (drill / curated digging beams are terrain work, not combat — see combatDamage),
       // plus the shot's damage_projectile_add. Without the typed sum CHAINSAW (slice) read 0; with
-      // the digging exclusion a drill ENABLER no longer counts as offensive damage.
-      hp += Math.max(0, combatDamage(p.entity, st) + projAdd) * DAMAGE_UNIT_HP * critMul
+      // the digging exclusion a drill ENABLER no longer counts as offensive damage. The flat
+      // +projAdd only buffs a projectile that ALREADY deals combat damage — it cannot turn a pure
+      // digging beam into a damage shot, else [Damage Plus ×N, Luminous Drill] reads as a fake
+      // damage build (the digger-inflation bug the digging exclusion exists to prevent).
+      const base = combatDamage(p.entity, st)
+      if (base > 0) hp += Math.max(0, base + projAdd) * DAMAGE_UNIT_HP * critMul
       if (st.explosionDamage > 0 || explAdd > 0) {
         // Crit applies to ALL damage types, not just projectile damage — including the
         // explosion (B2a; noita.wiki.gg/wiki/Critical_hit). ×1 when no crit (goldens safe).

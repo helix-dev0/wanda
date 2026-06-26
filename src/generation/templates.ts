@@ -8,6 +8,7 @@
 // loop are the source of truth. Thresholds are intentionally loose.
 
 import type { Archetype } from '../analysis'
+import { DIG_TIER } from '../analysis/digging'
 import type { TemplateId } from './types'
 import { type PoolIndex, projectilesByMana, damageProjectilesByMana, damageModifiers } from './poolIndex'
 
@@ -236,9 +237,12 @@ const diggingFill: Template = {
   archetypes: ['DIGGING'],
   instantiate({ index, capacity, caps }) {
     if (index.diggers.length === 0 || capacity < 1) return []
+    // Lead with the highest-CAPABILITY diggers (the scorer then rewards the SUSTAINABLE ones,
+    // so a sustainable Luminous Drill out-ranks a stalling Black Hole on its own merits).
+    const diggers = [...index.diggers].sort((a, b) => (DIG_TIER[b] ?? 0) - (DIG_TIER[a] ?? 0))
     const used = new Map<string, number>()
     const deck: string[] = []
-    for (const id of index.diggers) {
+    for (const id of diggers) {
       if (deck.length >= capacity) break
       if (place(caps, used, id)) deck.push(id)
     }
