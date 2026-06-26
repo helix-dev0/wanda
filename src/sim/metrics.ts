@@ -2,12 +2,12 @@
 //
 // Everything here is computed from clickWand's output (WandShot[] + reloadTime)
 // joined with the wand's snapshot stats and the projectile base-stats table.
-// Damage is honestly APPROXIMATE: raw HP, neutral resistances, single-hit
-// (pierce/bounce not multiplied). It now models: typed damage_by_type (B1),
-// crit on ALL channels — projectile + explosion + AoE blast (B2), trigger
-// payloads (recursive), mana-limited effective DPS (B4), and damage-weighted
-// reach (B3). Velocity/speed damage remains DEFERRED (anti-proxy). See docs/
-// scoring-rebuild-spec.md.
+// Damage is honestly APPROXIMATE: raw HP, neutral resistances, single-target single-hit
+// (pierce/bounce not multiplied INTO per-cast damage). It models: typed damage_by_type,
+// crit on ALL channels — projectile + explosion + AoE blast, trigger payloads (recursive),
+// mana-limited effective DPS, damage-weighted reach, and the v2 TTK ingredients
+// (firstCastSeconds + penetration capability for AOE coverage, S2). Velocity/speed damage
+// remains DEFERRED (anti-proxy). See docs/scoring-model-v2-spec.md.
 
 import type { WandShot } from '../engine/eval/types'
 import type { WandStats } from '../schema/snapshot'

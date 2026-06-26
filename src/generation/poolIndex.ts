@@ -15,9 +15,6 @@ export interface PoolIndex {
   triggers: string[]
   multicasts: string[]
   diggers: string[]
-  mobility: string[]
-  defensive: string[]
-  homing: string[]
   /** type PROJECTILE | STATIC_PROJECTILE — things that can be a payload/spam shot. */
   projectiles: string[]
   /** type MODIFIER — damage/spread/etc. tweaks placed before a projectile. */
@@ -38,9 +35,6 @@ export function buildPoolIndex(pool: Iterable<string>): PoolIndex {
     triggers: [],
     multicasts: [],
     diggers: [],
-    mobility: [],
-    defensive: [],
-    homing: [],
     projectiles: [],
     modifiers: [],
   }
@@ -55,9 +49,6 @@ export function buildPoolIndex(pool: Iterable<string>): PoolIndex {
     if (feats.includes('TRIGGER')) ix.triggers.push(id)
     if (feats.includes('MULTICAST')) ix.multicasts.push(id)
     if (feats.includes('DIG')) ix.diggers.push(id)
-    if (feats.includes('MOBILITY')) ix.mobility.push(id)
-    if (feats.includes('DEFENSIVE')) ix.defensive.push(id)
-    if (feats.includes('HOMING')) ix.homing.push(id)
 
     const type = getSpell(id)?.type
     if (type === ACTION_TYPE.PROJECTILE || type === ACTION_TYPE.STATIC_PROJECTILE) {

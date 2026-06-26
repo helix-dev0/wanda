@@ -2,18 +2,19 @@
 
 > Living status doc. Companion to [`plan.md`](./plan.md) (the milestone breakdown) and
 > [`../noita-wand-assistant-spec.md`](../noita-wand-assistant-spec.md) (the design).
-> **Last updated: 2026-06-25** · branch `feat/scoring-rebuild`. 378 tests green.
+> **Last updated: 2026-06-25** · branch `scoring-model-v2`. 438 tests green.
 >
-> 🔴 **SCORING NOT YET TRUSTED (maintainer verdict, 2026-06-24).** Many individually-correct, reviewed
-> slice-fixes have shipped (reach-by-weapon-kind, achievable mana-bounded burst, digging-excluded-from-
-> combat-DPS, payload damage, crit, reload-overlap, …) — but the maintainer's holistic judgment is that
-> the **build ranking still does NOT work well.** A per-slice "✅ FIXED" means that specific bug is gone,
-> **NOT** that the scorer is good or that the maintainer is satisfied. Patch-by-patch has hit diminishing
-> returns (each fix correct, overall ranking still off ⇒ a STRUCTURAL problem). **✅ The interview-grounded
-> rebuild SPEC is now APPROVED (2026-06-25): [`docs/scoring-model-v2-spec.md`](./scoring-model-v2-spec.md)** —
-> TTK-vs-reference-enemies, 7 locked decisions, a mandatory corpus-validation gate (replace-in-place,
-> harness-first). **Next step = IMPLEMENT it** (fresh review → harness-first TDD build), NOT more patches.
-> The scorer stays UNTRUSTED until that lands.
+> 🟡 **SCORING v2 IMPLEMENTED — pending the final trust gate.** The TTK-grounded rebuild
+> ([`docs/scoring-model-v2-spec.md`](./scoring-model-v2-spec.md)) replaced the patched heuristic scorer
+> in place (S0→S6): DAMAGE/AOE/SPAM are now **expected time-to-kill vs cited reference enemies**
+> (Isohiisi 150 / Ylialkemisti 1000 / Haulikkohiisi 22.5), DIGGING is a first-class **capability ×
+> sustainability** archetype, MOBILITY is a capability flag, DEFENSIVE is dropped. Validated by the
+> first-class **3-layer corpus harness** (`src/data/corpus/`) — Layer A fidelity, Layer B routing,
+> Layer C cited orderings, plus the §7.5 maintainer ground-truth cases — all green; tier-list UI
+> browser-verified. The pierce/penetration data prerequisite was met by regenerating the projectile
+> table (`penetrate_entities`/`on_collision_die`). **Band cutoffs are PROVISIONAL** (method fixed, #9
+> grounding) — the §7 trust gate's **meta-expert sign-off** tunes the exact numbers and confirms
+> soundness before the maintainer calls the scorer TRUSTED.
 
 ## Milestone status
 
