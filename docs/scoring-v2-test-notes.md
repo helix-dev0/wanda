@@ -41,4 +41,24 @@ order / wrong tier) · `metric` (a number reads wrong) · `copy` (label/wording)
 
 ## Findings
 
+### [blocker] RECHARGE recharge-cut double-counts → inflated fire rate (sim fidelity, 2026-06-26)
+- Where: any DAMAGE build pairing `RECHARGE` with a RE-DRAW — a trigger/timer payload (`SPITTER_TIMER`)
+  or a deck-wrap forced by a trailing modifier (`LONG_DISTANCE_CAST`). Surfaced on a slot-3 "Multiplier
+  build" (`MANA_REDUCE, CRITICAL_HIT, RECHARGE, SPITTER, LONG_DISTANCE_CAST, SPITTER_TIMER`) rated S/82
+  that the maintainer confirms is horrible + **"isn't fast at all"**.
+- Isolation (`computeMetrics` reloadTime, slot-3 chassis): `[RECHARGE, SPITTER]` → reload **15** (correct:
+  base 35 − 20). `[RECHARGE, SPITTER, SPITTER_TIMER]` → reload **−5** (RECHARGE's `setCurrentReloadTime(−20)`
+  applied TWICE). The re-draw re-casts RECHARGE into the SHARED reload accumulator. reload floors to 0 →
+  cycle collapses to ~4 frames → model reads ~15×/sec / ~473 DPS; the real wand recharges (~3×/sec / ~105
+  DPS). This is the fake-DPS source that makes a weak spitter-spam read S.
+- BROAD: RECHARGE + trigger/timer is a very common combo. **GUARDRAIL:** the maintainer's GOOD slot-0 wand
+  (`DAMAGE, CRITICAL_HIT, BURST_2, SPITTER, RECHARGE, SPITTER_TIMER×2, MANA_REDUCE×2`) shares RECHARGE +
+  SPITTER_TIMER — any fix MUST keep it S (its strength is the 64-HP/cast multiplier, not the rate).
+- STATUS: bug class **validated in isolation**; full-wand reproduction was INCONSISTENT with the live app
+  (computed slot-0 346 DPS vs app's 5334), so the exact draw/reload interaction (order-dependent re-draws?
+  engine module-state between `simulateWand` calls?) needs a careful READ-ONLY investigation of
+  `src/engine/eval/clickWand.ts` (the `StartReload`/`reloadTime = args[0]` path + how trigger payloads /
+  deck-wrap re-enter the draw loop) BEFORE any change. Fix must be in OUR layer (#4: engine untouched).
+  Do NOT rush — verify it demotes the bad build AND keeps the good slot-0 wand S.
+
 <!-- add entries below this line -->
