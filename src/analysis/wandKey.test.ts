@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Wand } from '../schema/snapshot'
-import { wandKey } from './wandKey'
+import { wandKey, chassisKey } from './wandKey'
 
 const makeWand = (over: Partial<Wand> = {}): Wand => ({
   slot: 0,
@@ -56,5 +56,22 @@ describe('wandKey', () => {
       stats: Object.fromEntries(Object.entries(base.stats).reverse()) as Wand['stats'],
     }
     expect(wandKey(reordered)).toBe(wandKey(base))
+  })
+})
+
+describe('chassisKey (the regeneration key — deck-independent)', () => {
+  it('is the SAME when ONLY the deck changes — rearranging owned spells must not re-rank suggestions', () => {
+    expect(chassisKey(makeWand({ spells: ['GRENADE', 'DAMAGE', 'NUKE'] }))).toBe(
+      chassisKey(makeWand({ spells: ['BUBBLESHOT'] })),
+    )
+  })
+
+  it('varies with a real chassis change (capacity / stats / always-cast)', () => {
+    expect(chassisKey(makeWand({ stats: { ...makeWand().stats, capacity: 8 } }))).not.toBe(chassisKey(makeWand()))
+    expect(chassisKey(makeWand({ always_cast: ['RECHARGE'] }))).not.toBe(chassisKey(makeWand()))
+  })
+
+  it('is stable across the volatile current mana (firing must not re-fire generation)', () => {
+    expect(chassisKey(makeWand({ stats: { ...makeWand().stats, mana: 12 } }))).toBe(chassisKey(makeWand()))
   })
 })

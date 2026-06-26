@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { uiStore } from '../store/uiStore'
 import { ownedCounts } from '../store/runStore'
-import { wandKey } from '../analysis/wandKey'
+import { chassisKey } from '../analysis/wandKey'
 import { useRunStore } from './useRunStore'
 import { useUiStore } from './useUiStore'
 import { requestGenerate } from '../generation/workerClient'
@@ -58,17 +58,20 @@ export function useGeneration(): void {
   const theorycraft = useUiStore((s) => s.theorycraft)
   const constraints = useUiStore((s) => s.constraints)
 
-  // Stable signature of everything generation ACTUALLY depends on. Critically it EXCLUDES
-  // the volatile current `mana` (wandKey already drops it; we add slot + active for chassis
-  // selection) — so while the player fires, only `mana` ticks and this string is unchanged.
-  // Without it, the snapshot's new `wands` ref re-ran generation on EVERY shot (~2×/s), which
-  // flipped the tier list to a loading state each frame = the jarring "page-reload" flash.
-  // A real change (swap/reorder a spell, switch the active wand, pick up a spell, take a perk,
-  // toggle a constraint/theorycraft) DOES change the signature → exactly one graceful regen.
+  // Stable signature of everything generation ACTUALLY depends on — and ONLY that. Generation
+  // builds FRESH decks onto each carried wand's CHASSIS from the OWNED pool, so it depends on the
+  // chassis (capacity + stats + always-casts, via chassisKey), the owned counts, perks, and the
+  // dial inputs — NOT the current wand DECKS, nor which wand is active. So rearranging spells you
+  // already own (socketing a bag spell onto a wand to match a suggestion) leaves this unchanged
+  // → NO regen, the suggestions hold still. Only ACQUIRING a new wand / spell / perk (or changing
+  // a wand's stats, or a constraint) moves it → exactly one graceful regen. Mana is excluded too
+  // (chassisKey drops it), so firing doesn't re-fire generation.
   const genKey = useMemo(
     () =>
       JSON.stringify({
-        wands: wands.map((w) => ({ slot: w.slot, active: !!w.active, key: wandKey(w) })),
+        chassis: wands
+          .map((w) => ({ slot: w.slot, key: chassisKey(w) }))
+          .sort((a, b) => a.slot - b.slot),
         counts: theorycraft ? null : [...ownedCounts(wands, bag)].sort(),
         perks: perks.map((p) => p.id).sort(), // id only: generation reads immunity PRESENCE, not stacks
         theorycraft,
