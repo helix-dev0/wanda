@@ -21,7 +21,7 @@ import {
   MAX_ROUNDS,
   POLISH_POOL_MAX,
 } from './budget'
-import { buildPoolIndex, isUtilitySpell, type PoolIndex } from './poolIndex'
+import { buildPoolIndex, isUtilitySpell, isChargeSpell, type PoolIndex } from './poolIndex'
 import { countCombinations, enumerateDecks } from './exhaustive'
 import { TEMPLATES, TEMPLATE_ORDER } from './templates'
 import type {
@@ -291,7 +291,13 @@ function generateExhaustive(
  * "run all options". Otherwise (large pool / theorycraft full-DB) fall back to the bounded
  * template-seed + local-search path. Both rank on the same honest fitness.
  */
-export function generate(req: GenerateRequest): GenerateResult {
+export function generate(reqIn: GenerateRequest): GenerateResult {
+  // Drop charge-limited spells (finite max_uses) from the GENERATION pool unless the player
+  // has the Unlimited Spells perk or opts in — the suggestor shouldn't push a build that runs
+  // dry. Held wands are unaffected (this only filters what we BUILD, not what we score).
+  const allowCharges =
+    reqIn.constraints.allowChargeSpells === true || reqIn.perks.some((p) => p.id === 'UNLIMITED_SPELLS')
+  const req: GenerateRequest = allowCharges ? reqIn : { ...reqIn, pool: reqIn.pool.filter((id) => !isChargeSpell(id)) }
   const ix = buildPoolIndex(req.pool)
   // Owned-copy caps (M5 quantity fix): a Map for O(1) lookups in templates + polish.
   // Absent ⇒ unlimited (theorycraft); never constrains a build to fewer copies.

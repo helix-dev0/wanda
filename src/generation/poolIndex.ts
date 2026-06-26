@@ -26,6 +26,13 @@ export function spellMana(id: string): number {
   return getSpell(id)?.mana ?? 0
 }
 
+/** A CHARGE-limited spell: the spell DB sets `max_uses` only on limited spells (absent ⇒
+ *  unlimited). Generation drops these unless the player has Unlimited Spells (or opts in), so
+ *  it never recommends a build that runs out of charges. */
+export function isChargeSpell(id: string): boolean {
+  return getSpell(id)?.max_uses != null
+}
+
 /** Bucket a pool of spell ids by role in one pass. Unknown/modded ids land only
  *  in `all` (their type/features resolve empty) — never throws. */
 export function buildPoolIndex(pool: Iterable<string>): PoolIndex {

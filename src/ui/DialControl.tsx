@@ -66,6 +66,14 @@ export function DialControl() {
           />
           no self-damage
         </label>
+        <label className="dial-toggle" title="Include builds using spells with limited charges (auto-on with the Unlimited Spells perk)">
+          <input
+            type="checkbox"
+            checked={constraints.allowChargeSpells === true}
+            onChange={(e) => setConstraints({ ...constraints, allowChargeSpells: e.target.checked })}
+          />
+          show charge builds
+        </label>
         <label className="dial-toggle" title="Build from the entire spell DB, not just what you've seen">
           <input
             type="checkbox"

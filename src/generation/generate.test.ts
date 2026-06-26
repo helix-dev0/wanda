@@ -365,3 +365,19 @@ describe('generate — DIGGING is generation-first (sustainable high-tier)', () 
     }
   })
 })
+
+describe('generate — charge-limited spells gated on the Unlimited Spells perk', () => {
+  const chargePool = ['LIGHT_BULLET', 'DAMAGE', 'GRENADE_TIER_3'] // GRENADE_TIER_3 has max_uses=20
+  const usesGrenade = (r: ReturnType<typeof generate>) =>
+    allBuilds(r).some((b) => b.wand.spells.includes('GRENADE_TIER_3'))
+
+  it('excludes charge spells from generation by default (no Unlimited Spells perk)', () => {
+    expect(usesGrenade(generate(req({ pool: chargePool })))).toBe(false)
+  })
+  it('includes them when the player has the Unlimited Spells perk', () => {
+    expect(usesGrenade(generate(req({ pool: chargePool, perks: [{ id: 'UNLIMITED_SPELLS', stacks: 1 }] })))).toBe(true)
+  })
+  it('includes them when the player opts in via "show charge builds"', () => {
+    expect(usesGrenade(generate(req({ pool: chargePool, constraints: { allowChargeSpells: true } })))).toBe(true)
+  })
+})
