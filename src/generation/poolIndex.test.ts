@@ -86,6 +86,20 @@ describe('castSpeedEnablers — sim-grounded accelerants for damage wands', () =
     expect(isCastSpeedEnabler('DAMAGE')).toBe(false) // Damage Plus SLOWS (fire_rate_wait += 5)
   })
 
+  it('isCastSpeedEnabler FALSE for a plain DIGGER / POWERDIGGER (the +1-frame false positive)', () => {
+    // These are DIG-tagged + mana 0; a bare-bullet baseline mis-flagged them as enablers, so the
+    // cheapest-first pick prepended a useless DIGGER instead of the Drill. The neutral-castDelay
+    // baseline fixes it: +1 frame does NOT drive fire_rate_wait below the wand's cast delay.
+    expect(isCastSpeedEnabler('DIGGER')).toBe(false)
+    expect(isCastSpeedEnabler('POWERDIGGER')).toBe(false)
+  })
+
+  it('castSpeedEnablers excludes a plain DIGGER and keeps the real accelerant', () => {
+    const e = castSpeedEnablers(buildPoolIndex(['DIGGER', 'LUMINOUS_DRILL']))
+    expect(e).not.toContain('DIGGER') // would otherwise lead (mana 0, sorted cheapest-first)
+    expect(e).toContain('LUMINOUS_DRILL')
+  })
+
   it('castSpeedEnablers lists only the pool enablers', () => {
     const ix = buildPoolIndex(['LIGHT_BULLET', 'DAMAGE', 'LUMINOUS_DRILL', 'CHAINSAW'])
     const e = castSpeedEnablers(ix)

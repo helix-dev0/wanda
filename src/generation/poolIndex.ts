@@ -152,7 +152,6 @@ export function damageModifiers(ix: PoolIndex): string[] {
   return ix.modifiers.filter((id) => isDamageModifier(id) && !SPREAD_MODIFIERS.has(id))
 }
 
-let probeBaseFireRate: number | undefined
 const castSpeedEnablerCache = new Map<string, boolean>()
 
 /** The smallest per-shot fire_rate_wait (cast delay, frames) any shot of `spells` reaches in the
@@ -171,14 +170,17 @@ function minFireRateWait(spells: string[]): number {
  *  (zero) combat damage? Luminous Drill (fire_rate_wait −35) and Chainsaw (→ ~0) cut cast delay and
  *  so speed the whole cycle; the meta puts them in damage wands as accelerants, and the honest
  *  scorer then ranks enabler+payload high, enabler-only ~0 (verified: a Luminous-Drill damage wand
- *  ~tripled its sustained DPS). Grounded in the engine — probe whether [id, LIGHT_BULLET] drives
- *  fire_rate_wait BELOW a bare bullet — so it catches modded accelerants, nothing hand-listed.
- *  Memoized; engine-deterministic. */
+ *  ~tripled its sustained DPS). Grounded in the engine — probe whether `[id, LIGHT_BULLET]` drives
+ *  fire_rate_wait BELOW the wand's NEUTRAL cast delay (PROBE_STATS.castDelay). That neutral baseline
+ *  is load-bearing: clickWand resets fire_rate_wait to castDelay PER shot and LIGHT_BULLET sits in
+ *  its OWN shot adding +3, so a bare-bullet baseline (13) would mis-flag any card adding < +3 frames
+ *  — e.g. a plain DIGGER (+1) — as an "enabler". Comparing to castDelay isolates `id`'s OWN
+ *  reduction: only a real accelerant drives below it (Drill −35, Chainsaw →0); DIGGER/POWERDIGGER
+ *  (+1) do not. Catches modded accelerants, nothing hand-listed. Memoized; engine-deterministic. */
 export function isCastSpeedEnabler(id: string): boolean {
   const hit = castSpeedEnablerCache.get(id)
   if (hit !== undefined) return hit
-  if (probeBaseFireRate === undefined) probeBaseFireRate = minFireRateWait([PROBE_PROJECTILE])
-  const enabler = minFireRateWait([id, PROBE_PROJECTILE]) < probeBaseFireRate
+  const enabler = minFireRateWait([id, PROBE_PROJECTILE]) < PROBE_STATS.castDelay
   castSpeedEnablerCache.set(id, enabler)
   return enabler
 }

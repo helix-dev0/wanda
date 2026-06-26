@@ -57,10 +57,16 @@ function withEnablerVariants(
 ): Seed[] {
   const enabler = castSpeedEnablers(ix).find((id) => (caps?.get(id) ?? Infinity) >= 1)
   if (!enabler) return seeds
-  const variants = seeds
-    .filter(({ deck }) => !deck.includes(enabler))
-    .map(({ template, deck }) => ({ template, deck: [enabler, ...deck].slice(0, capacity) }))
-  return seeds.concat(variants)
+  // Interleave each enabler variant right AFTER its base seed, so a divided polish budget reaches
+  // the variants too (not all bases first). Prepending at capacity drops the tail; skip a variant
+  // that thereby loses its last damage PAYLOAD (a degenerate deck with nothing for the multicast to
+  // draw) rather than waste a sim on it.
+  return seeds.flatMap((seed) => {
+    if (seed.deck.includes(enabler)) return [seed]
+    const deck = [enabler, ...seed.deck].slice(0, capacity)
+    const hasPayload = deck.some((id) => id !== enabler && ix.projectiles.includes(id))
+    return hasPayload ? [seed, { template: seed.template, deck }] : [seed]
+  })
 }
 
 /** Lay a seed deck onto the chassis: chassis stats + always-cast, new spells[]
