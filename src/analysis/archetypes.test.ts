@@ -171,6 +171,31 @@ describe('scoreWand — homing rescues spread (single-target accuracy)', () => {
   })
 })
 
+describe('scoreWand — DAMAGE weights mana sustainability (boss = a sustained fight)', () => {
+  // A wand that drains its pool in <1s can BURST the mid bruiser but can't SUSTAIN the boss; the
+  // boss anchor uses the mana-honest effective rate, so it can't read elite. Maintainer-confirmed
+  // live: the top "S" suggestion "instantly depletes ... starts firing poorly".
+  const manaHog = scoreSynth({
+    sustainedDps: 5000, effectiveSustainedDps: 28, secondsUntilStall: 0.3,
+    cycleSeconds: 0.02, damagePerCast: 100, damagePerCycle: 100, firstCastSeconds: 0.02,
+  }).DAMAGE
+
+  it('a mana-hog (drains in <1s) no longer reads S and lands below a sustainable wand', () => {
+    expect(manaHog.tier).not.toBe('S')
+    expect(manaHog.score).toBeLessThan(dmgScore(300).DAMAGE.score) // a steady 300-DPS wand outranks it
+  })
+
+  it('surfaces the mana-limited reason on the mana-hog', () => {
+    expect(manaHog.reasons.join(' ')).toMatch(/mana-limited/i)
+  })
+
+  it('leaves a mana-SUSTAINABLE wand unchanged (regression guard — effective == raw)', () => {
+    // sustained boss == burst boss when the wand pays for its own fire, so the calibration holds.
+    expect(dmgScore(700).DAMAGE.tier).toBe('S')
+    expect(dmgScore(100).DAMAGE.tier).not.toBe('S')
+  })
+})
+
 describe('scoreWand — fixture orderings (signature-dominant)', () => {
   beforeEach(() => clearSimCache())
 

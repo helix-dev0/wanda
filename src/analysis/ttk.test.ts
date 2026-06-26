@@ -39,6 +39,35 @@ describe('ttkAgainst', () => {
     expect(ttkAgainst(m, 150, NO_FOCUS)).toBeCloseTo(1.0)
   })
 
+  it('sustained mode rates a long fight at the mana-honest rate (no stored-mana burst)', () => {
+    // Bursts at 5000 raw but stalls in 0.3s and sustains only 28 effective; NOT a one-shot.
+    const m = metrics({
+      sustainedDps: 5000, effectiveSustainedDps: 28, secondsUntilStall: 0.3,
+      damagePerCast: 100, firstCastSeconds: 0.02,
+    })
+    // Burst (default): kills the 1000-HP boss INSIDE the 0.3s burst at the raw rate → <0.5s.
+    expect(ttkAgainst(m, 1000, NO_FOCUS)).toBeLessThan(0.5)
+    // Sustained: must use the 28 effective rate → 1000/28 ≈ 35.7s (it can't burst a boss down).
+    expect(ttkAgainst(m, 1000, NO_FOCUS, true)).toBeCloseTo(1000 / 28, 0)
+  })
+
+  it('sustained mode == burst mode for a mana-SUSTAINABLE wand (goldens-safe)', () => {
+    const m = metrics({
+      sustainedDps: 300, effectiveSustainedDps: 300, secondsUntilStall: null,
+      damagePerCast: 50, firstCastSeconds: 0.1,
+    })
+    expect(ttkAgainst(m, 1000, NO_FOCUS, true)).toBeCloseTo(ttkAgainst(m, 1000, NO_FOCUS), 5)
+  })
+
+  it('sustained mode still honors the one-shot overkill floor (a TRUE one-shot is preserved)', () => {
+    // A genuine one-cast 1200-HP nuke one-shots the boss even though it can't sustain its fire.
+    const m = metrics({
+      damagePerCast: 1200, sustainedDps: 1200, effectiveSustainedDps: 5,
+      secondsUntilStall: 0.1, firstCastSeconds: 0.05,
+    })
+    expect(ttkAgainst(m, 1000, NO_FOCUS, true)).toBe(0.05)
+  })
+
   it('a wand that deals no damage at all cannot kill (Infinity)', () => {
     // sustainedDps 0 (a pure digger) — genuinely can't kill.
     expect(ttkAgainst(metrics({ damagePerCast: 0, sustainedDps: 0 }), 150, NO_FOCUS)).toBe(Infinity)

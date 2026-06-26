@@ -30,12 +30,19 @@ const dotTypeCount = (d: WandMetrics['appliesDot']): number =>
 
 /** Seconds to deliver `hp` of PROJECTILE damage at the focused rate, modelling mana as two
  *  phases: full-mana until the wand stalls (`secondsUntilStall`), then mana-throttled
- *  (`effectiveSustainedDps`). Infinity if it deals no damage or stalls before the kill. */
-function projectileKillSeconds(m: WandMetrics, f: FocusFactors, hp: number): number {
+ *  (`effectiveSustainedDps`). Infinity if it deals no damage or stalls before the kill.
+ *
+ *  `sustained` (the boss anchor — a LONG fight): drop the full-mana burst phase, so the wand
+ *  delivers only the rate it can actually pay for (`effectiveSustainedDps`) from t=0. A wand that
+ *  drains its pool in <1s then can't "burst down" a 1000-HP boss off stored mana — it's rated on
+ *  what it SUSTAINS, not its momentary peak. A mana-sustainable wand has effective == raw, so this
+ *  is IDENTICAL to the burst path for it (goldens-safe). Grounded: you can't out-burst a boss you
+ *  can't out-last (maintainer-confirmed: a wand that instantly depletes "starts firing poorly"). */
+function projectileKillSeconds(m: WandMetrics, f: FocusFactors, hp: number, sustained = false): number {
   if (hp <= 0) return 0
-  const fullRate = m.sustainedDps * f.onTarget * f.reach
+  const fullRate = (sustained ? m.effectiveSustainedDps : m.sustainedDps) * f.onTarget * f.reach
   if (fullRate <= 0) return Infinity
-  const burstSeconds = m.secondsUntilStall ?? Infinity // null = sustainable forever
+  const burstSeconds = sustained ? Infinity : (m.secondsUntilStall ?? Infinity) // null = sustainable forever
   const hpInBurst = fullRate * burstSeconds
   if (hpInBurst >= hp) return hp / fullRate // killed during the full-mana phase
   const throttRate = m.effectiveSustainedDps * f.onTarget * f.reach
@@ -44,11 +51,12 @@ function projectileKillSeconds(m: WandMetrics, f: FocusFactors, hp: number): num
 }
 
 /** HP the projectiles deliver BY time `t` — the inverse of projectileKillSeconds, two-phase
- *  (full-mana until it stalls, then throttled). Monotonic non-decreasing in t. */
-function projectileHpByTime(m: WandMetrics, f: FocusFactors, t: number): number {
+ *  (full-mana until it stalls, then throttled). Monotonic non-decreasing in t. `sustained`
+ *  collapses both phases to the mana-honest rate (see projectileKillSeconds). */
+function projectileHpByTime(m: WandMetrics, f: FocusFactors, t: number, sustained = false): number {
   if (t <= 0) return 0
-  const fullRate = m.sustainedDps * f.onTarget * f.reach
-  const burstSeconds = m.secondsUntilStall ?? Infinity
+  const fullRate = (sustained ? m.effectiveSustainedDps : m.sustainedDps) * f.onTarget * f.reach
+  const burstSeconds = sustained ? Infinity : (m.secondsUntilStall ?? Infinity)
   if (t <= burstSeconds) return fullRate * t
   const throttRate = m.effectiveSustainedDps * f.onTarget * f.reach
   return fullRate * burstSeconds + throttRate * (t - burstSeconds)
@@ -59,8 +67,12 @@ function projectileHpByTime(m: WandMetrics, f: FocusFactors, t: number): number 
  * softener (2%/s of MAX HP, capped at the ~2%-HP floor so it can't finish) and a one-cast
  * overkill floor (a one-shot kills in `firstCastSeconds` — best possible for that enemy).
  * Monotonic non-increasing in damage. Infinity ⇒ cannot kill (e.g. a pure digger).
+ *
+ * `sustained` rates a LONG fight at the mana-honest rate (the boss anchor — see
+ * projectileKillSeconds); the one-cast overkill floor still applies, so a TRUE one-shot nuke is
+ * preserved even in sustained mode (it's a real kill, not a stored-mana burst it can't repeat).
  */
-export function ttkAgainst(m: WandMetrics, hp: number, f: FocusFactors): number {
+export function ttkAgainst(m: WandMetrics, hp: number, f: FocusFactors, sustained = false): number {
   // One-cast overkill floor: a single cast one-shots the enemy (best possible TTK for it).
   const focusedPerCast = m.damagePerCast * f.onTarget * f.reach
   if (focusedPerCast > 0 && focusedPerCast >= hp) return m.firstCastSeconds
@@ -71,7 +83,7 @@ export function ttkAgainst(m: WandMetrics, hp: number, f: FocusFactors): number 
   // wand still deals real damage on its later casts, so it must NOT read as Infinity just
   // because damagePerCast (the first shot) is 0. projectileKillSeconds returns Infinity iff the
   // wand deals NO cycle damage at all (sustainedDps == 0) — the genuine "can't kill" case.
-  const noDot = projectileKillSeconds(m, f, hp)
+  const noDot = projectileKillSeconds(m, f, hp, sustained)
   const dotRate = dotTypeCount(m.appliesDot) * DOT_RATE_PER_SEC * hp // HP/s the stains tick
   if (dotRate <= 0 || !Number.isFinite(noDot)) return Math.max(noDot, m.firstCastSeconds)
 
@@ -81,7 +93,7 @@ export function ttkAgainst(m: WandMetrics, hp: number, f: FocusFactors): number 
   // and exact-to-tolerance (the old fixed-point iteration oscillated for dotRate ≥ projRate,
   // returning a parity-dependent, far-too-pessimistic value).
   const dotCap = (1 - DOT_FLOOR_FRACTION) * hp
-  const delivered = (t: number) => projectileHpByTime(m, f, t) + Math.min(dotCap, dotRate * t)
+  const delivered = (t: number) => projectileHpByTime(m, f, t, sustained) + Math.min(dotCap, dotRate * t)
   let lo = 0
   let hi = noDot
   for (let i = 0; i < 50; i++) {

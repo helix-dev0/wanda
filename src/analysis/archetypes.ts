@@ -101,8 +101,13 @@ function dotLabel(d: WandMetrics['appliesDot']): string {
  *  separate inflatable burst term. */
 function scoreDamage(m: WandMetrics): ArchetypeScore {
   const f = focusFactors(m)
+  // Mid bruiser = a SHORT fight: bursting it down off a full mana pool is fair (burst phase on).
+  // Boss sponge = a LONG fight: scored at the rate the wand can SUSTAIN (mana-honest), so a wand
+  // that instantly depletes its mana can't read elite here — it "starts firing poorly" mid-fight
+  // (maintainer-confirmed). A TRUE one-shot still wins via the overkill floor. This is what lets a
+  // constant-fire, mana-stable wand out-rank a higher-PEAK wand that drains its pool in <1s.
   const ttkMid = ttkAgainst(m, REFERENCE_ENEMIES.midBruiser.hp, f)
-  const ttkBoss = ttkAgainst(m, REFERENCE_ENEMIES.bossSponge.hp, f)
+  const ttkBoss = ttkAgainst(m, REFERENCE_ENEMIES.bossSponge.hp, f, true)
   const score =
     0.4 * scoreFromTtk(ttkMid, DAMAGE_BANDS_MID) + 0.6 * scoreFromTtk(ttkBoss, DAMAGE_BANDS_BOSS)
   const reasons: string[] = []
