@@ -54,7 +54,11 @@ export function digCapability(wand: Wand): number {
  *  reuses the mana-sustainability metric so a Wand-Refresh / Greek-letter loop that DOES
  *  sustain reads as sustainable. */
 export function digSustainability(m: WandMetrics): number {
-  return m.manaSustainable ? 1 : 0.35
+  // PROVISIONAL penalty, softened so it can't invert the dig-tier order: a stalling top-tier
+  // all-material digger (Black Hole, breaks ANY material slowly) must still out-rank a
+  // sustainable soft-only tool (Chainsaw, can't scratch rock). 0.55 keeps the sustainable
+  // Luminous Drill on top while leaving Black Hole above the soft diggers.
+  return m.manaSustainable ? 1 : 0.55
 }
 
 export interface DigScore {

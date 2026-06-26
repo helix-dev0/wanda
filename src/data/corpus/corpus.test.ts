@@ -100,19 +100,21 @@ describe('corpus — Layer A: the sim faithfully reproduces each build', () => {
   })
 })
 
-// Builds with an UNAMBIGUOUS meta purpose route to that archetype (argmax). The combat
-// overlaps (damage-broadcast / bomb-trigger-fan / boss-killer legitimately top several of
-// DAMAGE/AOE/SPAM — §5.3 "overlap is intentional") and the Layer-C foils (wide-scatter,
+// Builds with an UNAMBIGUOUS meta purpose route to that archetype (argmax). The remaining
+// combat overlap (damage-broadcast / tight-burst — a damage-boosted multicast genuinely
+// spreads, §5.3 "overlap is intentional") and the Layer-C foils (wide-scatter,
 // chainsaw-plus-payload) are validated by the orderings below, not by a unique argmax.
 const ROUTING_EXEMPLARS: Record<string, Archetype> = {
   'bare-light-bullet': 'SPAM',
   'trigger-heavy-payload': 'DAMAGE',
   'nested-trigger-chain': 'DAMAGE',
   'crit-stack': 'DAMAGE',
+  'boss-killer-heavy': 'DAMAGE', // overkill-capped SPAM no longer steals it from DAMAGE
   'sustainable-spammer': 'SPAM',
   'starved-spammer': 'SPAM',
   'nuke-aoe': 'AOE',
   'chain-bolt-penetrating': 'AOE',
+  'bomb-trigger-fan': 'AOE', // a multi-bomb fan is crowd-clear; overkill-capped SPAM no longer tops it
   'luminous-drill-digger': 'DIGGING',
   'black-hole-digger': 'DIGGING',
   'drill-only-no-combat': 'DIGGING',

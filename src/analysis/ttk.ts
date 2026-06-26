@@ -120,11 +120,16 @@ export function aoeClearSeconds(m: WandMetrics, count: number = REFERENCE_SWARM)
   return m.firstCastSeconds + (casts - 1) * m.cycleSeconds
 }
 
-/** Sustainable weak-mobs killed per second — the SPAM scalar. Mana-honest
- *  (`effectiveSustainedDps` self-throttles a wand that can't pay for its fire), reaching
- *  at range. Grounded in the rapid-fire guide (cast-rate is mana-bound). */
+/** Sustainable weak-mobs killed per second — the SPAM scalar. This is a KILL-rate, not raw
+ *  DPS: a non-piercing projectile kills ONE mob per hit and despawns, so damage beyond the
+ *  mob's HP is WASTED on a swarm (two one-shotters out-clear one overkill shot at equal cast
+ *  speed). Cap each projectile's useful damage at mob HP, then keep the mana-honest
+ *  (`effectiveSustainedDps` self-throttles) + reach gating. Grounded in the rapid-fire guide. */
 export function spamKillRate(m: WandMetrics): number {
-  return (m.effectiveSustainedDps * m.reachUsability) / REFERENCE_ENEMIES.weakMob.hp
+  const mobHP = REFERENCE_ENEMIES.weakMob.hp
+  const perProjectile = m.projectilesPerCycle > 0 ? m.damagePerCycle / m.projectilesPerCycle : 0
+  const overkillFactor = perProjectile > mobHP ? mobHP / perProjectile : 1 // 1 when nothing overkills
+  return (m.effectiveSustainedDps * overkillFactor * m.reachUsability) / mobHP
 }
 
 // --- score mapping: scalar → 0–100, aligned to tierForScore (≥80 S, 60 A, 40 B, 20 C) ----
