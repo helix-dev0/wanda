@@ -24,6 +24,21 @@ order / wrong tier) · `metric` (a number reads wrong) · `copy` (label/wording)
 
 ---
 
+## Known scorer blind spots (Claude-noted; not bugs)
+
+- **Big-pool "burst-then-dry" boss kill:** the DAMAGE **boss** anchor is now scored at the
+  SUSTAINED (mana-honest) rate (the mana-sustainability fix, 2026-06-26), so a wand that empties a
+  large pool over a few casts to delete the boss and *then* stalls is rated by what it can sustain
+  — slightly UNDER-rated for that one-off boss delete. It is NOT a true one-shot (which the
+  one-cast overkill floor still catches at full burst). Maintainer-approved direction ("you can't
+  out-burst a boss you can't out-last"); flagged for transparency. The mid bruiser still keeps the
+  burst phase, so short fights are unaffected.
+- **Enabler vs sustainability tension:** a cast-speed enabler (Luminous Drill / Chainsaw) raises
+  DAMAGE when there's mana headroom, but on a LOW-regen wand it trades sustainability for speed and
+  the mana-honest boss anchor prefers the sustainable (Mana-Reduce) build — so the drill may not top
+  the suggestions on a mana-starved chassis. Working as designed; surfaced here so it doesn't read
+  as "enablers are still excluded".
+
 ## Findings
 
 <!-- add entries below this line -->

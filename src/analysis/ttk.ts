@@ -104,11 +104,6 @@ export function ttkAgainst(m: WandMetrics, hp: number, f: FocusFactors, sustaine
   return Math.max(hi, m.firstCastSeconds)
 }
 
-/** Convenience: TTK vs a named reference enemy. */
-export function ttkVs(m: WandMetrics, enemy: keyof typeof REFERENCE_ENEMIES, f: FocusFactors): number {
-  return ttkAgainst(m, REFERENCE_ENEMIES[enemy].hp, f)
-}
-
 /**
  * Seconds to clear a swarm of `count` weak mobs. One cast clears `coverage` mobs =
  * explosion-radius mobs + penetrating-projectile mobs (each gated by per-hit lethality vs
