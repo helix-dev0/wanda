@@ -7,7 +7,7 @@
 import { isTauri } from '@tauri-apps/api/core'
 import { liveEnabled, startLiveBridge } from './liveClient'
 import { startTauriWatch } from './tauriClient'
-import { resolveSnapshotPath, snapshotPathOverride } from './snapshotPath'
+import { resolveSnapshotPath } from './snapshotPath'
 import { reportLive } from '../store/liveStatusStore'
 
 /** True when the app should stream live data: running inside Tauri (the installed app),
@@ -26,10 +26,10 @@ export function startLive(): () => void {
 
   let stopped = false
   let dispose: (() => void) | undefined
-  void resolveSnapshotPath().then((path) => {
+  void resolveSnapshotPath().then(({ path, source, searched }) => {
     if (stopped) return
     // Surface the resolved path + how it was chosen, so the status line names it.
-    reportLive({ type: 'resolved', path, source: snapshotPathOverride() ? 'override' : 'os-default' })
+    reportLive({ type: 'resolved', path, source, searched })
     dispose = startTauriWatch(path)
     if (stopped) dispose()
   })

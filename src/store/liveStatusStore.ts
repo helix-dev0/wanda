@@ -24,6 +24,8 @@ export interface LiveStatusData {
   /** Resolved watch path (Tauri) — null until resolved / in fixtures mode. */
   readonly path: string | null
   readonly source: PathSource | null
+  /** Snapshot paths auto-detect probed (empty unless detection ran and we fell back). */
+  readonly searched: readonly string[]
   /** Date.now() of the last successful snapshot apply. */
   readonly lastUpdate: number | null
   /** Human-readable diagnostic for the current failure, or null when healthy. */
@@ -31,7 +33,7 @@ export interface LiveStatusData {
 }
 
 export type LiveStatusEvent =
-  | { type: 'resolved'; path: string; source: PathSource }
+  | { type: 'resolved'; path: string; source: PathSource; searched?: readonly string[] }
   | { type: 'watching' }
   | { type: 'applied'; at: number }
   | { type: 'ingest-error'; message: string }
@@ -48,7 +50,7 @@ export type LiveStatusStore = LiveStatusData & LiveStatusActions
 
 /** A fresh, fully-default live status. */
 export function freshLiveStatus(): LiveStatusData {
-  return { phase: 'idle', path: null, source: null, lastUpdate: null, error: null }
+  return { phase: 'idle', path: null, source: null, searched: [], lastUpdate: null, error: null }
 }
 
 /**
@@ -63,7 +65,7 @@ export function freshLiveStatus(): LiveStatusData {
 export function liveStatusReducer(s: LiveStatusData, e: LiveStatusEvent): LiveStatusData {
   switch (e.type) {
     case 'resolved':
-      return { ...s, path: e.path, source: e.source }
+      return { ...s, path: e.path, source: e.source, searched: e.searched ?? s.searched }
     case 'watching':
       return {
         ...s,

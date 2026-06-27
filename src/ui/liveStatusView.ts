@@ -27,11 +27,18 @@ export function formatLiveStatus(s: LiveStatusData, now: number): LiveStatusView
   switch (s.phase) {
     case 'idle':
       return { tone: 'idle', text: 'Connecting to the live snapshot…' }
-    case 'watching':
+    case 'watching': {
+      // When auto-detect ran but found nothing we're watching a best-effort guess — flag it so
+      // a wrong path (the co-player's likely failure) is obvious rather than a silent dead wait.
+      const guess =
+        s.source === 'os-default' && s.searched.length > 0
+          ? ' [auto-detect found no Noita install — set the path in Settings if this is wrong]'
+          : ''
       return {
         tone: 'wait',
-        text: `Watching ${s.path ?? '…'} — waiting for Noita (start a run with the wand_capture mod enabled)`,
+        text: `Watching ${s.path ?? '…'} — waiting for Noita (start a run with the wand_capture mod enabled)${guess}`,
       }
+    }
     case 'connected': {
       const age = s.lastUpdate == null ? '' : ` — updated ${relativeAge(now - s.lastUpdate)}`
       const warn = s.error ? ` · last snapshot rejected: ${s.error}` : ''

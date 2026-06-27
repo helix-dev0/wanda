@@ -20,6 +20,7 @@ describe('freshLiveStatus', () => {
       phase: 'idle',
       path: null,
       source: null,
+      searched: [],
       lastUpdate: null,
       error: null,
     })
@@ -27,10 +28,16 @@ describe('freshLiveStatus', () => {
 })
 
 describe('liveStatusReducer', () => {
-  it('resolved records path + source without leaving idle (not watching yet)', () => {
-    const s = liveStatusReducer(fresh, { type: 'resolved', path: '/n/snapshot.json', source: 'detect' })
+  it('resolved records path + source (+ searched) without leaving idle (not watching yet)', () => {
+    const s = liveStatusReducer(fresh, {
+      type: 'resolved',
+      path: '/n/snapshot.json',
+      source: 'detect',
+      searched: ['/a/snapshot.json', '/n/snapshot.json'],
+    })
     expect(s.path).toBe('/n/snapshot.json')
     expect(s.source).toBe('detect')
+    expect(s.searched).toEqual(['/a/snapshot.json', '/n/snapshot.json'])
     expect(s.phase).toBe('idle')
   })
 
@@ -94,7 +101,7 @@ describe('createLiveStatusStore', () => {
     expect(store.getState().lastUpdate).toBe(42)
 
     store.getState().reset()
-    const { phase, path, source, lastUpdate, error } = store.getState()
-    expect({ phase, path, source, lastUpdate, error }).toEqual(freshLiveStatus())
+    const { phase, path, source, searched, lastUpdate, error } = store.getState()
+    expect({ phase, path, source, searched, lastUpdate, error }).toEqual(freshLiveStatus())
   })
 })

@@ -26,6 +26,24 @@ describe('formatLiveStatus', () => {
     expect(v.text).toMatch(/waiting for Noita/i)
   })
 
+  it('watching on the os-default fallback flags that the path is a guess', () => {
+    const s: LiveStatusData = {
+      ...base,
+      phase: 'watching',
+      path: '/home/u/.local/share/Steam/steamapps/common/Noita/snapshot.json',
+      source: 'os-default',
+      searched: ['/c/Noita/snapshot.json'],
+    }
+    const v = formatLiveStatus(s, 0)
+    expect(v.text).toMatch(/auto-detect found no Noita install/i)
+    expect(v.text).toMatch(/Settings/i)
+  })
+
+  it('watching on a detected path does NOT add the guess hint', () => {
+    const s: LiveStatusData = { ...base, phase: 'watching', path: '/p/snapshot.json', source: 'detect' }
+    expect(formatLiveStatus(s, 0).text).not.toMatch(/auto-detect found no/i)
+  })
+
   it('connected shows a relative last-update and reads ok', () => {
     const s: LiveStatusData = { ...base, phase: 'connected', lastUpdate: 1000 }
     const v = formatLiveStatus(s, 4000)
