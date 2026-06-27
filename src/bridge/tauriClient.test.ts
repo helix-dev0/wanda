@@ -75,3 +75,39 @@ describe('startTauriWatch — Tauri fs-watch live transport', () => {
     expect(h.unwatch).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('startTauriWatch — live-status reporting (the diagnostics fix)', () => {
+  it('reports applied + watching on a valid replay', async () => {
+    h.readTextFile.mockResolvedValue(snap('run-a'))
+    const report = vi.fn()
+    startTauriWatch('/noita/snapshot.json', () => {}, report)
+    await vi.waitFor(() => expect(report).toHaveBeenCalledWith(expect.objectContaining({ type: 'applied' })))
+    await vi.waitFor(() => expect(report).toHaveBeenCalledWith({ type: 'watching' }))
+  })
+
+  it('reports watch-error when watch() rejects (the previously-silent Windows failure)', async () => {
+    h.readTextFile.mockResolvedValue(snap('run-a'))
+    h.watch.mockRejectedValueOnce(new Error('forbidden path'))
+    const report = vi.fn()
+    startTauriWatch('/noita/snapshot.json', () => {}, report)
+    await vi.waitFor(() =>
+      expect(report).toHaveBeenCalledWith({ type: 'watch-error', message: 'forbidden path' }),
+    )
+  })
+
+  it('reports ingest-error on malformed snapshot text (transport alive, data bad)', async () => {
+    h.readTextFile.mockResolvedValue('}{ not json')
+    const report = vi.fn()
+    startTauriWatch('/noita/snapshot.json', () => {}, report)
+    await vi.waitFor(() => expect(report).toHaveBeenCalledWith(expect.objectContaining({ type: 'ingest-error' })))
+  })
+
+  it('a missing file stays watching — no applied/ingest-error', async () => {
+    h.readTextFile.mockRejectedValue(new Error('ENOENT'))
+    const report = vi.fn()
+    startTauriWatch('/noita/snapshot.json', () => {}, report)
+    await vi.waitFor(() => expect(report).toHaveBeenCalledWith({ type: 'watching' }))
+    expect(report).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'applied' }))
+    expect(report).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ingest-error' }))
+  })
+})

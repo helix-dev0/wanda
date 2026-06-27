@@ -9,6 +9,7 @@
 import { readTextFile, watch } from '@tauri-apps/plugin-fs'
 import { handleBridgeMessage } from './liveClient'
 import { runStore } from '../store/runStore'
+import { reportLive, type LiveStatusEvent } from '../store/liveStatusStore'
 import type { Snapshot } from '../schema/snapshot'
 
 const applyToStore = (s: Snapshot) => runStore.getState().applySnapshot(s)
@@ -33,6 +34,7 @@ function parentDir(p: string): string {
 export function startTauriWatch(
   path: string,
   apply: (s: Snapshot) => void = applyToStore,
+  report: (event: LiveStatusEvent) => void = reportLive,
 ): () => void {
   let stopped = false
   let unwatch: (() => void) | undefined
@@ -43,11 +45,13 @@ export function startTauriWatch(
     try {
       text = await readTextFile(path)
     } catch {
-      return // file missing/unreadable — game not running yet
+      return // file missing/unreadable — game not running yet (stay 'watching', not an error)
     }
     if (text === lastText) return // unrelated dir churn / identical rewrite
     lastText = text
-    handleBridgeMessage(text, apply)
+    const result = handleBridgeMessage(text, apply)
+    if (result.ok) report({ type: 'applied', at: Date.now() })
+    else report({ type: 'ingest-error', message: result.issues[0]?.message ?? 'invalid snapshot' })
   }
 
   void (async () => {
@@ -56,8 +60,10 @@ export function startTauriWatch(
     try {
       unwatch = await watch(parentDir(path), () => { if (!stopped) void pump() }, { delayMs: 200 })
       if (stopped) unwatch() // stopped while awaiting watch() → don't leak the watcher
-    } catch {
-      // watch unavailable (bad scope/path) — initial replay already happened
+      else report({ type: 'watching' })
+    } catch (err) {
+      // watch unavailable (bad scope / wrong or missing dir) — surface it, don't swallow.
+      report({ type: 'watch-error', message: err instanceof Error ? err.message : String(err) })
     }
   })()
 
