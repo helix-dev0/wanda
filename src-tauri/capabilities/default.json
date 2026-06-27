@@ -15,6 +15,9 @@
       "identifier": "fs:scope",
       "allow": [
         { "path": "$HOME/**" },
+        { "path": "$HOME/.local/share/Steam/**" },
+        { "path": "$HOME/.steam/**" },
+        { "path": "$HOME/.var/app/com.valvesoftware.Steam/**" },
         { "path": "C:/**" },
         { "path": "D:/**" },
         { "path": "E:/**" },
