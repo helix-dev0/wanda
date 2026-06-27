@@ -54,11 +54,29 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: Wand Grimoire ${{ github.ref_name }}
           releaseBody: |
-            Native installers for Linux + Windows. Download the one for your OS below.
+            Self-contained launchers — no installer, just run them:
+            - Windows: `Wand-Grimoire_x64_portable.exe` — double-click to launch.
+            - Linux: the `.AppImage` — `chmod +x` it, then run.
+            (Needs the WebView2 runtime on Windows, preinstalled on Win10/11.)
             For live in-game analysis, also grab `wand-capture-mod.zip` and install it
             into Noita's mods folder (see the README).
           releaseDraft: true
           prerelease: false
+
+      # The Windows leg builds the binary but no installer (bundle.active=false via
+      # tauri.windows.conf.json), so tauri-action uploads nothing for Windows. Publish the
+      # raw exe — the self-contained, double-click-to-run launcher (Linux gets this from the
+      # portable AppImage). Runs after tauri-action so the draft release already exists.
+      - name: Upload portable Windows exe
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          exe=$(find src-tauri/target/release -maxdepth 1 -name '*.exe' | head -n1)
+          echo "portable binary: $exe"
+          cp "$exe" "Wand-Grimoire_x64_portable.exe"
+          gh release upload "${{ github.ref_name }}" "Wand-Grimoire_x64_portable.exe" --clobber
 
   # Attach the capture-mod zip to the same draft release (tauri-action only uploads its
   # own bundles). Runs after both build legs so the draft already exists.
