@@ -6,6 +6,7 @@
 
 import { homeDir, join } from '@tauri-apps/api/path'
 import { invoke } from '@tauri-apps/api/core'
+import { open } from '@tauri-apps/plugin-dialog'
 import type { PathSource } from '../store/liveStatusStore'
 
 /** localStorage key for the user's snapshot-path override. */
@@ -82,4 +83,19 @@ export async function resolveSnapshotPath(): Promise<ResolvedSnapshot> {
   // Detection found nothing (or is unavailable) — fall back to the best-effort guess, but carry
   // the searched list so the UI can flag that this path is a guess, not a found install.
   return { path: await osDefaultSnapshotPath(), source: 'os-default', searched: detection?.searched ?? [] }
+}
+
+/**
+ * Open a native file picker for snapshot.json — the universal escape hatch when auto-detect
+ * can't find the install (e.g. a Proton prefix or a non-standard drive). Returns the chosen
+ * path, or null if cancelled. Tauri auto-grants fs scope for the picked path for this session.
+ */
+export async function browseForSnapshotPath(): Promise<string | null> {
+  const picked = await open({
+    multiple: false,
+    directory: false,
+    title: 'Select the snapshot.json the wand_capture mod writes',
+    filters: [{ name: 'snapshot', extensions: ['json'] }],
+  })
+  return typeof picked === 'string' ? picked : null
 }

@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
-import { snapshotPathOverride, setSnapshotPathOverride } from '../bridge/snapshotPath'
+import {
+  browseForSnapshotPath,
+  snapshotPathOverride,
+  setSnapshotPathOverride,
+} from '../bridge/snapshotPath'
 
 /**
  * Packaged-app setting: the absolute path the capture mod writes `snapshot.json` to.
@@ -23,6 +27,17 @@ function SnapshotSettingsInner() {
   const save = () => {
     setSnapshotPathOverride(path)
     setSaved(true)
+  }
+
+  // Native file picker — the escape hatch when auto-detect can't find the install
+  // (Proton prefix, non-standard drive). Picking saves the override immediately.
+  const browse = async () => {
+    const picked = await browseForSnapshotPath()
+    if (picked) {
+      setPath(picked)
+      setSnapshotPathOverride(picked)
+      setSaved(true)
+    }
   }
 
   return (
@@ -51,6 +66,9 @@ function SnapshotSettingsInner() {
             padding: '0.25rem 0.4rem',
           }}
         />
+        <button type="button" onClick={() => void browse()} style={{ cursor: 'pointer' }}>
+          browse…
+        </button>
         <button type="button" onClick={save} style={{ cursor: 'pointer' }}>
           save
         </button>

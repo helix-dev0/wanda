@@ -1,14 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Mock the Tauri invoke + path APIs so resolveSnapshotPath is unit-testable in Node.
-const h = vi.hoisted(() => ({ invoke: vi.fn() }))
+// Mock the Tauri invoke + path + dialog APIs so this is unit-testable in Node.
+const h = vi.hoisted(() => ({ invoke: vi.fn(), open: vi.fn() }))
 vi.mock('@tauri-apps/api/core', () => ({ invoke: h.invoke }))
 vi.mock('@tauri-apps/api/path', () => ({
   homeDir: async () => '/home/u',
   join: async (...parts: string[]) => parts.join('/'),
 }))
+vi.mock('@tauri-apps/plugin-dialog', () => ({ open: h.open }))
 
 import {
+  browseForSnapshotPath,
   resolveSnapshotPath,
   setSnapshotPathOverride,
   SNAPSHOT_PATH_KEY,
@@ -27,6 +29,7 @@ beforeEach(() => {
 
 afterEach(() => {
   h.invoke.mockReset()
+  h.open.mockReset()
   vi.unstubAllGlobals()
 })
 
@@ -71,5 +74,23 @@ describe('resolveSnapshotPath — precedence: override → detect → os-default
     h.invoke.mockResolvedValue({ snapshot_path: '/games/Noita/snapshot.json', install_dir: '/games/Noita', searched: [] })
     const r = await resolveSnapshotPath()
     expect(r).toEqual({ path: '/typed/path.json', source: 'override', searched: [] })
+  })
+})
+
+describe('browseForSnapshotPath — native file picker fallback', () => {
+  it('returns the picked single path', async () => {
+    h.open.mockResolvedValue('/picked/snapshot.json')
+    expect(await browseForSnapshotPath()).toBe('/picked/snapshot.json')
+    expect(h.open).toHaveBeenCalledWith(expect.objectContaining({ multiple: false, directory: false }))
+  })
+
+  it('returns null when the dialog is cancelled', async () => {
+    h.open.mockResolvedValue(null)
+    expect(await browseForSnapshotPath()).toBeNull()
+  })
+
+  it('returns null for an unexpected array result', async () => {
+    h.open.mockResolvedValue(['/a', '/b'])
+    expect(await browseForSnapshotPath()).toBeNull()
   })
 })
