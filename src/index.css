@@ -84,6 +84,25 @@ body::before {
   padding: 22px clamp(16px, 3vw, 36px) 32px;
 }
 
+/* Skip rendering/painting OFF-SCREEN cards. The left column alone is ~5200px of tall wand
+   panels (~650px each), and WebKitGTK (the packaged Linux webview) repaints revealed content
+   as you scroll — the residual scroll lag (Chromium/WebView2 composite it away). content-
+   visibility:auto skips painting fully-off-screen cards; contain-intrinsic-size:auto reserves
+   each card's REAL height after its first render, so the scrollbar stays stable. Applied only
+   to the uniform-height cards (wand panels, tier entries) — NOT the wildly-variable side-cards
+   (234-1900px), where a single estimate would itself cause scroll shifts, and which are too
+   tall to ever be fully off-screen anyway. Tooltips are portaled (FloatingPortal) so paint
+   containment won't clip them. No-op where unsupported; invisible in view. (web.dev:
+   content-visibility / contain-intrinsic-size.) */
+.wand-panel {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 640px;
+}
+.tier-entry {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
 .app-header {
   display: flex;
   align-items: baseline;
