@@ -14,6 +14,9 @@ import type { Snapshot } from '../schema/snapshot'
 
 const applyToStore = (s: Snapshot) => runStore.getState().applySnapshot(s)
 
+/** Poll-backstop interval (ms). See the backstop note in startTauriWatch. */
+const POLL_MS = 1000
+
 /** Parent directory of an absolute path (handles / and \). Pure string op, so it needs
  *  no path-plugin permission. We watch the directory (not the file) so the watcher
  *  survives the snapshot file not existing yet — it fires once the mod creates it. */
@@ -38,6 +41,7 @@ export function startTauriWatch(
 ): () => void {
   let stopped = false
   let unwatch: (() => void) | undefined
+  let poll: ReturnType<typeof setInterval> | undefined
   let lastText: string | null = null
 
   const pump = async () => {
@@ -59,16 +63,28 @@ export function startTauriWatch(
     if (stopped) return
     try {
       unwatch = await watch(parentDir(path), () => { if (!stopped) void pump() }, { delayMs: 200 })
-      if (stopped) unwatch() // stopped while awaiting watch() → don't leak the watcher
-      else report({ type: 'watching' })
+      if (stopped) { unwatch(); return } // stopped while awaiting → don't leak / don't poll
+      report({ type: 'watching' })
     } catch (err) {
       // watch unavailable (bad scope / wrong or missing dir) — surface it, don't swallow.
       report({ type: 'watch-error', message: err instanceof Error ? err.message : String(err) })
+    }
+    // Poll backstop: notify-based watch can silently fail to DELIVER events on some
+    // platforms (notably the untestable Windows/Proton seam) even when watch() resolves.
+    // The mod rewrites the whole file ~2x/sec and pump() dedups by content, so a periodic
+    // re-read guarantees updates everywhere at negligible cost — and also covers the file
+    // first appearing after the app started. Watch stays for sub-second responsiveness.
+    if (!stopped) {
+      poll = setInterval(() => { if (!stopped) void pump() }, POLL_MS)
+      // In Node (tests) unref so a leftover interval can't keep the process alive; no-op in
+      // the browser/webview (number has no unref), where the poll runs normally.
+      ;(poll as unknown as { unref?: () => void }).unref?.()
     }
   })()
 
   return () => {
     stopped = true
     unwatch?.()
+    if (poll) clearInterval(poll)
   }
 }

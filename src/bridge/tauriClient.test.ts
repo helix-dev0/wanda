@@ -111,3 +111,25 @@ describe('startTauriWatch — live-status reporting (the diagnostics fix)', () =
     expect(report).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ingest-error' }))
   })
 })
+
+describe('startTauriWatch — poll backstop (cross-platform guarantee)', () => {
+  it('re-reads on the interval even when the watcher never delivers an event', async () => {
+    vi.useFakeTimers()
+    try {
+      h.readTextFile.mockResolvedValue(snap('run-a'))
+      const applied: Snapshot[] = []
+      const stop = startTauriWatch('/noita/snapshot.json', (s) => applied.push(s))
+      await vi.advanceTimersByTimeAsync(0) // flush replay + watch setup
+      expect(applied).toHaveLength(1)
+
+      // Mod rewrites the file, but NO watch callback fires (notify silently dropped it).
+      h.readTextFile.mockResolvedValue(snap('run-b'))
+      await vi.advanceTimersByTimeAsync(1100) // poll fires → picks up the change anyway
+      expect(applied).toHaveLength(2)
+      expect(applied[1].run_id).toBe('run-b')
+      stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
