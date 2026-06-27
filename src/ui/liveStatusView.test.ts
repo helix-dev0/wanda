@@ -44,6 +44,16 @@ describe('formatLiveStatus', () => {
     expect(formatLiveStatus(s, 0).text).not.toMatch(/auto-detect found no/i)
   })
 
+  it('watching with an error surfaces the rejection (not a false "waiting")', () => {
+    // A bad first/only snapshot lands in phase=watching with an error set — it must NOT hide
+    // behind "waiting for Noita" (that was the exact silent failure this change kills).
+    const s: LiveStatusData = { ...base, phase: 'watching', path: '/p/snapshot.json', error: 'invalid JSON' }
+    const v = formatLiveStatus(s, 0)
+    expect(v.text).toMatch(/rejected/i)
+    expect(v.text).toContain('invalid JSON')
+    expect(v.text).not.toMatch(/waiting for Noita/i)
+  })
+
   it('connected shows a relative last-update and reads ok', () => {
     const s: LiveStatusData = { ...base, phase: 'connected', lastUpdate: 1000 }
     const v = formatLiveStatus(s, 4000)

@@ -26,13 +26,18 @@ export function startLive(): () => void {
 
   let stopped = false
   let dispose: (() => void) | undefined
-  void resolveSnapshotPath().then(({ path, source, searched }) => {
-    if (stopped) return
-    // Surface the resolved path + how it was chosen, so the status line names it.
-    reportLive({ type: 'resolved', path, source, searched })
-    dispose = startTauriWatch(path)
-    if (stopped) dispose()
-  })
+  void resolveSnapshotPath()
+    .then(({ path, source, searched }) => {
+      if (stopped) return
+      // Surface the resolved path + how it was chosen, so the status line names it.
+      reportLive({ type: 'resolved', path, source, searched })
+      dispose = startTauriWatch(path)
+      if (stopped) dispose()
+    })
+    .catch((err) => {
+      // Path resolution itself failed (e.g. homeDir()) — surface it instead of a silent stuck idle.
+      reportLive({ type: 'watch-error', message: err instanceof Error ? err.message : String(err) })
+    })
   return () => {
     stopped = true
     dispose?.()

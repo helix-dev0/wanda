@@ -61,24 +61,24 @@ export function startTauriWatch(
   void (async () => {
     await pump() // replay current state on start
     if (stopped) return
+    // Start the poll backstop + report 'watching' FIRST, BEFORE awaiting watch(): a notify
+    // watcher can silently drop events OR hang entirely (a plausible Windows/Proton wedge), and a
+    // backstop gated on the thing it backs up isn't one. The mod rewrites whole-file ~2x/sec and
+    // pump() dedups by content, so the 1s re-read guarantees delivery everywhere at negligible
+    // cost — and covers the file first appearing after start. watch() below is pure upside.
+    poll = setInterval(() => { if (!stopped) void pump() }, POLL_MS)
+    // In Node (tests) unref so a leftover interval can't keep the process alive; no-op in the
+    // browser/webview (number has no unref), where the poll runs normally.
+    ;(poll as unknown as { unref?: () => void }).unref?.()
+    report({ type: 'watching' })
     try {
+      // watch() upgrades to sub-second responsiveness; the poll already guarantees delivery.
       unwatch = await watch(parentDir(path), () => { if (!stopped) void pump() }, { delayMs: 200 })
-      if (stopped) { unwatch(); return } // stopped while awaiting → don't leak / don't poll
-      report({ type: 'watching' })
+      if (stopped) unwatch() // stopped while awaiting → release the watcher (poll cleared by disposer)
     } catch (err) {
-      // watch unavailable (bad scope / wrong or missing dir) — surface it, don't swallow.
+      // native watch unavailable (bad scope / wrong or missing dir) — surface it, don't swallow;
+      // the poll still backstops, and a successful read will upgrade the phase to connected.
       report({ type: 'watch-error', message: err instanceof Error ? err.message : String(err) })
-    }
-    // Poll backstop: notify-based watch can silently fail to DELIVER events on some
-    // platforms (notably the untestable Windows/Proton seam) even when watch() resolves.
-    // The mod rewrites the whole file ~2x/sec and pump() dedups by content, so a periodic
-    // re-read guarantees updates everywhere at negligible cost — and also covers the file
-    // first appearing after the app started. Watch stays for sub-second responsiveness.
-    if (!stopped) {
-      poll = setInterval(() => { if (!stopped) void pump() }, POLL_MS)
-      // In Node (tests) unref so a leftover interval can't keep the process alive; no-op in
-      // the browser/webview (number has no unref), where the poll runs normally.
-      ;(poll as unknown as { unref?: () => void }).unref?.()
     }
   })()
 

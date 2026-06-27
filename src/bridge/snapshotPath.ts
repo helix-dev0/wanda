@@ -86,9 +86,11 @@ export async function resolveSnapshotPath(): Promise<ResolvedSnapshot> {
 }
 
 /**
- * Open a native file picker for snapshot.json — the universal escape hatch when auto-detect
- * can't find the install (e.g. a Proton prefix or a non-standard drive). Returns the chosen
- * path, or null if cancelled. Tauri auto-grants fs scope for the picked path for this session.
+ * Open a native file picker for snapshot.json — the escape hatch when auto-detect can't find the
+ * install (e.g. a Proton prefix or a non-standard drive). Returns the chosen path, or null if
+ * cancelled. (Tauri grants the picked path fs scope for THIS session only — not persisted — and
+ * we apply the override on the next launch, so out-of-static-scope picks rely on the capability's
+ * fs:scope after restart; the broad Steam/$HOME + C:-H: scope covers the realistic install paths.)
  */
 export async function browseForSnapshotPath(): Promise<string | null> {
   const picked = await open({

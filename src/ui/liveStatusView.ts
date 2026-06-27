@@ -28,6 +28,12 @@ export function formatLiveStatus(s: LiveStatusData, now: number): LiveStatusView
     case 'idle':
       return { tone: 'idle', text: 'Connecting to the live snapshot…' }
     case 'watching': {
+      // A snapshot was read but rejected before we ever connected (e.g. the very first/only
+      // snapshot is bad). Surface it — otherwise this reads as a false "waiting" forever, the
+      // exact silent failure this whole change exists to kill.
+      if (s.error) {
+        return { tone: 'wait', text: `Watching ${s.path ?? '…'} · last snapshot rejected: ${s.error}` }
+      }
       // When auto-detect ran but found nothing we're watching a best-effort guess — flag it so
       // a wrong path (the co-player's likely failure) is obvious rather than a silent dead wait.
       const guess =

@@ -127,6 +127,33 @@ describe('startTauriWatch — poll backstop (cross-platform guarantee)', () => {
       await vi.advanceTimersByTimeAsync(1100) // poll fires → picks up the change anyway
       expect(applied).toHaveLength(2)
       expect(applied[1].run_id).toBe('run-b')
+
+      // disposer must clear the interval — no further pumps after stop()
+      stop()
+      h.readTextFile.mockResolvedValue(snap('run-c'))
+      await vi.advanceTimersByTimeAsync(3000)
+      expect(applied).toHaveLength(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('still delivers via poll when watch() never settles (hangs)', async () => {
+    vi.useFakeTimers()
+    try {
+      h.readTextFile.mockResolvedValue(snap('run-a'))
+      // watch() never resolves or rejects — the backstop must not be stranded behind it.
+      h.watch.mockImplementationOnce(() => new Promise<never>(() => {}))
+      const applied: Snapshot[] = []
+      const report = vi.fn()
+      const stop = startTauriWatch('/noita/snapshot.json', (s) => applied.push(s), report)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(applied).toHaveLength(1) // replay still happened
+      expect(report).toHaveBeenCalledWith({ type: 'watching' }) // reported despite watch() hanging
+
+      h.readTextFile.mockResolvedValue(snap('run-b'))
+      await vi.advanceTimersByTimeAsync(1100)
+      expect(applied).toHaveLength(2) // poll delivered without watch() ever settling
       stop()
     } finally {
       vi.useRealTimers()
