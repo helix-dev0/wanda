@@ -9,9 +9,13 @@
 import { readTextFile, watch } from '@tauri-apps/plugin-fs'
 import { handleBridgeMessage } from './liveClient'
 import { runStore } from '../store/runStore'
+import { reportLive, type LiveStatusEvent } from '../store/liveStatusStore'
 import type { Snapshot } from '../schema/snapshot'
 
 const applyToStore = (s: Snapshot) => runStore.getState().applySnapshot(s)
+
+/** Poll-backstop interval (ms). See the backstop note in startTauriWatch. */
+const POLL_MS = 1000
 
 /** Parent directory of an absolute path (handles / and \). Pure string op, so it needs
  *  no path-plugin permission. We watch the directory (not the file) so the watcher
@@ -33,9 +37,11 @@ function parentDir(p: string): string {
 export function startTauriWatch(
   path: string,
   apply: (s: Snapshot) => void = applyToStore,
+  report: (event: LiveStatusEvent) => void = reportLive,
 ): () => void {
   let stopped = false
   let unwatch: (() => void) | undefined
+  let poll: ReturnType<typeof setInterval> | undefined
   let lastText: string | null = null
 
   const pump = async () => {
@@ -43,26 +49,42 @@ export function startTauriWatch(
     try {
       text = await readTextFile(path)
     } catch {
-      return // file missing/unreadable — game not running yet
+      return // file missing/unreadable — game not running yet (stay 'watching', not an error)
     }
     if (text === lastText) return // unrelated dir churn / identical rewrite
     lastText = text
-    handleBridgeMessage(text, apply)
+    const result = handleBridgeMessage(text, apply)
+    if (result.ok) report({ type: 'applied', at: Date.now() })
+    else report({ type: 'ingest-error', message: result.issues[0]?.message ?? 'invalid snapshot' })
   }
 
   void (async () => {
     await pump() // replay current state on start
     if (stopped) return
+    // Start the poll backstop + report 'watching' FIRST, BEFORE awaiting watch(): a notify
+    // watcher can silently drop events OR hang entirely (a plausible Windows/Proton wedge), and a
+    // backstop gated on the thing it backs up isn't one. The mod rewrites whole-file ~2x/sec and
+    // pump() dedups by content, so the 1s re-read guarantees delivery everywhere at negligible
+    // cost — and covers the file first appearing after start. watch() below is pure upside.
+    poll = setInterval(() => { if (!stopped) void pump() }, POLL_MS)
+    // In Node (tests) unref so a leftover interval can't keep the process alive; no-op in the
+    // browser/webview (number has no unref), where the poll runs normally.
+    ;(poll as unknown as { unref?: () => void }).unref?.()
+    report({ type: 'watching' })
     try {
+      // watch() upgrades to sub-second responsiveness; the poll already guarantees delivery.
       unwatch = await watch(parentDir(path), () => { if (!stopped) void pump() }, { delayMs: 200 })
-      if (stopped) unwatch() // stopped while awaiting watch() → don't leak the watcher
-    } catch {
-      // watch unavailable (bad scope/path) — initial replay already happened
+      if (stopped) unwatch() // stopped while awaiting → release the watcher (poll cleared by disposer)
+    } catch (err) {
+      // native watch unavailable (bad scope / wrong or missing dir) — surface it, don't swallow;
+      // the poll still backstops, and a successful read will upgrade the phase to connected.
+      report({ type: 'watch-error', message: err instanceof Error ? err.message : String(err) })
     }
   })()
 
   return () => {
     stopped = true
     unwatch?.()
+    if (poll) clearInterval(poll)
   }
 }

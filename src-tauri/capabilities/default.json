@@ -10,12 +10,20 @@
     "fs:allow-read-text-file",
     "fs:allow-watch",
     "fs:allow-unwatch",
+    "dialog:allow-open",
     {
       "identifier": "fs:scope",
       "allow": [
         { "path": "$HOME/**" },
+        { "path": "$HOME/.local/share/Steam/**" },
+        { "path": "$HOME/.steam/**" },
+        { "path": "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/**" },
         { "path": "C:/**" },
-        { "path": "D:/**" }
+        { "path": "D:/**" },
+        { "path": "E:/**" },
+        { "path": "F:/**" },
+        { "path": "G:/**" },
+        { "path": "H:/**" }
       ]
     }
   ]

@@ -112,6 +112,35 @@ h1 .rune {
   color: var(--gold);
 }
 
+/* Live transport diagnostic — its own row in the wrapping header. Names the watched
+   path / data flow / errors so a misconfigured live setup is visible, not silent. */
+.live-status {
+  flex-basis: 100%;
+  margin: 8px 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-dim);
+  word-break: break-all;
+}
+
+.live-status::before {
+  content: '\25c9 '; /* ◉ */
+}
+
+.live-status--idle {
+  color: var(--ink-faint);
+}
+.live-status--wait {
+  color: var(--gold);
+}
+.live-status--ok {
+  color: #8fbf6a;
+}
+.live-status--error {
+  color: #e0795a;
+}
+
 /* --- one-page dashboard layout --------------------------------------------- */
 
 .dashboard {

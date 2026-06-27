@@ -4,6 +4,20 @@
 > [`../noita-wand-assistant-spec.md`](../noita-wand-assistant-spec.md) (the design).
 > **Last updated: 2026-06-26** · branch `scoring-model-v2`. 471 tests green (post-ship polish round, ↓).
 >
+> 🔌 **PACKAGED LIVE PIPELINE FIXED (2026-06-26, branch `fix/packaged-live-setup`, 502 JS + 4 Rust tests).**
+> The v0.2.0 `.exe` "did nothing" because the Tauri live path (`tauriClient` plugin-fs watch) was never
+> runtime-tested and swallowed every failure. Now: a **live-status diagnostic line** (watching `<path>` ·
+> last-update · `watch-error`/`ingest-error`, three distinct failure tones — `liveStatusStore` +
+> `LiveStatusLine`); the discarded `IngestResult` + `watch()` rejection are **surfaced**; a **1s poll
+> backstop** guarantees delivery even if notify drops events; **Noita auto-detect** replaces the single
+> hardcoded Windows guess (first-ever Rust command `detect_noita` parsing Steam `libraryfolders.vdf`,
+> precedence override→detect→os-default); a **Browse… picker** (plugin-dialog) + the existing override.
+> **Linux repro found + fixed the real bug:** `fs:scope` glob `**` skips dot-dirs, so `$HOME/**` never
+> matched `.local/share/Steam/...` → watch+read denied → no data; scope now spells out the Steam
+> dot-dirs. Verified on Linux (packaged `tauri dev`): `watch()` holds an inotify watch on the Noita dir
+> (/proc-confirmed) + browser e2e shows live wands. 🔴 **PENDING: Windows co-player runtime confirm**
+> before cutting v0.2.1. Part 2 (turnkey mod self-install) is spec'd, not yet built.
+>
 > 🟢 **SCORING v2 SHIPPED + live-hardened.** The TTK-grounded rebuild
 > ([`docs/scoring-model-v2-spec.md`](./scoring-model-v2-spec.md)) replaced the patched heuristic scorer
 > in place (S0→S6): DAMAGE/AOE/SPAM are **expected time-to-kill vs cited reference enemies**

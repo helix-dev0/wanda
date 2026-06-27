@@ -75,3 +75,88 @@ describe('startTauriWatch — Tauri fs-watch live transport', () => {
     expect(h.unwatch).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('startTauriWatch — live-status reporting (the diagnostics fix)', () => {
+  it('reports applied + watching on a valid replay', async () => {
+    h.readTextFile.mockResolvedValue(snap('run-a'))
+    const report = vi.fn()
+    startTauriWatch('/noita/snapshot.json', () => {}, report)
+    await vi.waitFor(() => expect(report).toHaveBeenCalledWith(expect.objectContaining({ type: 'applied' })))
+    await vi.waitFor(() => expect(report).toHaveBeenCalledWith({ type: 'watching' }))
+  })
+
+  it('reports watch-error when watch() rejects (the previously-silent Windows failure)', async () => {
+    h.readTextFile.mockResolvedValue(snap('run-a'))
+    h.watch.mockRejectedValueOnce(new Error('forbidden path'))
+    const report = vi.fn()
+    startTauriWatch('/noita/snapshot.json', () => {}, report)
+    await vi.waitFor(() =>
+      expect(report).toHaveBeenCalledWith({ type: 'watch-error', message: 'forbidden path' }),
+    )
+  })
+
+  it('reports ingest-error on malformed snapshot text (transport alive, data bad)', async () => {
+    h.readTextFile.mockResolvedValue('}{ not json')
+    const report = vi.fn()
+    startTauriWatch('/noita/snapshot.json', () => {}, report)
+    await vi.waitFor(() => expect(report).toHaveBeenCalledWith(expect.objectContaining({ type: 'ingest-error' })))
+  })
+
+  it('a missing file stays watching — no applied/ingest-error', async () => {
+    h.readTextFile.mockRejectedValue(new Error('ENOENT'))
+    const report = vi.fn()
+    startTauriWatch('/noita/snapshot.json', () => {}, report)
+    await vi.waitFor(() => expect(report).toHaveBeenCalledWith({ type: 'watching' }))
+    expect(report).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'applied' }))
+    expect(report).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ingest-error' }))
+  })
+})
+
+describe('startTauriWatch — poll backstop (cross-platform guarantee)', () => {
+  it('re-reads on the interval even when the watcher never delivers an event', async () => {
+    vi.useFakeTimers()
+    try {
+      h.readTextFile.mockResolvedValue(snap('run-a'))
+      const applied: Snapshot[] = []
+      const stop = startTauriWatch('/noita/snapshot.json', (s) => applied.push(s))
+      await vi.advanceTimersByTimeAsync(0) // flush replay + watch setup
+      expect(applied).toHaveLength(1)
+
+      // Mod rewrites the file, but NO watch callback fires (notify silently dropped it).
+      h.readTextFile.mockResolvedValue(snap('run-b'))
+      await vi.advanceTimersByTimeAsync(1100) // poll fires → picks up the change anyway
+      expect(applied).toHaveLength(2)
+      expect(applied[1].run_id).toBe('run-b')
+
+      // disposer must clear the interval — no further pumps after stop()
+      stop()
+      h.readTextFile.mockResolvedValue(snap('run-c'))
+      await vi.advanceTimersByTimeAsync(3000)
+      expect(applied).toHaveLength(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('still delivers via poll when watch() never settles (hangs)', async () => {
+    vi.useFakeTimers()
+    try {
+      h.readTextFile.mockResolvedValue(snap('run-a'))
+      // watch() never resolves or rejects — the backstop must not be stranded behind it.
+      h.watch.mockImplementationOnce(() => new Promise<never>(() => {}))
+      const applied: Snapshot[] = []
+      const report = vi.fn()
+      const stop = startTauriWatch('/noita/snapshot.json', (s) => applied.push(s), report)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(applied).toHaveLength(1) // replay still happened
+      expect(report).toHaveBeenCalledWith({ type: 'watching' }) // reported despite watch() hanging
+
+      h.readTextFile.mockResolvedValue(snap('run-b'))
+      await vi.advanceTimersByTimeAsync(1100)
+      expect(applied).toHaveLength(2) // poll delivered without watch() ever settling
+      stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

@@ -6,6 +6,7 @@
 
 import { ingestSnapshotText, type IngestResult } from '../ingestion/ingest'
 import { runStore } from '../store/runStore'
+import { reportLive, type LiveStatusEvent } from '../store/liveStatusStore'
 import type { Snapshot } from '../schema/snapshot'
 
 /** Default bridge endpoint (matches bridge/watch.mjs's default port). */
@@ -33,7 +34,10 @@ export function handleBridgeMessage(text: string, apply: (s: Snapshot) => void):
  * arrive, auto-reconnecting if the bridge drops. Returns a disposer that stops
  * reconnecting and closes the socket.
  */
-export function startLiveBridge(url: string = DEFAULT_BRIDGE_URL): () => void {
+export function startLiveBridge(
+  url: string = DEFAULT_BRIDGE_URL,
+  report: (event: LiveStatusEvent) => void = reportLive,
+): () => void {
   let socket: WebSocket | null = null
   let stopped = false
   let retry: ReturnType<typeof setTimeout> | undefined
@@ -41,10 +45,17 @@ export function startLiveBridge(url: string = DEFAULT_BRIDGE_URL): () => void {
   const connect = () => {
     if (stopped) return
     socket = new WebSocket(url)
-    socket.onmessage = (e) =>
-      handleBridgeMessage(String(e.data), (s) => runStore.getState().applySnapshot(s))
+    socket.onopen = () => report({ type: 'watching' })
+    socket.onmessage = (e) => {
+      const result = handleBridgeMessage(String(e.data), (s) => runStore.getState().applySnapshot(s))
+      if (result.ok) report({ type: 'applied', at: Date.now() })
+      else report({ type: 'ingest-error', message: result.issues[0]?.message ?? 'invalid snapshot' })
+    }
     socket.onclose = () => {
-      if (!stopped) retry = setTimeout(connect, 1000)
+      if (!stopped) {
+        report({ type: 'watch-error', message: 'live bridge disconnected — retrying' })
+        retry = setTimeout(connect, 1000)
+      }
     }
     socket.onerror = () => socket?.close()
   }
