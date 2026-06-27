@@ -10,6 +10,8 @@ import { TierListPanel } from './ui/TierListPanel'
 import { useGeneration } from './ui/useGeneration'
 import { isLive, startLive } from './bridge/startLive'
 import { SnapshotSettings } from './ui/SnapshotSettings'
+import { LiveStatusLine } from './ui/LiveStatusLine'
+import { useLiveStatus } from './ui/useLiveStatus'
 
 /**
  * M2 live-mirror dashboard. Everything visible on one page — current wand(s) on
@@ -47,6 +49,8 @@ function App() {
   const pool = useRunStore((s) => s.ledger.spells)
   const provenance = useRunStore((s) => s.ledger.provenance)
   const heldWand = activeWand(wands)
+  // Live transport phase — lets the empty-state point at the diagnostic line on failure.
+  const livePhase = useLiveStatus((s) => s.phase)
   // Owned copy counts (current frame): caps live suggestions to what the player can
   // actually socket — never advise a swap to a spell you don't hold a spare of.
   const caps = useMemo(() => ownedCounts(wands, bag), [wands, bag])
@@ -67,6 +71,7 @@ function App() {
           </span>
         )}
         <SnapshotSettings />
+        {isLive() ? <LiveStatusLine /> : null}
       </header>
 
       <div className="dashboard">
@@ -75,7 +80,9 @@ function App() {
           {wands.length === 0 ? (
             <p className="empty-note">
               {isLive()
-                ? 'Waiting for Noita — enable the wand_capture mod and start a run (press F8 to capture).'
+                ? livePhase === 'error'
+                  ? 'Live data unavailable — see the status line at the top.'
+                  : 'Waiting for Noita — install + enable the wand_capture mod and start a run.'
                 : 'No wand held in this capture.'}
             </p>
           ) : (
