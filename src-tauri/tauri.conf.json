@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Wand Grimoire",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "identifier": "dev.helix.wandgrimoire",
   "build": {
     "frontendDist": "../dist",
