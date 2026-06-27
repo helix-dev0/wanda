@@ -35,3 +35,4 @@ salinecitrine-*.png
 
 # agent worktrees (transient; created by the Agent tool)
 .claude/worktrees/
+.stack/

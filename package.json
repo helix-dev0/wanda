@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "bridge": "node bridge/watch.mjs",
+    "stack": "bash scripts/stack.sh",
     "record": "node bridge/record.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
