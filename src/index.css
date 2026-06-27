@@ -58,7 +58,22 @@
 body {
   margin: 0;
   min-height: 100svh;
-  background: radial-gradient(120% 90% at 50% -10%, #221a12 0%, var(--bg) 55%, #0c0906 100%) fixed;
+  background: var(--bg);
+}
+
+/* The vignette as a FIXED, COMPOSITED layer — NOT background-attachment:fixed. A fixed
+   background repaints every scroll frame (web.dev: scrolling should be composite-only;
+   a background is paint-only), which is smooth in Chromium (npm run dev) but janky in
+   WebKitGTK (the packaged Linux webview). Promoting a fixed-position layer with
+   translateZ(0) paints it once and only composites it on scroll. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 50% -10%, #221a12 0%, var(--bg) 55%, #0c0906 100%);
+  transform: translateZ(0);
 }
 
 /* --- app frame ------------------------------------------------------------- */
